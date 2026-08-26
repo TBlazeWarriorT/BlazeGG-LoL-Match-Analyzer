@@ -107,7 +107,44 @@ input[type="text"], input[type="password"] {
     border-radius: 50%;
     border: 2px solid var(--card-border);
 }	.m-champ-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }	.m-sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }
+.m-teams-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+.m-team-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: #090d16;
+    padding: 2px 6px;
+    border-radius: 12px;
+    border: 1px solid #1e293b;
+}
+.m-team-blue { border-color: rgba(59, 130, 246, 0.3); }
+.m-team-red { border-color: rgba(239, 68, 68, 0.3); }
+.m-mini-champ {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #334155;
+    background: #0f172a;
+    transition: transform 0.15s ease;
+}
+.m-mini-champ:hover {
+    transform: scale(1.25);
+    z-index: 2;
+    border-color: var(--accent);
+}
+.m-vs-text {
+    color: #475569;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
 .m-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; }
+
 .badge-win { background: #166534; color: #86efac; }
 .badge-loss { background: #991b1b; color: #fca5a5; }
 .btn-analyze {

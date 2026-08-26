@@ -40,7 +40,11 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         cs_display = f"<b>{cs_val}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({cs_pm}/m)</span>"
 
         if is_bot_duo:
+            lvl1 = p.get("lvl1", "")
+            lvl2 = p.get("lvl2", "")
+            lvl_display = f" • <span class='champ-level-badge'>Lv {lvl1} &amp; {lvl2}</span>" if lvl1 and lvl2 else ""
             header_html = f"""
+
             <div class="p-header">
                 <div class="duo-avatar-stack">
                     <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
@@ -48,22 +52,25 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 </div>
                 <div class="p-meta">
                     <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
-                    <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
+                    <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
                 </div>
             </div>
             """
             spells_runes_strip = ""
             items_html = ""
         else:
+            lvl_val = p.get("champ_level", 1)
+            lvl_display = f" • <span class='champ-level-badge'>Lv {lvl_val}</span>" if lvl_val else ""
             header_html = f"""
             <div class="p-header">
                 <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <div class="p-meta">
                     <div class="p-name">{p['riot_id']} {target_badge}</div>
-                    <div class="p-champ">{p['champion']} • KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
+                    <div class="p-champ">{p['champion']} • KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
                 </div>
             </div>
             """
+
             spells_html = "".join([
                 f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
                 for s in p.get("spells", []) if s.get("icon")
@@ -115,7 +122,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
             </div>
             <div class="pill-content-detail">
-                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
             </div>
         </div>
         """
@@ -126,10 +133,11 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
             </div>
             <div class="pill-content-detail">
-                <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
+                <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span class="breakdown-dot">•</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span class="breakdown-dot">•</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
             </div>
         </div>
         """
+
 
 
         line_3_gold_cs = f"""
@@ -396,8 +404,8 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         csm_d2 = round(d2_cs / dur_min_calc, 1)
 
         duo_p1 = {
-            "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"],
-            "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"],
+            "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"], "lvl1": p1_bot.get("champ_level", 1),
+            "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"], "lvl2": p1_sup.get("champ_level", 1),
             "kda": f"{d1_kills}/{d1_deaths}/{d1_assists}",
             "kda_ratio": f"{ratio_d1:.2f}:1" if d1_deaths > 0 else "Perfect",
             "cs": d1_cs,
@@ -418,10 +426,11 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         }
 
         duo_p2 = {
-            "champ1": p2_bot["champion"], "icon1": p2_bot["champion_icon"],
-            "champ2": p2_sup["champion"], "icon2": p2_sup["champion_icon"],
+            "champ1": p2_bot["champion"], "icon1": p2_bot["champion_icon"], "lvl1": p2_bot.get("champ_level", 1),
+            "champ2": p2_sup["champion"], "icon2": p2_sup["champion_icon"], "lvl2": p2_sup.get("champ_level", 1),
             "kda": f"{d2_kills}/{d2_deaths}/{d2_assists}",
             "kda_ratio": f"{ratio_d2:.2f}:1" if d2_deaths > 0 else "Perfect",
+
             "cs": d2_cs,
             "cs_per_min": csm_d2,
             "damage_to_champions": d2_dmg,
@@ -621,7 +630,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                             <span>{lbl_dmg}: <b>{t1_dmg:,}</b> {t1_dmg_delta_tag}</span>
                         </div>
                         <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
+                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
                         </div>
                     </div>
                     <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
@@ -629,7 +638,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                             <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
                         </div>
                         <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
+                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span class="breakdown-dot">•</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span class="breakdown-dot">•</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
                         </div>
                     </div>
                     <div class="pill pill-wide">
@@ -668,7 +677,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                             <span>{lbl_dmg}: <b>{t2_dmg:,}</b> {t2_dmg_delta_tag}</span>
                         </div>
                         <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
+                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
                         </div>
                     </div>
                     <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
@@ -676,9 +685,10 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                             <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
                         </div>
                         <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
+                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span class="breakdown-dot">•</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span class="breakdown-dot">•</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
                         </div>
                     </div>
+
 
                     <div class="pill pill-wide">
                         <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> {t2_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t2_dmg / max(t2_gold, 1), 2)} dmg/g)</span></span>

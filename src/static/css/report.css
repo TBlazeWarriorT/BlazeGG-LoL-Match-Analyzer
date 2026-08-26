@@ -226,6 +226,21 @@ body {
     justify-content: center;
     white-space: nowrap;
 }
+.breakdown-dot {
+    color: #475569;
+    font-size: 0.75rem;
+    padding: 0 1px;
+}
+.champ-level-badge {
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #334155;
+    letter-spacing: 0.3px;
+}
 .dmg-phys { color: #f87171 !important; }
 .dmg-mag { color: #60a5fa !important; }
 .dmg-true { color: #f8fafc !important; }
@@ -237,6 +252,7 @@ body {
 }
 .mini-icon { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; flex-shrink: 0; }
 .mini-icon-round { border-radius: 50% !important; border: 1px solid #334155; }
+
 
 .items-flex { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .item-icon {

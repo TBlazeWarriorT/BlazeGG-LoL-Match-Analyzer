@@ -127,7 +127,9 @@ class MatchAnalysis:
             "champion_raw": raw_champ,
             "champion_icon": self.ddragon.get_champion_icon_url(raw_champ),
             "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
+            "champ_level": p.get("champLevel", 1),
             "kda": f"{k}/{d}/{a}",
+
             "kda_ratio": calculate_kda_ratio(k, d, a),
             "kills": k,
             "deaths": d,

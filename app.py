@@ -57,18 +57,25 @@ def get_cached_matches_list(lang: str = "pt_BR"):
                 creation_ms = info.get("gameCreation", 0)
                 target_puuid = meta.get("target_puuid", "")
                 
-                parts = []
+                t1_parts = []
+                t2_parts = []
                 for p in info.get("participants", []):
                     raw_champ = p.get("championName", "")
-                    parts.append({
+                    part_dict = {
                         "name": p.get("riotIdGameName", ""),
                         "tag": p.get("riotIdTagline", ""),
                         "champion": dd.get_clean_champion_name(raw_champ),
                         "icon": dd.get_champion_icon_url(raw_champ),
                         "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
                         "win": p.get("win", False),
-                        "puuid": p.get("puuid")
-                    })
+                        "puuid": p.get("puuid"),
+                        "team_id": p.get("teamId", 100)
+                    }
+                    parts.append(part_dict)
+                    if p.get("teamId", 100) == 100:
+                        t1_parts.append(part_dict)
+                    else:
+                        t2_parts.append(part_dict)
 
                 matches.append({
                     "match_id": mid,
@@ -78,7 +85,9 @@ def get_cached_matches_list(lang: str = "pt_BR"):
                     "creation_ms": creation_ms,
                     "relative_time": format_relative_time(creation_ms, lang=lang),
                     "target_puuid": target_puuid,
-                    "participants": parts
+                    "participants": parts,
+                    "team_100": t1_parts,
+                    "team_200": t2_parts
                 })
         except Exception:
             continue
@@ -97,13 +106,14 @@ def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US") -> str:
         1700: "queue_arena",
         900: "queue_urf",
         1010: "queue_urf",
+        1020: "queue_one_for_all",
         1900: "queue_urf"
     }
     q_key = queue_map.get(queue_id, "")
     q_name = get_text(q_key, lang=lang) if q_key else ""
     return f"{mode_name} ({q_name})" if q_name else mode_name
 
-def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0):
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None):
     win_class = "card-win" if win else "card-loss"
     win_txt = get_text("win", lang=lang) if win else get_text("loss", lang=lang)
     badge_class = "badge-win" if win else "badge-loss"
@@ -114,6 +124,18 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
     parts = riot_id.split("#") if "#" in riot_id else [riot_id, ""]
     g_name, t_line = parts[0], parts[1]
     search_link = f"/search?game_name={g_name}&tag_line={t_line}&lang={lang}" if t_line else "#"
+
+    teams_html = ""
+    if team_100 and team_200:
+        t1_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}"/>' for p in team_100])
+        t2_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}"/>' for p in team_200])
+        teams_html = f"""
+        <div class="m-teams-strip">
+            <div class="m-team-group m-team-blue">{t1_icons}</div>
+            <span class="m-vs-text">vs</span>
+            <div class="m-team-group m-team-red">{t2_icons}</div>
+        </div>
+        """
 
     return f"""
     <div class="match-item {win_class}">
@@ -126,11 +148,13 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     <span class="m-badge {badge_class}">{win_txt}</span>
                 </div>
                 <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
+                {teams_html}
             </div>
         </div>
         <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
     </div>
     """
+
 
 def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="pt_BR"):
     cached_list = get_cached_matches_list(lang=lang)
@@ -177,7 +201,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 render_match_card(
                     m["match_id"], m["champion"], m["champion_icon"],
                     f"{search_name}#{search_tag}", m["kda"], m["win"],
-                    m["duration"], m["game_mode"], m["puuid"], rel_time=m.get("relative_time", ""), is_cached=False, lang=lang, queue_id=m.get("queue_id", 0)
+                    m["duration"], m["game_mode"], m["puuid"], rel_time=m.get("relative_time", ""), is_cached=False, lang=lang, queue_id=m.get("queue_id", 0),
+                    team_100=m.get("team_100"), team_200=m.get("team_200")
                 )
                 for m in search_results
             ]
@@ -212,9 +237,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     m["match_id"], p.get("champion", ""), p.get("icon", ""),
                     f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
                     p.get("win", False), m["duration"], m["game_mode"],
-                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0)
+                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
+                    team_100=m.get("team_100"), team_200=m.get("team_200")
                 )
             )
+
         c_title = get_text("cached_matches_title", lang=lang, count=len(cached_list))
         cached_html = f"""
         <div class="section-card" style="margin-top: 24px;">
@@ -264,17 +291,31 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
         {error_html}
 
-        <!-- BUSCADOR DE INVOCADOR -->
-        <div class="section-card">
-            <h3>{get_text('search_title', lang=lang)}</h3>
-            <form action="/search" method="GET" class="form-row">
-                <input type="hidden" name="lang" value="{lang}"/>
-                <input type="text" name="game_name" placeholder="{get_text('search_game_name_ph', lang=lang)}" value="{def_name}" required style="flex: 2;"/>
-                <span style="color:#64748b; font-weight:800; font-size:1.3rem; margin:0 2px;">#</span>
-                <input type="text" name="tag_line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required style="flex: 1; max-width: 140px;"/>
-                <button type="submit" class="btn" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
-            </form>
+        <!-- BUSCADORES (INVOCADOR & MATCH ID) -->
+        <div style="display:grid; grid-template-columns: 1.6fr 1fr; gap:16px;">
+            <!-- BUSCADOR DE INVOCADOR -->
+            <div class="section-card">
+                <h3 style="margin-top:0;">{get_text('search_title', lang=lang)}</h3>
+                <form action="/search" method="GET" class="form-row">
+                    <input type="hidden" name="lang" value="{lang}"/>
+                    <input type="text" name="game_name" placeholder="{get_text('search_game_name_ph', lang=lang)}" value="{def_name}" required style="flex: 2;"/>
+                    <span style="color:#64748b; font-weight:800; font-size:1.3rem; margin:0 2px;">#</span>
+                    <input type="text" name="tag_line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required style="flex: 1; max-width: 130px;"/>
+                    <button type="submit" class="btn" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
+                </form>
+            </div>
+
+            <!-- BUSCADOR DE MATCH ID -->
+            <div class="section-card">
+                <h3 style="margin-top:0;">{get_text('search_match_id_title', lang=lang)}</h3>
+                <form action="/search_match" method="GET" class="form-row">
+                    <input type="hidden" name="lang" value="{lang}"/>
+                    <input type="text" name="match_id" placeholder="{get_text('search_match_id_ph', lang=lang)}" required style="flex: 1;"/>
+                    <button type="submit" class="btn" style="background:#0284c7;">{get_text('search_match_id_btn', lang=lang)}</button>
+                </form>
+            </div>
         </div>
+
 
         {search_html}
 
@@ -329,21 +370,28 @@ class AppHandler(BaseHTTPRequestHandler):
         if path in ("", "/"):
             self._send_html(render_home_html(lang=lang))
 
+        elif path == "/search_match":
+            mid_input = qs.get("match_id", [""])[0].strip()
+            if not mid_input:
+                self._redirect(f"/?lang={lang}")
+                return
+            
+            # Format clean match_id
+            match_id = mid_input.upper()
+            if not match_id.startswith(("BR1_", "NA1_", "EUW1_", "KR_")) and match_id.isdigit():
+                match_id = f"BR1_{match_id}"
+            
+            last_sess = get_last_session() or {}
+            puuid = last_sess.get("puuid", "")
+            self._redirect(f"/analyze?match_id={match_id}&puuid={puuid}&lang={lang}")
+            return
+
         elif path == "/search":
             name = qs.get("game_name", [""])[0].strip()
             tag = qs.get("tag_line", [""])[0].strip()
 
-            # Suporte para busca direta por Match ID (ex: BR1_3276185058 ou apenas o número com prefixo)
-            potential_match_id = name if not tag or name.upper().startswith(("BR1_", "NA1_", "EUW1_", "KR_")) else ""
-            if potential_match_id and ("_" in potential_match_id or potential_match_id.upper().startswith("BR1")):
-                match_id = potential_match_id.upper()
-                last_sess = get_last_session() or {}
-                puuid = last_sess.get("puuid", "")
-                self._redirect(f"/analyze?match_id={match_id}&puuid={puuid}&lang={lang}")
-                return
-
             if not name or not tag:
-                err_msg = "Informe o Nome e a Tag do jogador (ou cole um Match ID no campo de nome)." if lang == "pt_BR" else "Please provide Game Name and Tag (or paste a Match ID in the name field)."
+                err_msg = "Informe o Nome e a Tag do jogador." if lang == "pt_BR" else "Please provide Game Name and Tag."
                 self._send_html(render_home_html(error_msg=err_msg, lang=lang))
                 return
 
@@ -361,24 +409,51 @@ class AppHandler(BaseHTTPRequestHandler):
                         info = m.get("info", {})
                         dur_s = info.get("gameDuration", 0)
                         creation_ms = info.get("gameCreation", 0)
-                        p = [x for x in info.get("participants", []) if x.get("puuid") == puuid][0]
-                        raw_champ = p.get("championName", "")
+                        
+                        t1_parts = []
+                        t2_parts = []
+                        target_p = None
+                        for part in info.get("participants", []):
+                            raw_champ = part.get("championName", "")
+                            p_info = {
+                                "name": part.get("riotIdGameName", ""),
+                                "tag": part.get("riotIdTagline", ""),
+                                "champion": dd.get_clean_champion_name(raw_champ),
+                                "icon": dd.get_champion_icon_url(raw_champ),
+                                "kda": f"{part.get('kills')}/{part.get('deaths')}/{part.get('assists')}",
+                                "win": part.get("win", False),
+                                "puuid": part.get("puuid")
+                            }
+                            if part.get("puuid") == puuid:
+                                target_p = part
+                            if part.get("teamId", 100) == 100:
+                                t1_parts.append(p_info)
+                            else:
+                                t2_parts.append(p_info)
+
+                        if not target_p and info.get("participants"):
+                            target_p = info["participants"][0]
+
+                        raw_champ = target_p.get("championName", "") if target_p else ""
                         results.append({
                             "match_id": mid,
                             "puuid": puuid,
                             "champion": dd.get_clean_champion_name(raw_champ),
                             "champion_icon": dd.get_champion_icon_url(raw_champ),
-                            "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
-                            "win": p.get("win", False),
+                            "kda": f"{target_p.get('kills')}/{target_p.get('deaths')}/{target_p.get('assists')}" if target_p else "0/0/0",
+                            "win": target_p.get("win", False) if target_p else False,
                             "duration": f"{dur_s // 60}m {dur_s % 60}s",
                             "relative_time": format_relative_time(creation_ms, lang=lang),
                             "game_mode": info.get("gameMode", "CLASSIC"),
-                            "queue_id": info.get("queueId", 0)
+                            "queue_id": info.get("queueId", 0),
+                            "team_100": t1_parts,
+                            "team_200": t2_parts
                         })
                     except Exception:
                         continue
 
                 self._send_html(render_home_html(search_results=results, search_name=name, search_tag=tag, lang=lang))
+
 
             except RiotAPIError as e:
                 self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))
@@ -482,20 +557,62 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 def run_app():
+    # If watchdog process is not active, run with auto-reload
+    if os.getenv("BLAZE_AUTO_RELOAD") != "1":
+        import subprocess
+        import sys
+        import time
+
+        url = f"http://127.0.0.1:{PORT}"
+        print(f"\n==================================================")
+        print(f"  🔥 Blaze GG Hub rodando em: {url}")
+        print(f"  ⚡ Auto-Reloader ATIVADO (qualquer mudança atualiza no F5!)")
+        print(f"  Pressione Ctrl+C para encerrar.")
+        print(f"==================================================\n")
+        webbrowser.open(url)
+
+        env = os.environ.copy()
+        env["BLAZE_AUTO_RELOAD"] = "1"
+
+        watched_files = [Path(__file__)] + list((Path(__file__).parent / "src").glob("**/*"))
+        last_mtimes = {str(f): f.stat().st_mtime for f in watched_files if f.is_file()}
+
+        while True:
+            proc = subprocess.Popen([sys.executable, str(Path(__file__).resolve())], env=env)
+            try:
+                while proc.poll() is None:
+                    time.sleep(0.5)
+                    # Check file changes
+                    changed = False
+                    current_files = [Path(__file__)] + list((Path(__file__).parent / "src").glob("**/*"))
+                    for f in current_files:
+                        if f.is_file():
+                            mtime = f.stat().st_mtime
+                            if str(f) not in last_mtimes or mtime > last_mtimes[str(f)]:
+                                last_mtimes[str(f)] = mtime
+                                changed = True
+                    if changed:
+                        print("\n[⚡ Auto-Reloader] Mudança detectada! Recarregando servidor em background...")
+                        proc.terminate()
+                        proc.wait()
+                        break
+            except KeyboardInterrupt:
+                proc.terminate()
+                proc.wait()
+                print("\nServidor finalizado.")
+                break
+        return
+
+    # Child server worker
     server = ThreadingHTTPServer(("127.0.0.1", PORT), AppHandler)
     server.daemon_threads = True
-    url = f"http://127.0.0.1:{PORT}"
-    print(f"\n==================================================")
-    print(f"  LoL API Analyzer App rodando em: {url}")
-    print(f"  Pressione Ctrl+C no console para parar.")
-    print(f"==================================================\n")
-    webbrowser.open(url)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nServidor finalizado.")
+        pass
     finally:
         server.server_close()
 
 if __name__ == "__main__":
     run_app()
+
