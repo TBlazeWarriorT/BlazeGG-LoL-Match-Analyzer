@@ -1,4 +1,4 @@
-﻿import json
+import json
 from typing import Dict, Any, List
 
 def format_as_llm_json(summary_data: Dict[str, Any]) -> str:

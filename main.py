@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import argparse
 from src.riot_client import RiotClient, RiotAPIError
 from src.ddragon import DataDragon
