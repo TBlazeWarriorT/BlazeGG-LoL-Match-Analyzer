@@ -30,10 +30,15 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         except Exception:
             dur_s_game = 1800
 
+    dur_min_calc = max(dur_s_game / 60.0, 1.0)
+
     icon_gold = AssetManager.get_asset_uri("gold_icon")
     icon_xp = AssetManager.get_asset_uri("xp_icon")
     icon_cs = AssetManager.get_asset_uri("cs_icon")
     icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
+    raw_game_mode = str(data.get("game_mode", "")).upper()
+    is_aram = "ARAM" in raw_game_mode
+    is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
 
     t100_win = team_100.get("win", False)
     t200_win = team_200.get("win", False)
@@ -191,7 +196,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             </div>
             """
 
-            pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b></span>"
+            pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b>"
             vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
 
             line_4_vision_camps = f"""
@@ -447,7 +452,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     # TEAM COMBINED (5v5 TOTAL)
     t1_players = team_100.get("players", [])
     t2_players = team_200.get("players", [])
-    if t1_players and t2_players:
+    raw_game_mode = str(data.get("game_mode", "")).upper()
+    is_aram = "ARAM" in raw_game_mode
+    is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
+
+    if t1_players and t2_players and not is_arena:
         t1_dmg = sum(p.get("damage_to_champions", 0) for p in t1_players)
         t2_dmg = sum(p.get("damage_to_champions", 0) for p in t2_players)
         t1_gold = sum(p.get("gold_total", 0) for p in t1_players)
@@ -522,10 +531,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         t2_gold_delta_tag = f'<span class="lead-delta">+{abs(team_gold_delta_final):,}</span>' if team_gold_delta_final < 0 else ""
 
         # Pills Blue Team 5v5
-        t1_pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t1_pinks}</b></span>"
+        t1_pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t1_pinks}</b>"
         t1_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t1_vis}</b> ({t1_pink_badge})"
 
-        t2_pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t2_pinks}</b></span>"
+        t2_pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t2_pinks}</b>"
         t2_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t2_vis}</b> ({t2_pink_badge})"
 
         duels_html.append(f"""
@@ -742,55 +751,87 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         """ for idx, p in enumerate(top_turret)
     ])
 
+    # Construção modular de pódios respeitando o modo de jogo
+    award_cards = []
+
+    # 1. King of the Jungle (apenas Summoner's Rift)
+    if not is_aram and not is_arena and jungle_items_list:
+        award_cards.append(f"""
+        <div class="award-card">
+            <div>
+                <div class="award-header">{get_text('award_jungle_title', lang=lang)}</div>
+                <div class="award-desc">{get_text('award_jungle_desc', lang=lang)}</div>
+            </div>
+            <div class="award-list">{jungle_items}</div>
+        </div>
+        """)
+
+    # 2. Mayhem (Dano - Todos exceto Arena se configurado)
+    if not is_arena:
+        award_cards.append(f"""
+        <div class="award-card">
+            <div>
+                <div class="award-header">{get_text('award_mayhem_title', lang=lang)}</div>
+                <div class="award-desc">{get_text('award_mayhem_desc', lang=lang)}</div>
+            </div>
+            <div class="award-list">{mayhem_items}</div>
+        </div>
+        """)
+
+    # 3. Greed (Ouro)
+    award_cards.append(f"""
+    <div class="award-card">
+        <div>
+            <div class="award-header">{get_text('award_greed_title', lang=lang)}</div>
+            <div class="award-desc">{get_text('award_greed_desc', lang=lang)}</div>
+        </div>
+        <div class="award-list">{greed_items}</div>
+    </div>
+    """)
+
+    # 4. Might (Dano Absorvido/Mitigado)
+    award_cards.append(f"""
+    <div class="award-card">
+        <div>
+            <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
+            <div class="award-desc">{get_text('award_might_desc', lang=lang)}</div>
+        </div>
+        <div class="award-list">{might_items}</div>
+    </div>
+    """)
+
+    # 5. Visionary (apenas Summoner's Rift)
+    if not is_aram and not is_arena:
+        award_cards.append(f"""
+        <div class="award-card">
+            <div>
+                <div class="award-header">{get_text('award_visionary_title', lang=lang)}</div>
+                <div class="award-desc">{get_text('award_visionary_desc', lang=lang)}</div>
+            </div>
+            <div class="award-list">{visionary_items}</div>
+        </div>
+        """)
+
+    # 6. Demolisher (Torres - Summoner's Rift e ARAM, exceto Arena)
+    if not is_arena:
+        award_cards.append(f"""
+        <div class="award-card">
+            <div>
+                <div class="award-header">{get_text('award_demolisher_title', lang=lang)}</div>
+                <div class="award-desc">{get_text('award_demolisher_desc', lang=lang)}</div>
+            </div>
+            <div class="award-list">{demolisher_items}</div>
+        </div>
+        """)
+
     awards_html = f"""
     <div class="card">
         <h3>{get_text('match_awards_title', lang=lang)}</h3>
         <div class="awards-grid">
-            <div class="award-card">
-                <div>
-                    <div class="award-header">{get_text('award_jungle_title', lang=lang)}</div>
-                    <div class="award-desc">{get_text('award_jungle_desc', lang=lang)}</div>
-                </div>
-                <div class="award-list">{jungle_items}</div>
-            </div>
-            <div class="award-card">
-                <div>
-                    <div class="award-header">{get_text('award_mayhem_title', lang=lang)}</div>
-                    <div class="award-desc">{get_text('award_mayhem_desc', lang=lang)}</div>
-                </div>
-                <div class="award-list">{mayhem_items}</div>
-            </div>
-            <div class="award-card">
-                <div>
-                    <div class="award-header">{get_text('award_greed_title', lang=lang)}</div>
-                    <div class="award-desc">{get_text('award_greed_desc', lang=lang)}</div>
-                </div>
-                <div class="award-list">{greed_items}</div>
-            </div>
-            <div class="award-card">
-                <div>
-                    <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
-                    <div class="award-desc">{get_text('award_might_desc', lang=lang)}</div>
-                </div>
-                <div class="award-list">{might_items}</div>
-            </div>
-            <div class="award-card">
-                <div>
-                    <div class="award-header">{get_text('award_visionary_title', lang=lang)}</div>
-                    <div class="award-desc">{get_text('award_visionary_desc', lang=lang)}</div>
-                </div>
-                <div class="award-list">{visionary_items}</div>
-            </div>
-            <div class="award-card">
-                <div>
-                    <div class="award-header">{get_text('award_demolisher_title', lang=lang)}</div>
-                    <div class="award-desc">{get_text('award_demolisher_desc', lang=lang)}</div>
-                </div>
-                <div class="award-list">{demolisher_items}</div>
-            </div>
+            {"".join(award_cards)}
         </div>
     </div>
-    """
+    """ if award_cards else ""
 
     # Linha do tempo
     events_list_items = []
@@ -820,9 +861,15 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             if streak == "penta":
                 streak_class = "event-penta"
                 streak_badge = '<span class="multi-badge badge-penta">PENTAKILL! 👑</span>'
-            elif streak == "multi":
+            elif streak == "quadra":
+                streak_class = "event-penta"
+                streak_badge = '<span class="multi-badge badge-penta" style="background:linear-gradient(90deg, #c026d3, #db2777);">QUADRA KILL! 🔥</span>'
+            elif streak == "triple":
                 streak_class = "event-multi"
-                streak_badge = '<span class="multi-badge badge-multi">MULTI KILL! ⚔️</span>'
+                streak_badge = '<span class="multi-badge badge-multi" style="background:linear-gradient(90deg, #ea580c, #f59e0b);">TRIPLE KILL! ⚔️</span>'
+            elif streak == "double":
+                streak_class = "event-multi"
+                streak_badge = '<span class="multi-badge badge-multi">DOUBLE KILL! ⚔️</span>'
 
             elim_txt = get_text("eliminated", lang=lang)
             c_ast = ev.get('assists_count', 0)
@@ -848,8 +895,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     total_events_count = len(events_list_items)
     remaining_events = total_events_count - 20
     timeline_toggle_btn = ""
+    timeline_top_toggle_btn = ""
     if remaining_events > 0:
         btn_text = get_text("show_more_events", lang=lang, count=remaining_events)
+        timeline_top_toggle_btn = f"""
+        <button id="toggleTimelineTopBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.78rem; padding:4px 12px; border-radius:6px; cursor:pointer;" onclick="toggleTimeline()">{btn_text}</button>
+        """
         timeline_toggle_btn = f"""
         <div style="text-align:center; margin-top:14px;">
             <button id="toggleTimelineBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.85rem; padding:8px 18px; border-radius:8px; cursor:pointer;" onclick="toggleTimeline()">{btn_text}</button>
@@ -916,6 +967,13 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     favicon_link = f'<link rel="icon" type="image/png" href="{favicon_url}"/>' if favicon_url else ''
 
     header_avatar_html = f'<img src="{favicon_url}" alt="{target_nick}" style="width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);"/>' if favicon_url else ''
+
+    team_titles_html = f"""
+    <div class="team-titles">
+        <div style="color: #60a5fa;">{get_text('blue_team', lang=lang)} {t100_status}</div>
+        <div style="color: #f87171;">{get_text('red_team', lang=lang)} {t200_status}</div>
+    </div>
+    """ if not is_arena else ""
 
     html_content = f"""<!DOCTYPE html>
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
@@ -1082,7 +1140,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         .timeline-hidden {{
             display: none !important;
         }}
-        .mini-icon {{ width: 14px; height: 14px; vertical-align: middle; }}
+        .mini-icon {{ width: 14px; height: 14px; display: inline-block; vertical-align: -2px; flex-shrink: 0; }}
+        .mini-icon-round {{ border-radius: 50% !important; border: 1px solid #334155; }}
         .items-flex {{ display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }}
         .item-icon {{
             width: 26px;
@@ -1648,10 +1707,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             </div>
         </div>
 
-        <div class="team-titles">
-            <div style="color: #60a5fa;">{get_text('blue_team', lang=lang)} {t100_status}</div>
-            <div style="color: #f87171;">{get_text('red_team', lang=lang)} {t200_status}</div>
-        </div>
+        {team_titles_html}
 
         <!-- CONFRONTOS LADO A LADO -->
         <div>
@@ -1663,7 +1719,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
         <!-- Momentos Chave -->
         <div class="card">
-            <h3>{get_text('timeline_title', lang=lang)}</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">{get_text('timeline_title', lang=lang)}</h3>
+                {timeline_top_toggle_btn}
+            </div>
             <ul class="events-list">
                 {events_html}
             </ul>
@@ -1689,20 +1748,25 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         function toggleTimeline() {{
             var hiddenItems = document.querySelectorAll(".events-list .timeline-hidden, .events-list .timeline-visible-expanded");
             var btn = document.getElementById("toggleTimelineBtn");
+            var topBtn = document.getElementById("toggleTimelineTopBtn");
             if (!timelineExpanded) {{
                 hiddenItems.forEach(function(el) {{
                     el.classList.remove("timeline-hidden");
                     el.classList.add("timeline-visible-expanded");
                 }});
                 timelineExpanded = true;
-                if (btn) btn.innerText = "{get_text('show_less_events', lang=lang)}";
+                var lessTxt = "{get_text('show_less_events', lang=lang)}";
+                if (btn) btn.innerText = lessTxt;
+                if (topBtn) topBtn.innerText = lessTxt;
             }} else {{
                 hiddenItems.forEach(function(el) {{
                     el.classList.add("timeline-hidden");
                     el.classList.remove("timeline-visible-expanded");
                 }});
                 timelineExpanded = false;
-                if (btn) btn.innerText = "{get_text('show_more_events', lang=lang, count=remaining_events)}";
+                var moreTxt = "{get_text('show_more_events', lang=lang, count=remaining_events)}";
+                if (btn) btn.innerText = moreTxt;
+                if (topBtn) topBtn.innerText = moreTxt;
             }}
         }}
 

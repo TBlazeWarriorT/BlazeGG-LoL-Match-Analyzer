@@ -370,10 +370,14 @@ class MatchAnalysis:
                     kill_streaks[killer] = [t for t in kill_streaks[killer] if ts - t <= 10000]
                     kill_streaks[killer].append(ts)
                     count = len(kill_streaks[killer])
-                    if count == 5:
+                    if count >= 5:
                         streak_type = "penta"
-                    elif count in (3, 4):
-                        streak_type = "multi"
+                    elif count == 4:
+                        streak_type = "quadra"
+                    elif count == 3:
+                        streak_type = "triple"
+                    elif count == 2:
+                        streak_type = "double"
 
                     is_solo = len(assisters) == 0
                     k_raw = k_p.get("championName", "")

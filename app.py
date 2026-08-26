@@ -525,8 +525,18 @@ class AppHandler(BaseHTTPRequestHandler):
         elif path == "/search":
             name = qs.get("game_name", [""])[0].strip()
             tag = qs.get("tag_line", [""])[0].strip()
+
+            # Suporte para busca direta por Match ID (ex: BR1_3276185058 ou apenas o número com prefixo)
+            potential_match_id = name if not tag or name.upper().startswith(("BR1_", "NA1_", "EUW1_", "KR_")) else ""
+            if potential_match_id and ("_" in potential_match_id or potential_match_id.upper().startswith("BR1")):
+                match_id = potential_match_id.upper()
+                last_sess = get_last_session() or {}
+                puuid = last_sess.get("puuid", "")
+                self._redirect(f"/analyze?match_id={match_id}&puuid={puuid}&lang={lang}")
+                return
+
             if not name or not tag:
-                err_msg = "Informe o Nome e a Tag do jogador." if lang == "pt_BR" else "Please provide Game Name and Tag."
+                err_msg = "Informe o Nome e a Tag do jogador (ou cole um Match ID no campo de nome)." if lang == "pt_BR" else "Please provide Game Name and Tag (or paste a Match ID in the name field)."
                 self._send_html(render_home_html(error_msg=err_msg, lang=lang))
                 return
 
@@ -555,7 +565,8 @@ class AppHandler(BaseHTTPRequestHandler):
                             "win": p.get("win", False),
                             "duration": f"{dur_s // 60}m {dur_s % 60}s",
                             "relative_time": format_relative_time(creation_ms, lang=lang),
-                            "game_mode": info.get("gameMode", "CLASSIC")
+                            "game_mode": info.get("gameMode", "CLASSIC"),
+                            "queue_id": info.get("queueId", 0)
                         })
                     except Exception:
                         continue
