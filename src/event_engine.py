@@ -15,6 +15,12 @@ def parse_time_str(time_str: str) -> int:
         return int(parts[0]) * 60 * 1000
     return 0
 
+def calculate_kda_ratio(k: int, d: int, a: int) -> str:
+    if d == 0:
+        return "Perfect"
+    ratio = (k + a) / d
+    return f"{ratio:.2f}:1"
+
 ROLES_ORDER = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
 
 def get_dragon_asset_key(sub_type: str = "") -> str:
@@ -87,6 +93,9 @@ class MatchAnalysis:
                 })
 
         champ_name = p.get("championName", "")
+        k = p.get("kills", 0)
+        d = p.get("deaths", 0)
+        a = p.get("assists", 0)
         return {
             "participantId": p.get("participantId"),
             "puuid": p.get("puuid"),
@@ -95,10 +104,11 @@ class MatchAnalysis:
             "champion": champ_name,
             "champion_icon": self.ddragon.get_champion_icon_url(champ_name),
             "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
-            "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
-            "kills": p.get("kills", 0),
-            "deaths": p.get("deaths", 0),
-            "assists": p.get("assists", 0),
+            "kda": f"{k}/{d}/{a}",
+            "kda_ratio": calculate_kda_ratio(k, d, a),
+            "kills": k,
+            "deaths": d,
+            "assists": a,
             "cs": p.get("totalMinionsKilled", 0) + p.get("neutralMinionsKilled", 0),
             "gold_total": gold,
             "damage_to_champions": total_dmg,
@@ -123,7 +133,7 @@ class MatchAnalysis:
         matchups = self._calculate_all_matchups(players)
         jungle_stats = self._calculate_jungle_objectives()
 
-        return {
+        analysis_dict = {
             "match_id": self.match.get("metadata", {}).get("matchId"),
             "game_mode": self.info.get("gameMode"),
             "duration": f"{minutes}m {seconds}s",
@@ -140,6 +150,33 @@ class MatchAnalysis:
             "jungle_stats": jungle_stats,
             "key_events": self._extract_key_events()
         }
+        analysis_dict["raw_summary_text"] = self._generate_compact_raw_summary(analysis_dict)
+        return analysis_dict
+
+    def _generate_compact_raw_summary(self, data: Dict[str, Any]) -> str:
+        lines = []
+        lines.append(f"MATCH: {data['match_id']} | DURATION: {data['duration']} | WINNER: {'BLUE' if data['team_100']['win'] else 'RED'}")
+        
+        lines.append("\n[BLUE TEAM]")
+        for p in data['team_100']['players']:
+            items_str = ", ".join([it['name'] for it in p['items']]) or "None"
+            lines.append(f"• {p['role']} {p['champion']} ({p['riot_id']}): KDA {p['kda']} ({p['kda_ratio']}) | CS {p['cs']} | DMG {p['damage_to_champions']:,} | GOLD {p['gold_total']:,} | D/G {p['damage_per_gold']} | ITEMS: {items_str}")
+
+        lines.append("\n[RED TEAM]")
+        for p in data['team_200']['players']:
+            items_str = ", ".join([it['name'] for it in p['items']]) or "None"
+            lines.append(f"• {p['role']} {p['champion']} ({p['riot_id']}): KDA {p['kda']} ({p['kda_ratio']}) | CS {p['cs']} | DMG {p['damage_to_champions']:,} | GOLD {p['gold_total']:,} | D/G {p['damage_per_gold']} | ITEMS: {items_str}")
+
+        lines.append("\n[LANE DELTAS (Blue - Red Gold)]")
+        for m in data['matchups']:
+            p1, p2 = m['player1'], m['player2']
+            g_tags = " ".join([f"@{k}:{v:+d}g" for k, v in m['gold_delta'].items()])
+            lines.append(f"• {m['role']} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']}")
+
+        full_text = "\n".join(lines)
+        if len(full_text) > 1950:
+            full_text = full_text[:1950] + "\n..."
+        return full_text
 
     def _calculate_all_matchups(self, players: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         frames = self.timeline.get("info", {}).get("frames", []) if self.timeline else []
@@ -204,8 +241,8 @@ class MatchAnalysis:
 
     def _calculate_jungle_objectives(self) -> Dict[str, Any]:
         stats = {
-            100: {"dragons": [], "grubs": 0, "herald": 0, "baron": 0},
-            200: {"dragons": [], "grubs": 0, "herald": 0, "baron": 0}
+            100: {"timeline_sequence": []},
+            200: {"timeline_sequence": []}
         }
         if not self.timeline:
             return stats
@@ -215,6 +252,7 @@ class MatchAnalysis:
                 if ev.get("type") == "ELITE_MONSTER_KILL":
                     m_type = ev.get("monsterType", "")
                     m_sub = ev.get("monsterSubType", "")
+                    t_str = format_timestamp(ev.get("timestamp", 0))
                     killer_id = ev.get("killerId", 0)
                     killer_team = None
                     for p in self.participants:
@@ -222,53 +260,75 @@ class MatchAnalysis:
                             killer_team = p.get("teamId")
                             break
                     if killer_team in stats:
+                        asset_key = "dragon_circle"
                         if "DRAGON" in m_type:
-                            stats[killer_team]["dragons"].append({
-                                "asset_key": get_dragon_asset_key(m_sub),
-                                "name": clean_monster_name(m_type, m_sub)
-                            })
+                            asset_key = get_dragon_asset_key(m_sub)
                         elif "HORDE" in m_type or "GRUB" in m_type:
-                            stats[killer_team]["grubs"] += 1
+                            asset_key = "sru_voidgrub_circle"
                         elif "HERALD" in m_type:
-                            stats[killer_team]["herald"] += 1
+                            asset_key = "sruriftherald_circle"
                         elif "BARON" in m_type:
-                            stats[killer_team]["baron"] += 1
+                            asset_key = "baron_circle"
+
+                        stats[killer_team]["timeline_sequence"].append({
+                            "time": t_str,
+                            "name": clean_monster_name(m_type, m_sub),
+                            "asset_key": asset_key
+                        })
         return stats
 
-    def _extract_key_events(self) -> List[Dict[str, str]]:
+    def _extract_key_events(self) -> List[Dict[str, Any]]:
         if not self.timeline:
             return []
         events_log = []
         frames = self.timeline.get("info", {}).get("frames", [])
+        kill_streaks = {}
 
         for frame in frames:
             for ev in frame.get("events", []):
                 ev_type = ev.get("type")
-                t_str = format_timestamp(ev.get("timestamp", 0))
+                ts = ev.get("timestamp", 0)
+                t_str = format_timestamp(ts)
 
                 if ev_type == "CHAMPION_KILL":
                     victim = ev.get("victimId")
                     killer = ev.get("killerId")
                     assisters = ev.get("assistingParticipantIds", [])
-                    v_name = self._get_part_name(victim)
-                    k_name = self._get_part_name(killer)
+                    v_p = self._get_part_dict(victim)
+                    k_p = self._get_part_dict(killer)
 
-                    if len(assisters) == 0:
-                        events_log.append({
-                            "text": f"[{t_str}] &nbsp; <b>{k_name}</b> matou SOLO <b>{v_name}</b>",
-                            "asset_key": None
-                        })
-                    else:
-                        events_log.append({
-                            "text": f"[{t_str}] &nbsp; <b>{k_name}</b> abateu <b>{v_name}</b> (Ajuda: {len(assisters)})",
-                            "asset_key": None
-                        })
+                    streak_type = "normal"
+                    if killer not in kill_streaks:
+                        kill_streaks[killer] = []
+                    kill_streaks[killer] = [t for t in kill_streaks[killer] if ts - t <= 10000]
+                    kill_streaks[killer].append(ts)
+                    count = len(kill_streaks[killer])
+                    if count == 5:
+                        streak_type = "penta"
+                    elif count in (3, 4):
+                        streak_type = "multi"
+
+                    is_solo = len(assisters) == 0
+                    events_log.append({
+                        "type": "kill",
+                        "streak": streak_type,
+                        "time": t_str,
+                        "killer_champ": k_p.get("championName", "P"),
+                        "killer_icon": self.ddragon.get_champion_icon_url(k_p.get("championName", "")),
+                        "killer_name": k_p.get("riotIdGameName", ""),
+                        "victim_champ": v_p.get("championName", "P"),
+                        "victim_icon": self.ddragon.get_champion_icon_url(v_p.get("championName", "")),
+                        "victim_name": v_p.get("riotIdGameName", ""),
+                        "is_solo": is_solo,
+                        "assists_count": len(assisters),
+                        "assisters": [self._get_part_dict(aid).get("championName", "") for aid in assisters]
+                    })
 
                 elif ev_type == "ELITE_MONSTER_KILL":
                     m_type = ev.get("monsterType", "")
                     m_sub = ev.get("monsterSubType", "")
                     killer = ev.get("killerId")
-                    k_name = self._get_part_name(killer)
+                    k_p = self._get_part_dict(killer)
                     desc = clean_monster_name(m_type, m_sub)
                     
                     asset_key = "dragon_circle"
@@ -282,14 +342,19 @@ class MatchAnalysis:
                         asset_key = "baron_circle"
 
                     events_log.append({
-                        "text": f"[{t_str}] &nbsp; <b>{desc}</b> abatido por <b>{k_name}</b>",
-                        "asset_key": asset_key
+                        "type": "objective",
+                        "time": t_str,
+                        "desc": desc,
+                        "asset_key": asset_key,
+                        "killer_champ": k_p.get("championName", ""),
+                        "killer_icon": self.ddragon.get_champion_icon_url(k_p.get("championName", "")),
+                        "killer_name": k_p.get("riotIdGameName", "")
                     })
 
-        return events_log[:25]
+        return events_log[:30]
 
-    def _get_part_name(self, participant_id: int) -> str:
+    def _get_part_dict(self, participant_id: int) -> Dict[str, Any]:
         for p in self.participants:
             if p.get("participantId") == participant_id:
-                return f"{p.get('championName')} ({p.get('riotIdGameName', '')})"
-        return f"P{participant_id}"
+                return p
+        return {}
