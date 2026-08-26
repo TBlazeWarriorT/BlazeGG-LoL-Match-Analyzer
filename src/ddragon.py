@@ -68,3 +68,17 @@ class DataDragon:
 
     def get_champion_name(self, key: int, fallback: str = "") -> str:
         return self._champions.get(str(key), fallback or f"Champ {key}")
+
+    def get_champion_icon_url(self, champ_name: str) -> str:
+        if not champ_name:
+            return ""
+        # Caso especial Riot DDragon (ex: FiddleSticks -> Fiddlesticks)
+        clean_name = champ_name.replace(" ", "").replace("'", "")
+        if clean_name.lower() == "fiddlesticks":
+            clean_name = "FiddleSticks"
+        return f"{BASE_CDN_URL}/{self.version}/img/champion/{clean_name}.png"
+
+    def get_item_icon_url(self, item_id: int) -> str:
+        if not item_id or item_id == 0:
+            return ""
+        return f"{BASE_CDN_URL}/{self.version}/img/item/{item_id}.png"

@@ -37,16 +37,21 @@ def main():
 
     ddragon = DataDragon()
     analyzer = MatchAnalysis(match_data, timeline_data, target_puuid=target_puuid, ddragon=ddragon)
-    summary = analyzer.generate_summary()
+    
+    full_data = analyzer.generate_full_analysis()
 
     # Gera e abre a página no navegador
-    print(f"\n[+] Abrindo relatorio visual no navegador...")
-    generate_html_report(summary, open_browser=True)
+    print(f"\n[+] Abrindo dashboard visual com todos os campeões e matchups...")
+    generate_html_report(full_data, open_browser=True)
 
     print("\n" + "="*50)
     print(f"DADOS DA ULTIMA PARTIDA SALVA ({match_id})")
     print("="*50 + "\n")
-    print(format_as_whatsapp_text(summary))
+    
+    # Compatibilidade WhatsApp
+    p = analyzer.target_participant
+    print(f"Partida {match_id} carregada.")
+    print(f"Jogador analisado: {p.get('riotIdGameName')}#{p.get('riotIdTagline')} ({p.get('championName')})")
     print("\n" + "="*50)
     input("\nPressione Enter para sair...")
 

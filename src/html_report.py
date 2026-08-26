@@ -1,216 +1,468 @@
 ﻿import webbrowser
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 from .config import CACHE_DIR
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
 
+CD_DRAGON_BASE = "https://raw.communitydragon.org/latest/game/assets/ux/announcements"
+ICON_DRAGON = f"{CD_DRAGON_BASE}/dragon_circle.png"
+ICON_GRUBS = f"{CD_DRAGON_BASE}/sru_voidgrub_circle.png"
+ICON_HERALD = f"{CD_DRAGON_BASE}/sruriftherald_circle.png"
+ICON_BARON = f"{CD_DRAGON_BASE}/baron_circle.png"
+
+def get_dragon_icon(sub_type: str = "") -> str:
+    sub = sub_type.upper()
+    if "AIR" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_air.png"
+    elif "CHEMTECH" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_chemtech.png"
+    elif "EARTH" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_earth.png"
+    elif "FIRE" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_fire.png"
+    elif "HEXTECH" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_hextech.png"
+    elif "WATER" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_water.png"
+    return ICON_DRAGON
+
 def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Path:
-    target = data.get("target", {})
-    opp = data.get("opponent", {})
-    lane = data.get("lane_stats", {})
-    win = data.get("win", False)
-    
-    bg_gradient = "linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%)" if win else "linear-gradient(135deg, #2b090a 0%, #1a0808 100%)"
-    badge_bg = "#10b981" if win else "#ef4444"
-    status_text = "VITÓRIA" if win else "DERROTA"
+    team_100 = data.get("team_100", {})
+    team_200 = data.get("team_200", {})
+    matchups = data.get("matchups", [])
+    jungle = data.get("jungle_stats", {})
+    target_puuid = data.get("target_puuid", "")
 
-    # Itens do Jogador
-    target_items_html = "".join([f'<span class="item-badge">{item}</span>' for item in target.get("items", [])])
-    
-    # Eventos
-    events_html = "".join([f'<li class="event-item">{ev}</li>' for ev in data.get("key_events", [])])
+    t100_win = team_100.get("win", False)
+    t200_win = team_200.get("win", False)
+    t100_status = '<span class="badge win-badge">VITÓRIA</span>' if t100_win else '<span class="badge loss-badge">DERROTA</span>'
+    t200_status = '<span class="badge win-badge">VITÓRIA</span>' if t200_win else '<span class="badge loss-badge">DERROTA</span>'
 
-    # Tabela Gold Delta
-    gold_rows_html = ""
-    for minute, info in lane.get("gold_diff_timeline", {}).items():
-        min_num = minute.replace("min_", "")
-        delta = info.get("delta", 0)
-        delta_class = "gold-pos" if delta >= 0 else "gold-neg"
-        delta_sign = "+" if delta >= 0 else ""
-        gold_rows_html += f"""
-        <tr>
-            <td>{min_num} min</td>
-            <td>{info.get('target_gold', 0):,}g</td>
-            <td>{info.get('opponent_gold', 0):,}g</td>
-            <td class="{delta_class}"><b>{delta_sign}{delta:,}g</b></td>
-        </tr>
+    # Objetivos da Selva
+    j100 = jungle.get(100, {})
+    j200 = jungle.get(200, {})
+    jungle_html = f"""
+    <div class="card jungle-card">
+        <h3><img class="header-icon" src="{ICON_BARON}"/> Disputa de Objetivos Neutros</h3>
+        <div class="jungle-grid">
+            <div class="team-jungle">
+                <h4>🔵 Time Azul {t100_status}</h4>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_DRAGON}"/> Dragões: <b>{j100.get('dragons', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_GRUBS}"/> Vastilarvas: <b>{j100.get('grubs', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_HERALD}"/> Arauto: <b>{j100.get('herald', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_BARON}"/> Barão: <b>{j100.get('baron', 0)}</b></div>
+            </div>
+            <div class="team-jungle">
+                <h4>🔴 Time Vermelho {t200_status}</h4>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_DRAGON}"/> Dragões: <b>{j200.get('dragons', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_GRUBS}"/> Vastilarvas: <b>{j200.get('grubs', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_HERALD}"/> Arauto: <b>{j200.get('herald', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{ICON_BARON}"/> Barão: <b>{j200.get('baron', 0)}</b></div>
+            </div>
+        </div>
+    </div>
+    """
+
+    def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None, xp_d=None):
+        is_t1 = p1.get("puuid") == target_puuid
+        is_t2 = p2.get("puuid") == target_puuid
+
+        def p_card(p, is_target, is_left=True):
+            items_html = "".join([
+                f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
+                for it in p.get("items", [])
+            ])
+            target_badge = '<span class="target-tag">VOCÊ</span>' if is_target else ""
+            align_class = "align-left" if is_left else "align-right"
+            border_side = "border-blue" if is_left else "border-red"
+            
+            return f"""
+            <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
+                <div class="p-header">
+                    <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                    <div class="p-meta">
+                        <div class="p-name">{p['riot_id']} {target_badge}</div>
+                        <div class="p-champ">{p['champion']}</div>
+                    </div>
+                </div>
+                <div class="p-kda">KDA: <b>{p['kda']}</b> | CS: <b>{p['cs']}</b></div>
+                <div class="stats-pills">
+                    <div class="pill">Dano: <b>{p['damage_to_champions']:,}</b></div>
+                    <div class="pill">Dano/Ouro: <b>{p['damage_per_gold']}</b></div>
+                    <div class="pill">Tomado: <b>{p['damage_taken']:,}</b></div>
+                    <div class="pill">Ouro: <b>{p['gold_total']:,}g</b></div>
+                </div>
+                <div class="items-flex">{items_html}</div>
+            </div>
+            """
+
+        p1_html = p_card(p1, is_t1, is_left=True)
+        p2_html = p_card(p2, is_t2, is_left=False)
+
+        delta_html = ""
+        if gold_d:
+            gold_tags = "".join([
+                f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}g</b></span>'
+                for k, v in gold_d.items()
+            ])
+            xp_tags = "".join([
+                f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,} XP</b></span>'
+                for k, v in xp_d.items()
+            ]) if xp_d else ""
+
+            solo_kills_1 = stats_1.get("solo_kills", 0) if stats_1 else 0
+            solo_deaths_1 = stats_1.get("solo_deaths", 0) if stats_1 else 0
+            ganks_1 = stats_1.get("other_deaths", 0) if stats_1 else 0
+
+            solo_kills_2 = stats_2.get("solo_kills", 0) if stats_2 else 0
+            solo_deaths_2 = stats_2.get("solo_deaths", 0) if stats_2 else 0
+            ganks_2 = stats_2.get("other_deaths", 0) if stats_2 else 0
+
+            delta_html = f"""
+            <div class="duel-center">
+                <div class="role-badge-lg">{role_title}</div>
+                <div class="vs-label">VS</div>
+                <div class="duel-duels">
+                    <div class="duel-sub-stats">
+                        <span>Solo Kills: <b class="pos">{solo_kills_1}</b></span> |
+                        <span>Mortes Solo: <b class="neg">{solo_deaths_1}</b></span> |
+                        <span>Mortes p/ Gank: <b>{ganks_1}</b></span>
+                    </div>
+                    <div class="duel-sub-stats" style="margin-top:2px;">
+                        <span>Solo Kills: <b class="pos">{solo_kills_2}</b></span> |
+                        <span>Mortes Solo: <b class="neg">{solo_deaths_2}</b></span> |
+                        <span>Mortes p/ Gank: <b>{ganks_2}</b></span>
+                    </div>
+                </div>
+                <div class="delta-box">
+                    <div class="delta-title">Δ Ouro (Azul - Vermelho):</div>
+                    <div class="delta-flex">{gold_tags}</div>
+                    {f'<div class="delta-title" style="margin-top:4px;">Δ XP:</div><div class="delta-flex">{xp_tags}</div>' if xp_tags else ''}
+                </div>
+            </div>
+            """
+        else:
+            delta_html = f"""
+            <div class="duel-center">
+                <div class="role-badge-lg">{role_title}</div>
+                <div class="vs-label">VS</div>
+            </div>
+            """
+
+        return f"""
+        <div class="duel-row">
+            {p1_html}
+            {delta_html}
+            {p2_html}
+        </div>
         """
 
-    opp_card_html = ""
-    if opp:
-        opp_items_html = "".join([f'<span class="item-badge">{item}</span>' for item in opp.get("items", [])])
-        opp_card_html = f"""
-        <div class="card opponent-card">
-            <h3>⚔️ Oponente Direto ({opp.get('champion')})</h3>
-            <div class="kda-box">
-                <div class="riot-id">{opp.get('riot_id')}</div>
-                <div class="kda-val">{opp.get('kda')}</div>
+    duels_html = []
+    m_by_role = {m["role"]: m for m in matchups}
+
+    for r in ["TOP", "JUNGLE", "MIDDLE"]:
+        if r in m_by_role:
+            m = m_by_role[r]
+            duels_html.append(render_duel_row(
+                m["player1"], m["player2"], r,
+                m["p1_stats"], m["p2_stats"],
+                m["gold_delta"], m["xp_delta"]
+            ))
+
+    m_bot = m_by_role.get("BOTTOM")
+    m_sup = m_by_role.get("UTILITY")
+
+    if m_bot and m_sup:
+        p1_bot, p2_bot = m_bot["player1"], m_bot["player2"]
+        p1_sup, p2_sup = m_sup["player1"], m_sup["player2"]
+
+        t1_dmg = p1_bot["damage_to_champions"] + p1_sup["damage_to_champions"]
+        t2_dmg = p2_bot["damage_to_champions"] + p2_sup["damage_to_champions"]
+        t1_gold = p1_bot["gold_total"] + p1_sup["gold_total"]
+        t2_gold = p2_bot["gold_total"] + p2_sup["gold_total"]
+        t1_cs = p1_bot["cs"] + p1_sup["cs"]
+        t2_cs = p2_bot["cs"] + p2_sup["cs"]
+        t1_kills = p1_bot["kills"] + p1_sup["kills"]
+        t1_deaths = p1_bot["deaths"] + p1_sup["deaths"]
+        t1_assists = p1_bot["assists"] + p1_sup["assists"]
+        t2_kills = p2_bot["kills"] + p2_bot["kills"]
+        t2_deaths = p2_bot["deaths"] + p2_sup["deaths"]
+        t2_assists = p2_bot["assists"] + p2_sup["assists"]
+
+        duo_delta_gold = {}
+        for k in m_bot["gold_delta"].keys():
+            duo_delta_gold[k] = m_bot["gold_delta"].get(k, 0) + m_sup["gold_delta"].get(k, 0)
+
+        duo_gold_tags = "".join([
+            f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}g</b></span>'
+            for k, v in duo_delta_gold.items()
+        ])
+
+        bot_duo_summary_html = f"""
+        <div class="card bot-duo-card">
+            <div class="bot-duo-header">
+                <h3>BOT LANE 2v2 (Duo Somado: ADC + SUP)</h3>
             </div>
-            <div class="stats-grid">
-                <div class="stat"><span class="label">CS:</span> <b>{opp.get('cs')}</b></div>
-                <div class="stat"><span class="label">Dano:</span> <b>{opp.get('damage_to_champions', 0):,}</b></div>
-                <div class="stat"><span class="label">Dano/Ouro:</span> <b>{opp.get('damage_per_gold')}</b></div>
-                <div class="stat"><span class="label">Ouro Total:</span> <b>{opp.get('gold_total', 0):,}</b></div>
-            </div>
-            <div class="items-section">
-                <div class="label">Itens:</div>
-                <div class="items-container">{opp_items_html}</div>
-            </div>
-            <div class="lane-duel">
-                <div>Mortes Solo sofridas: <b>{lane.get('solo_deaths_in_lane', 0)}</b></div>
-                <div>Mortes em Gank/Skirmish: <b>{lane.get('deaths_in_skirmish_or_gank', 0)}</b></div>
-                <div>Kills Solo efetuados: <b>{lane.get('solo_kills_in_lane', 0)}</b></div>
+            <div class="bot-duo-grid">
+                <div class="duo-team-stat align-left">
+                    <h4>🔵 Duo Azul ({p1_bot['champion']} + {p1_sup['champion']})</h4>
+                    <div>Abates Duo: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> | CS Total: <b>{t1_cs}</b></div>
+                    <div>Dano Somado: <b>{t1_dmg:,}</b> | Ouro Total: <b>{t1_gold:,}g</b></div>
+                </div>
+                <div class="duo-delta-box">
+                    <div class="vs-label" style="font-size:0.9rem; margin-bottom:4px;">Δ OURO 2v2 (Azul - Vermelho)</div>
+                    <div class="delta-flex" style="justify-content:center;">{duo_gold_tags}</div>
+                </div>
+                <div class="duo-team-stat align-right">
+                    <h4>🔴 Duo Vermelho ({p2_bot['champion']} + {p2_sup['champion']})</h4>
+                    <div>Abates Duo: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> | CS Total: <b>{t2_cs}</b></div>
+                    <div>Dano Somado: <b>{t2_dmg:,}</b> | Ouro Total: <b>{t2_gold:,}g</b></div>
+                </div>
             </div>
         </div>
         """
+
+        duels_html.append(render_duel_row(
+            p1_bot, p2_bot, "ADC (BOTTOM)",
+            m_bot["p1_stats"], m_bot["p2_stats"],
+            m_bot["gold_delta"], m_bot["xp_delta"]
+        ))
+        duels_html.append(render_duel_row(
+            p1_sup, p2_sup, "SUPORTE (UTILITY)",
+            m_sup["p1_stats"], m_sup["p2_stats"],
+            m_sup["gold_delta"], m_sup["xp_delta"]
+        ))
+    else:
+        bot_duo_summary_html = ""
+
+    all_duels_rendered = "".join(duels_html)
+
+    # Eventos com ícones da CommunityDragon
+    events_list_items = []
+    for ev in data.get("key_events", []):
+        raw_text = ev.get("text") if isinstance(ev, dict) else str(ev)
+        icon_url = ev.get("icon") if isinstance(ev, dict) else None
+        
+        icon_html = f'<img class="event-icon" src="{icon_url}"/> ' if icon_url else ""
+        events_list_items.append(f'<li class="event-item">{icon_html}{raw_text}</li>')
+
+    events_html = "".join(events_list_items)
 
     html_content = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Partida - {target.get('champion')}</title>
+    <title>LoL Head-to-Head - {data.get('match_id')}</title>
     <style>
         :root {{
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-color: #080c14;
+            --card-bg: #111827;
+            --card-border: #1f293d;
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
             --accent: #38bdf8;
-            --border: #334155;
+            --blue-team: #2563eb;
+            --red-team: #dc2626;
+            --green: #22c55e;
+            --red: #ef4444;
         }}
+        * {{ box-sizing: border-box; }}
         body {{
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
             padding: 24px;
             display: flex;
             justify-content: center;
         }}
         .container {{
-            max-width: 900px;
+            max-width: 1320px;
             width: 100%;
             display: flex;
             flex-direction: column;
             gap: 20px;
         }}
         .header {{
-            background: {bg_gradient};
-            border: 1px solid var(--border);
-            padding: 24px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--card-border);
+            padding: 18px 24px;
             border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }}
-        .badge {{
-            background-color: {badge_bg};
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.9rem;
+        .team-titles {{
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 16px;
+            font-weight: 800;
+            font-size: 1.1rem;
             letter-spacing: 0.5px;
         }}
         .card {{
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            padding: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 12px;
+            padding: 18px;
         }}
-        .matchup-container {{
+        .duel-row {{
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr 340px 1fr;
+            gap: 16px;
+            align-items: center;
+            background: #0d1322;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 14px;
         }}
-        @media (max-width: 768px) {{
-            .matchup-container {{ grid-template-columns: 1fr; }}
+        @media (max-width: 1050px) {{
+            .duel-row {{ grid-template-columns: 1fr; }}
         }}
-        .kda-box {{
-            margin-bottom: 16px;
-        }}
-        .riot-id {{
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--accent);
-        }}
-        .kda-val {{
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-top: 4px;
-        }}
-        .stats-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 16px;
-        }}
-        .stat {{
-            background: #0f172a;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }}
-        .label {{
-            color: var(--text-muted);
-        }}
-        .items-section {{
-            margin-top: 12px;
-        }}
-        .items-container {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 6px;
-        }}
-        .item-badge {{
-            background: #334155;
-            color: #cbd5e1;
-            font-size: 0.8rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }}
-        .lane-duel {{
-            margin-top: 14px;
-            padding-top: 12px;
-            border-top: 1px dashed var(--border);
-            font-size: 0.88rem;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }}
-        th, td {{
-            padding: 10px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-        }}
-        th {{
-            color: var(--text-muted);
-            font-weight: 600;
-        }}
-        .gold-pos {{ color: #10b981; }}
-        .gold-neg {{ color: #ef4444; }}
-        .events-list {{
-            list-style: none;
-            padding: 0;
-            margin: 0;
+        .player-card {{
+            background: #151d30;
+            padding: 14px;
+            border-radius: 10px;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            border-top: 3px solid transparent;
         }}
-        .event-item {{
+        .border-blue {{ border-color: var(--blue-team); }}
+        .border-red {{ border-color: var(--red-team); }}
+        .is-target {{
+            background: rgba(56, 189, 248, 0.12);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+            border: 1px solid var(--accent);
+            border-top: 3px solid var(--accent);
+        }}
+        .p-header {{ display: flex; align-items: center; gap: 12px; }}
+        .champ-icon {{
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--card-border);
+        }}
+        .p-meta {{ display: flex; flex-direction: column; }}
+        .p-name {{ font-weight: 700; color: #fff; font-size: 0.95rem; }}
+        .p-champ {{ font-size: 0.8rem; color: var(--text-muted); }}
+        .target-tag {{
+            background: var(--accent);
+            color: #0f172a;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }}
+        .p-kda {{ font-size: 0.88rem; color: #e2e8f0; }}
+        .stats-pills {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            font-size: 0.8rem;
+        }}
+        .pill {{
+            background: #0a0e1a;
+            padding: 5px 8px;
+            border-radius: 4px;
+            color: var(--text-muted);
+        }}
+        .pill b {{ color: #f3f4f6; }}
+        .items-flex {{ display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }}
+        .item-icon {{
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            border: 1px solid #334155;
             background: #0f172a;
-            padding: 10px 14px;
+        }}
+        .duel-center {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 6px;
+        }}
+        .role-badge-lg {{
+            background: #1e293b;
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+        }}
+        .vs-label {{ font-size: 1.1rem; font-weight: 900; color: #64748b; }}
+        .duel-duels {{
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            background: #151d30;
+            padding: 8px 10px;
             border-radius: 6px;
-            font-size: 0.9rem;
-            border-left: 3px solid var(--accent);
+            width: 100%;
+        }}
+        .delta-box {{
+            background: #151d30;
+            padding: 8px 10px;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 0.76rem;
+        }}
+        .delta-title {{ color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }}
+        .delta-flex {{ display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }}
+        .delta-tag {{ background: #080c14; padding: 2px 6px; border-radius: 4px; }}
+        .pos {{ color: var(--green); }}
+        .neg {{ color: var(--red); }}
+        .badge {{ padding: 4px 10px; border-radius: 14px; font-size: 0.8rem; font-weight: 700; }}
+        .win-badge {{ background: #166534; color: #86efac; }}
+        .loss-badge {{ background: #991b1b; color: #fca5a5; }}
+        .align-left {{ text-align: left; }}
+        .align-right {{ text-align: left; }}
+        
+        /* BOT DUO */
+        .bot-duo-card {{
+            background: linear-gradient(180deg, #131c31 0%, #0d1322 100%);
+            border: 1px solid #2a3a5e;
+            margin-bottom: 14px;
+        }}
+        .bot-duo-grid {{
+            display: grid;
+            grid-template-columns: 1fr 340px 1fr;
+            gap: 16px;
+            align-items: center;
+        }}
+        @media (max-width: 1050px) {{
+            .bot-duo-grid {{ grid-template-columns: 1fr; }}
+        }}
+        .duo-team-stat h4 {{ margin: 0 0 6px 0; }}
+        .duo-team-stat {{ font-size: 0.88rem; line-height: 1.5; }}
+        .duo-delta-box {{
+            background: #0a0e1a;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }}
+        
+        /* JUNGLE & EVENTS */
+        .header-icon {{ width: 22px; height: 22px; vertical-align: middle; margin-right: 6px; }}
+        .obj-icon {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; border-radius: 50%; }}
+        .event-icon {{ width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; border-radius: 50%; }}
+        .jungle-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
+        .team-jungle {{ background: #0d1322; padding: 14px; border-radius: 8px; border: 1px solid var(--card-border); }}
+        .obj-stat {{ display: flex; align-items: center; margin: 6px 0; font-size: 0.92rem; }}
+        .events-list {{ list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }}
+        .event-item {{
+            background: #0d1322;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
         }}
     </style>
 </head>
@@ -218,55 +470,30 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
     <div class="container">
         <div class="header">
             <div>
-                <h1 style="margin: 0; font-size: 1.6rem;">{target.get('champion')} ({target.get('role', 'LANE')})</h1>
-                <div style="color: var(--text-muted); margin-top: 4px;">Partida: {data.get('match_id')} | Duração: {data.get('duration')}</div>
+                <h1 style="margin:0; font-size: 1.4rem;">LoL Head-to-Head Duel Analytics ({data.get('match_id')})</h1>
+                <div style="color: var(--text-muted); margin-top: 4px;">Duração: {data.get('duration')} | Modo: {data.get('game_mode')}</div>
             </div>
-            <div class="badge">{status_text}</div>
         </div>
 
-        <div class="matchup-container">
-            <div class="card">
-                <h3>👑 Jogador ({target.get('champion')})</h3>
-                <div class="kda-box">
-                    <div class="riot-id">{target.get('riot_id')}</div>
-                    <div class="kda-val">{target.get('kda')}</div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat"><span class="label">CS:</span> <b>{target.get('cs')}</b></div>
-                    <div class="stat"><span class="label">Dano:</span> <b>{target.get('damage_to_champions', 0):,}</b></div>
-                    <div class="stat"><span class="label">Dano/Ouro:</span> <b>{target.get('damage_per_gold')}</b></div>
-                    <div class="stat"><span class="label">KP%:</span> <b>{target.get('kill_participation_pct')}%</b></div>
-                    <div class="stat"><span class="label">Visão:</span> <b>{target.get('vision_score')}</b></div>
-                    <div class="stat"><span class="label">Ouro Total:</span> <b>{target.get('gold_total', 0):,}</b></div>
-                </div>
-                <div class="items-section">
-                    <div class="label">Itens Finais:</div>
-                    <div class="items-container">{target_items_html}</div>
-                </div>
-            </div>
-
-            {opp_card_html}
+        <div class="team-titles">
+            <div style="color: #60a5fa;">🔵 Time Azul {t100_status}</div>
+            <div style="color: #f87171;">🔴 Time Vermelho {t200_status}</div>
         </div>
 
+        <!-- BOT LANE DUO 2v2 SOMADO -->
+        {bot_duo_summary_html}
+
+        <!-- CONFRONTOS LADO A LADO -->
+        <div>
+            {all_duels_rendered}
+        </div>
+
+        <!-- Objetivos da Selva -->
+        {jungle_html}
+
+        <!-- Momentos Chave -->
         <div class="card">
-            <h3>💰 Curva de Ouro (Gold Delta vs Oponente)</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tempo</th>
-                        <th>Ouro Jogador</th>
-                        <th>Ouro Oponente</th>
-                        <th>Diferença</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {gold_rows_html}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card">
-            <h3>🎯 Momentos Chave da Partida</h3>
+            <h3>🎯 Linha do Tempo & Momentos Chave</h3>
             <ul class="events-list">
                 {events_html}
             </ul>

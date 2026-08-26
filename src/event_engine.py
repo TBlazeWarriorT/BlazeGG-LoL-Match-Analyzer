@@ -15,6 +15,30 @@ def parse_time_str(time_str: str) -> int:
         return int(parts[0]) * 60 * 1000
     return 0
 
+ROLES_ORDER = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
+
+CD_DRAGON_BASE = "https://raw.communitydragon.org/latest/game/assets/ux/announcements"
+ICON_DRAGON = f"{CD_DRAGON_BASE}/dragon_circle.png"
+ICON_GRUBS = f"{CD_DRAGON_BASE}/sru_voidgrub_circle.png"
+ICON_HERALD = f"{CD_DRAGON_BASE}/sruriftherald_circle.png"
+ICON_BARON = f"{CD_DRAGON_BASE}/baron_circle.png"
+
+def get_dragon_icon(sub_type: str = "") -> str:
+    sub = sub_type.upper()
+    if "AIR" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_air.png"
+    elif "CHEMTECH" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_chemtech.png"
+    elif "EARTH" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_earth.png"
+    elif "FIRE" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_fire.png"
+    elif "HEXTECH" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_hextech.png"
+    elif "WATER" in sub:
+        return f"{CD_DRAGON_BASE}/dragon_circle_water.png"
+    return ICON_DRAGON
+
 class MatchAnalysis:
     def __init__(self, match_data: Dict[str, Any], timeline_data: Dict[str, Any], target_puuid: Optional[str] = None, ddragon: Optional[DataDragon] = None):
         self.match = match_data
@@ -24,7 +48,6 @@ class MatchAnalysis:
         self.info = self.match.get("info", {})
         self.participants = self.info.get("participants", [])
         self.target_participant = self._find_target_participant()
-        self.laner_participant = self._find_lane_opponent()
 
     def _find_target_participant(self) -> Optional[Dict[str, Any]]:
         if not self.target_puuid:
@@ -32,137 +55,184 @@ class MatchAnalysis:
         for p in self.participants:
             if p.get("puuid") == self.target_puuid:
                 return p
-        return None
+        return self.participants[0] if self.participants else None
 
-    def _find_lane_opponent(self) -> Optional[Dict[str, Any]]:
-        if not self.target_participant:
-            return None
-        target_role = self.target_participant.get("individualPosition") or self.target_participant.get("teamPosition")
-        target_team = self.target_participant.get("teamId")
-        for p in self.participants:
-            if p.get("teamId") != target_team:
-                p_role = p.get("individualPosition") or p.get("teamPosition")
-                if p_role and p_role == target_role and p_role != "Invalid":
-                    return p
-        return None
+    def _get_player_details(self, p: Dict[str, Any]) -> Dict[str, Any]:
+        total_dmg = p.get("totalDamageDealtToChampions", 0)
+        gold = p.get("goldEarned", 1)
+        items = []
+        for i in range(7):
+            iid = p.get(f"item{i}", 0)
+            if iid > 0:
+                items.append({
+                    "id": iid,
+                    "name": self.ddragon.get_item_name(iid),
+                    "icon": self.ddragon.get_item_icon_url(iid)
+                })
 
-    def generate_summary(self) -> Dict[str, Any]:
-        p = self.target_participant
-        if not p:
-            return {"error": "Jogador alvo não encontrado na partida"}
+        perks = p.get("perks", {}).get("styles", [])
+        primary_rune = perks[0].get("selections", [{}])[0].get("perk", 0) if perks and perks[0].get("selections") else 0
 
-        opp = self.laner_participant
+        champ_name = p.get("championName", "")
+        return {
+            "participantId": p.get("participantId"),
+            "puuid": p.get("puuid"),
+            "teamId": p.get("teamId"),
+            "riot_id": f"{p.get('riotIdGameName', '')}#{p.get('riotIdTagline', '')}",
+            "champion": champ_name,
+            "champion_icon": self.ddragon.get_champion_icon_url(champ_name),
+            "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
+            "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
+            "kills": p.get("kills", 0),
+            "deaths": p.get("deaths", 0),
+            "assists": p.get("assists", 0),
+            "cs": p.get("totalMinionsKilled", 0) + p.get("neutralMinionsKilled", 0),
+            "gold_total": gold,
+            "damage_to_champions": total_dmg,
+            "damage_taken": p.get("totalDamageTaken", 0),
+            "damage_mitigated": p.get("damageSelfMitigated", 0),
+            "total_heal": p.get("totalHeal", 0),
+            "damage_per_gold": round(total_dmg / max(gold, 1), 2),
+            "vision_score": p.get("visionScore", 0),
+            "items": items,
+            "primary_rune": primary_rune,
+            "win": p.get("win", False)
+        }
+
+    def generate_full_analysis(self) -> Dict[str, Any]:
         duration_s = self.info.get("gameDuration", 0)
         minutes = duration_s // 60
         seconds = duration_s % 60
 
-        total_damage = p.get("totalDamageDealtToChampions", 0)
-        gold_earned = p.get("goldEarned", 1)
-        dmg_per_gold = round(total_damage / max(gold_earned, 1), 2)
+        players = [self._get_player_details(p) for p in self.participants]
+        team_100 = [p for p in players if p["teamId"] == 100]
+        team_200 = [p for p in players if p["teamId"] == 200]
 
-        # Team stats p/ KP
-        team_id = p.get("teamId")
-        team_kills = sum(other.get("kills", 0) for other in self.participants if other.get("teamId") == team_id)
-        kp_pct = round(((p.get("kills", 0) + p.get("assists", 0)) / max(team_kills, 1)) * 100, 1)
+        matchups = self._calculate_all_matchups(players)
+        jungle_stats = self._calculate_jungle_objectives()
 
-        summary = {
+        return {
             "match_id": self.match.get("metadata", {}).get("matchId"),
             "game_mode": self.info.get("gameMode"),
             "duration": f"{minutes}m {seconds}s",
-            "win": p.get("win"),
-            "target": {
-                "riot_id": f"{p.get('riotIdGameName', '')}#{p.get('riotIdTagline', '')}",
-                "champion": p.get("championName"),
-                "role": p.get("teamPosition"),
-                "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
-                "cs": p.get("totalMinionsKilled", 0) + p.get("neutralMinionsKilled", 0),
-                "gold_total": gold_earned,
-                "damage_to_champions": total_damage,
-                "damage_taken": p.get("totalDamageTaken", 0),
-                "damage_mitigated": p.get("damageSelfMitigated", 0),
-                "damage_per_gold": dmg_per_gold,
-                "kill_participation_pct": kp_pct,
-                "vision_score": p.get("visionScore", 0),
-                "items": [self.ddragon.get_item_name(p.get(f"item{i}", 0)) for i in range(7) if p.get(f"item{i}", 0) > 0]
+            "target_puuid": self.target_puuid,
+            "team_100": {
+                "win": team_100[0]["win"] if team_100 else False,
+                "players": team_100
             },
-            "opponent": None,
-            "lane_stats": self._calculate_lane_timeline_stats(),
+            "team_200": {
+                "win": team_200[0]["win"] if team_200 else False,
+                "players": team_200
+            },
+            "matchups": matchups,
+            "jungle_stats": jungle_stats,
+            "timeline_curves": self._calculate_timeline_curves(players),
             "key_events": self._extract_key_events()
         }
 
-        if opp:
-            opp_dmg = opp.get("totalDamageDealtToChampions", 0)
-            opp_gold = opp.get("goldEarned", 1)
-            summary["opponent"] = {
-                "riot_id": f"{opp.get('riotIdGameName', '')}#{opp.get('riotIdTagline', '')}",
-                "champion": opp.get("championName"),
-                "kda": f"{opp.get('kills')}/{opp.get('deaths')}/{opp.get('assists')}",
-                "cs": opp.get("totalMinionsKilled", 0) + opp.get("neutralMinionsKilled", 0),
-                "gold_total": opp_gold,
-                "damage_to_champions": opp_dmg,
-                "damage_per_gold": round(opp_dmg / max(opp_gold, 1), 2),
-                "items": [self.ddragon.get_item_name(opp.get(f"item{i}", 0)) for i in range(7) if opp.get(f"item{i}", 0) > 0]
-            }
+    def _calculate_all_matchups(self, players: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        frames = self.timeline.get("info", {}).get("frames", []) if self.timeline else []
+        matchups = []
 
-        return summary
+        p_by_role = {}
+        for p in players:
+            role = p["role"]
+            if role not in p_by_role:
+                p_by_role[role] = []
+            p_by_role[role].append(p)
 
-    def _calculate_lane_timeline_stats(self) -> Dict[str, Any]:
-        if not self.timeline or not self.target_participant:
-            return {}
+        for role in ROLES_ORDER:
+            pair = p_by_role.get(role, [])
+            if len(pair) == 2:
+                p1, p2 = pair[0], pair[1]
+                id1, id2 = p1["participantId"], p2["participantId"]
 
-        target_id = self.target_participant.get("participantId")
-        opp_id = self.laner_participant.get("participantId") if self.laner_participant else None
+                p1_solo_deaths, p1_other_deaths, p1_solo_kills = 0, 0, 0
+                p2_solo_deaths, p2_other_deaths, p2_solo_kills = 0, 0, 0
 
-        solo_deaths = 0
-        gank_deaths = 0
-        solo_kills = 0
+                for frame in frames:
+                    for ev in frame.get("events", []):
+                        if ev.get("type") == "CHAMPION_KILL":
+                            vic = ev.get("victimId")
+                            kil = ev.get("killerId")
+                            ass = ev.get("assistingParticipantIds", [])
+                            
+                            if vic == id1:
+                                if kil == id2 and len(ass) == 0:
+                                    p1_solo_deaths += 1
+                                    p2_solo_kills += 1
+                                else:
+                                    p1_other_deaths += 1
+                            elif vic == id2:
+                                if kil == id1 and len(ass) == 0:
+                                    p2_solo_deaths += 1
+                                    p1_solo_kills += 1
+                                else:
+                                    p2_other_deaths += 1
 
+                gold_diff = {}
+                xp_diff = {}
+                for m in [5, 10, 15, 20]:
+                    if m < len(frames):
+                        f1 = frames[m].get("participantFrames", {}).get(str(id1), {})
+                        f2 = frames[m].get("participantFrames", {}).get(str(id2), {})
+                        gold_diff[f"{m}m"] = f1.get("totalGold", 0) - f2.get("totalGold", 0)
+                        xp_diff[f"{m}m"] = f1.get("xp", 0) - f2.get("xp", 0)
+
+                matchups.append({
+                    "role": role,
+                    "player1": p1,
+                    "player2": p2,
+                    "p1_stats": {"solo_deaths": p1_solo_deaths, "other_deaths": p1_other_deaths, "solo_kills": p1_solo_kills},
+                    "p2_stats": {"solo_deaths": p2_solo_deaths, "other_deaths": p2_other_deaths, "solo_kills": p2_solo_kills},
+                    "gold_delta": gold_diff,
+                    "xp_delta": xp_diff
+                })
+
+        return matchups
+
+    def _calculate_jungle_objectives(self) -> Dict[str, Any]:
+        stats = {100: {"dragons": 0, "grubs": 0, "herald": 0, "baron": 0}, 200: {"dragons": 0, "grubs": 0, "herald": 0, "baron": 0}}
+        if not self.timeline:
+            return stats
         frames = self.timeline.get("info", {}).get("frames", [])
-        gold_at_min = {}
-
-        for minute_idx in [5, 10, 15, 20]:
-            if minute_idx < len(frames):
-                p_frame = frames[minute_idx].get("participantFrames", {}).get(str(target_id), {})
-                t_gold = p_frame.get("totalGold", 0)
-                o_gold = 0
-                if opp_id:
-                    o_frame = frames[minute_idx].get("participantFrames", {}).get(str(opp_id), {})
-                    o_gold = o_frame.get("totalGold", 0)
-                gold_at_min[f"min_{minute_idx}"] = {
-                    "target_gold": t_gold,
-                    "opponent_gold": o_gold,
-                    "delta": t_gold - o_gold
-                }
-
-        # Kills breakdown
         for frame in frames:
             for ev in frame.get("events", []):
-                ev_type = ev.get("type")
-                if ev_type == "CHAMPION_KILL":
-                    victim = ev.get("victimId")
-                    killer = ev.get("killerId")
-                    assisters = ev.get("assistingParticipantIds", [])
-                    if victim == target_id:
-                        if len(assisters) == 0 and (opp_id is None or killer == opp_id):
-                            solo_deaths += 1
-                        else:
-                            gank_deaths += 1
-                    elif killer == target_id:
-                        if len(assisters) == 0 and (opp_id is None or victim == opp_id):
-                            solo_kills += 1
+                if ev.get("type") == "ELITE_MONSTER_KILL":
+                    m_type = ev.get("monsterType", "")
+                    killer_id = ev.get("killerId", 0)
+                    killer_team = None
+                    for p in self.participants:
+                        if p.get("participantId") == killer_id:
+                            killer_team = p.get("teamId")
+                            break
+                    if killer_team in stats:
+                        if "DRAGON" in m_type:
+                            stats[killer_team]["dragons"] += 1
+                        elif "HORDE" in m_type or "GRUB" in m_type:
+                            stats[killer_team]["grubs"] += 1
+                        elif "HERALD" in m_type:
+                            stats[killer_team]["herald"] += 1
+                        elif "BARON" in m_type:
+                            stats[killer_team]["baron"] += 1
+        return stats
 
-        return {
-            "solo_deaths_in_lane": solo_deaths,
-            "deaths_in_skirmish_or_gank": gank_deaths,
-            "solo_kills_in_lane": solo_kills,
-            "gold_diff_timeline": gold_at_min
-        }
+    def _calculate_timeline_curves(self, players: List[Dict[str, Any]]) -> Dict[str, Any]:
+        frames = self.timeline.get("info", {}).get("frames", []) if self.timeline else []
+        timeline_data = {p["participantId"]: {"champion": p["champion"], "gold": [], "xp": []} for p in players}
+        for frame in frames:
+            p_frames = frame.get("participantFrames", {})
+            for pid_str, p_info in p_frames.items():
+                pid = int(pid_str)
+                if pid in timeline_data:
+                    timeline_data[pid]["gold"].append(p_info.get("totalGold", 0))
+                    timeline_data[pid]["xp"].append(p_info.get("xp", 0))
+        return timeline_data
 
-    def _extract_key_events(self) -> List[str]:
-        if not self.timeline or not self.target_participant:
+    def _extract_key_events(self) -> List[Dict[str, str]]:
+        if not self.timeline:
             return []
         events_log = []
-        target_id = self.target_participant.get("participantId")
         frames = self.timeline.get("info", {}).get("frames", [])
 
         for frame in frames:
@@ -177,56 +247,41 @@ class MatchAnalysis:
                     v_name = self._get_part_name(victim)
                     k_name = self._get_part_name(killer)
 
-                    if victim == target_id:
-                        if len(assisters) == 0:
-                            events_log.append(f"[{t_str}] Morreu SOLO para {k_name}")
-                        else:
-                            events_log.append(f"[{t_str}] Morreu para {k_name} (Ajuda: {len(assisters)} inimigos)")
-                    elif killer == target_id:
-                        if len(assisters) == 0:
-                            events_log.append(f"[{t_str}] Matou SOLO {v_name}")
-                        else:
-                            events_log.append(f"[{t_str}] Matou {v_name}")
+                    if len(assisters) == 0:
+                        events_log.append({
+                            "text": f"[{t_str}] <b>{k_name}</b> matou SOLO <b>{v_name}</b>",
+                            "icon": None
+                        })
+                    else:
+                        events_log.append({
+                            "text": f"[{t_str}] <b>{k_name}</b> abateu <b>{v_name}</b> (Ajuda: {len(assisters)})",
+                            "icon": None
+                        })
 
                 elif ev_type == "ELITE_MONSTER_KILL":
-                    m_type = ev.get("monsterType")
+                    m_type = ev.get("monsterType", "")
                     m_sub = ev.get("monsterSubType", "")
                     killer = ev.get("killerId")
                     k_name = self._get_part_name(killer)
                     desc = f"{m_type} ({m_sub})" if m_sub else m_type
-                    events_log.append(f"[{t_str}] {desc} abatido por {k_name}")
+                    
+                    # Identificar ícone correspondente
+                    icon_url = ICON_DRAGON
+                    if "DRAGON" in m_type:
+                        icon_url = get_dragon_icon(m_sub)
+                    elif "HORDE" in m_type or "GRUB" in m_type:
+                        icon_url = ICON_GRUBS
+                    elif "HERALD" in m_type:
+                        icon_url = ICON_HERALD
+                    elif "BARON" in m_type:
+                        icon_url = ICON_BARON
 
-        return events_log[:15]
+                    events_log.append({
+                        "text": f"[{t_str}] <b>{desc}</b> abatido por <b>{k_name}</b>",
+                        "icon": icon_url
+                    })
 
-    def filter_timeframe(self, start_time: str, end_time: str) -> List[str]:
-        start_ms = parse_time_str(start_time)
-        end_ms = parse_time_str(end_time)
-        events_log = []
-        frames = self.timeline.get("info", {}).get("frames", [])
-
-        for frame in frames:
-            for ev in frame.get("events", []):
-                ts = ev.get("timestamp", 0)
-                if start_ms <= ts <= end_ms:
-                    t_str = format_timestamp(ts)
-                    ev_type = ev.get("type")
-                    if ev_type == "CHAMPION_KILL":
-                        v_name = self._get_part_name(ev.get("victimId"))
-                        k_name = self._get_part_name(ev.get("killerId"))
-                        events_log.append(f"[{t_str}] KILL: {k_name} abateu {v_name}")
-                    elif ev_type == "ITEM_PURCHASED":
-                        p_name = self._get_part_name(ev.get("participantId"))
-                        item_name = self.ddragon.get_item_name(ev.get("itemId", 0))
-                        events_log.append(f"[{t_str}] ITEM: {p_name} comprou {item_name}")
-                    elif ev_type == "BUILDING_KILL":
-                        b_type = ev.get("buildingType")
-                        lane = ev.get("laneType", "")
-                        events_log.append(f"[{t_str}] TORRE/OBJETIVO: {b_type} ({lane}) destruído")
-                    elif ev_type == "ELITE_MONSTER_KILL":
-                        m_type = ev.get("monsterType")
-                        k_name = self._get_part_name(ev.get("killerId"))
-                        events_log.append(f"[{t_str}] MONSTRO: {m_type} abatido por {k_name}")
-        return events_log
+        return events_log[:20]
 
     def _get_part_name(self, participant_id: int) -> str:
         for p in self.participants:
