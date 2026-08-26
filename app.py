@@ -1,7 +1,7 @@
 import os
 import json
 import webbrowser
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
@@ -46,6 +46,42 @@ def get_cached_matches_list():
             continue
     return matches
 
+def clean_game_mode(mode: str) -> str:
+    m = str(mode).upper()
+    if m == "CLASSIC":
+        return "Summoner's Rift"
+    elif m == "ARAM":
+        return "ARAM"
+    elif m == "CHERRY":
+        return "Arena"
+    elif m == "URF":
+        return "URF"
+    return m.capitalize()
+
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, is_cached=False):
+    win_class = "card-win" if win else "card-loss"
+    win_txt = "VITÓRIA" if win else "DERROTA"
+    badge_class = "badge-win" if win else "badge-loss"
+    btn_text = "Abrir Análise ➔" if is_cached else "Analisar Partida ➔"
+    btn_class = "btn-analyze btn-cached" if is_cached else "btn-analyze"
+
+    return f"""
+    <div class="match-item {win_class}">
+        <div class="m-left">
+            <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}"/>
+            <div>
+                <div class="m-champ-name">
+                    {champ_name} 
+                    <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal;">({riot_id})</span>
+                    <span class="m-badge {badge_class}">{win_txt}</span>
+                </div>
+                <div class="m-sub">{clean_game_mode(mode)} • {duration} • KDA: <b>{kda}</b></div>
+            </div>
+        </div>
+        <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}">{btn_text}</a>
+    </div>
+    """
+
 def render_home_html(search_results=None, error_msg="", search_name="", search_tag=""):
     cached_list = get_cached_matches_list()
     last_sess = get_last_session() or {}
@@ -53,13 +89,33 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     def_tag = search_tag or last_sess.get("tag_line", "CWB")
     
     curr_key = os.getenv("RIOT_API_KEY") or RIOT_API_KEY or ""
+    exp_val = os.getenv("RIOT_KEY_EXPIRES_AT") or ""
     key_configured = bool(curr_key)
+    
+    import time
+    expiry_msg = ""
+    is_expired = False
     
     if key_configured:
         masked_key = f"{curr_key[:6]}...{curr_key[-4:]}" if len(curr_key) > 10 else "******"
-        key_status_badge = f'<span style="color:#86efac; background:#166534; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">Chave Ativa ({masked_key}) ✓</span>'
+        if exp_val and str(exp_val).isdigit():
+            exp_ts = int(exp_val)
+            diff_s = exp_ts - time.time()
+            if diff_s <= 0:
+                is_expired = True
+                expiry_msg = "<span style='color:#ef4444; font-weight:bold;'>Expirada!</span>"
+                key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">Chave Expirada ({masked_key}) ⚠️</span>'
+            else:
+                hours = int(diff_s // 3600)
+                mins = int((diff_s % 3600) // 60)
+                expiry_msg = f"<span style='color:#86efac; font-weight:bold;'>Válida por mais {hours}h {mins}m</span>"
+                key_status_badge = f'<span style="color:#86efac; background:#166534; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">Chave Ativa ({masked_key}) • {hours}h {mins}m restando ✓</span>'
+        else:
+            expiry_msg = "<span style='color:var(--text-muted);'>Validade não informada</span>"
+            key_status_badge = f'<span style="color:#86efac; background:#166534; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">Chave Ativa ({masked_key}) ✓</span>'
     else:
         masked_key = "Nenhuma"
+        expiry_msg = "Nenhuma chave configurada"
         key_status_badge = '<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">Chave Faltando ⚠️</span>'
 
     search_html = ""
@@ -67,22 +123,14 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         if not search_results:
             search_html = '<div class="no-data">Nenhuma partida encontrada para este invocador.</div>'
         else:
-            cards = []
-            for m in search_results:
-                win_class = "card-win" if m["win"] else "card-loss"
-                win_txt = "VITÓRIA" if m["win"] else "DERROTA"
-                cards.append(f"""
-                <div class="match-item {win_class}">
-                    <div class="m-left">
-                        <img class="champ-avatar-lg" src="{m['champion_icon']}" alt="{m['champion']}"/>
-                        <div>
-                            <div class="m-champ-name">{m['champion']} <span class="m-badge {'badge-win' if m['win'] else 'badge-loss'}">{win_txt}</span></div>
-                            <div class="m-sub">{m['game_mode']} • {m['duration']} • KDA: <b>{m['kda']}</b></div>
-                        </div>
-                    </div>
-                    <a class="btn-analyze" href="/analyze?match_id={m['match_id']}&puuid={m['puuid']}">Analisar Partida ➔</a>
-                </div>
-                """)
+            cards = [
+                render_match_card(
+                    m["match_id"], m["champion"], m["champion_icon"],
+                    f"{search_name}#{search_tag}", m["kda"], m["win"],
+                    m["duration"], m["game_mode"], m["puuid"], is_cached=False
+                )
+                for m in search_results
+            ]
             search_html = f"""
             <div class="section-card">
                 <h3>🎮 Últimas Partidas de {search_name}#{search_tag} (Live Riot API)</h3>
@@ -100,19 +148,14 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     if part["puuid"] == last_sess.get("puuid"):
                         p = part
                         break
-            win_class = "card-win" if p.get("win") else "card-loss"
-            c_cards.append(f"""
-            <div class="match-item {win_class}">
-                <div class="m-left">
-                    <img class="champ-avatar-lg" src="{p.get('icon', '')}"/>
-                    <div>
-                        <div class="m-champ-name">{p.get('champion', '')} ({p.get('name')}#{p.get('tag')})</div>
-                        <div class="m-sub">ID: {m['match_id']} • {m['duration']} • KDA: <b>{p.get('kda', '')}</b></div>
-                    </div>
-                </div>
-                <a class="btn-analyze btn-cached" href="/analyze?match_id={m['match_id']}&puuid={p.get('puuid', '')}">Abrir Análise ➔</a>
-            </div>
-            """)
+            c_cards.append(
+                render_match_card(
+                    m["match_id"], p.get("champion", ""), p.get("icon", ""),
+                    f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
+                    p.get("win", False), m["duration"], m["game_mode"],
+                    p.get("puuid", ""), is_cached=True
+                )
+            )
         cached_html = f"""
         <div class="section-card" style="margin-top: 24px;">
             <h3>💾 Partidas Salvas no Cache Local (Offline)</h3>
@@ -266,7 +309,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             <h3>🔍 Buscar Invocador (Riot ID)</h3>
             <form action="/search" method="GET" class="form-row">
                 <input type="text" name="game_name" placeholder="Nome de Jogo (Ex: Noob Master 46)" value="{def_name}" required style="flex: 2;"/>
-                <input type="text" name="tag_line" placeholder="TAG (Ex: CWB)" value="{def_tag}" required style="flex: 1;"/>
+                <span style="color:#64748b; font-weight:800; font-size:1.3rem; margin:0 2px;">#</span>
+                <input type="text" name="tag_line" placeholder="TAG (Ex: CWB)" value="{def_tag}" required style="flex: 1; max-width: 140px;"/>
                 <button type="submit" class="btn">Buscar Partidas ➔</button>
             </form>
         </div>
@@ -282,11 +326,15 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 <a href="https://developer.riotgames.com" target="_blank" style="color:var(--accent); font-size:0.85rem; font-weight:700; text-decoration:none;">🔗 Abrir Portal Riot Developer ➔</a>
             </div>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 12px 0;">
-                Chave atual: <b>{masked_key}</b> • Chaves de desenvolvimento expiram a cada <b>24 horas</b>. Ao renovar no site da Riot, cole a nova chave abaixo e clique em Salvar:
+                Chave atual: <b>{masked_key}</b> • Status: {expiry_msg}<br/>
+                <span style="font-size:0.78rem; color:#64748b;">(Chaves de desenvolvimento expiram a cada 24h. Ao gerar uma nova no site da Riot, você pode colar a chave e opcionalmente a linha de "Expires:" para contagem automática.)</span>
             </p>
-            <form action="/save_key" method="POST" class="form-row">
-                <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required/>
-                <button type="submit" class="btn" style="background:#16a34a;">Salvar Chave</button>
+            <form action="/save_key" method="POST" class="form-row" style="flex-direction:column; align-items:stretch; gap:10px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required style="flex:1.5;"/>
+                    <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes" style="flex:2.5;"/>
+                    <button type="submit" class="btn" style="background:#16a34a; flex:0 0 auto;">Salvar Chave</button>
+                </div>
             </form>
         </div>
     </div>
@@ -386,8 +434,9 @@ class AppHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length).decode("utf-8")
             form_data = parse_qs(body)
             new_key = form_data.get("api_key", [""])[0].strip()
+            exp_text = form_data.get("expires_text", [""])[0].strip()
             if new_key:
-                save_api_key(new_key)
+                save_api_key(new_key, exp_text)
             self._redirect("/")
         else:
             self._redirect("/")
@@ -404,7 +453,8 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 def run_app():
-    server = HTTPServer(("127.0.0.1", PORT), AppHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), AppHandler)
+    server.daemon_threads = True
     url = f"http://127.0.0.1:{PORT}"
     print(f"\n==================================================")
     print(f"  LoL API Analyzer App rodando em: {url}")
@@ -415,6 +465,8 @@ def run_app():
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nServidor finalizado.")
+    finally:
+        server.server_close()
 
 if __name__ == "__main__":
     run_app()
