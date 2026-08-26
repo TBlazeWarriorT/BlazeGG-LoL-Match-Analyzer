@@ -106,7 +106,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     </div>
                     <div class="p-meta">
                         <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
-                        <div class="p-champ">{get_text("bot_duo_sub", lang=lang)}</div>
+                        <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
                     </div>
                 </div>
                 """
@@ -118,7 +118,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
                     <div class="p-meta">
                         <div class="p-name">{p['riot_id']} {target_badge}</div>
-                        <div class="p-champ">{p['champion']}</div>
+                        <div class="p-champ">{p['champion']} • KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
                     </div>
                 </div>
                 """
@@ -173,20 +173,20 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             line_1_dmg = f"""
             <div class="pill pill-wide" title="{lbl_phys}: {dmg_phys:,} | {lbl_mag}: {dmg_mag:,} | {lbl_true}: {dmg_tru:,}">
                 <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
-                <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
             </div>
             """
 
             line_2_soaked = f"""
             <div class="pill pill-wide" title="{lbl_taken}: {dmg_tk:,} | {lbl_mit}: {dmg_mit:,} | {lbl_hl}: {dmg_hl:,}">
                 <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
-                <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
+                <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
             </div>
             """
 
             line_3_gold_cs = f"""
             <div class="pill pill-wide">
-                <span><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">(dmg/g: <b>{p['damage_per_gold']}</b>)</span></span>
+                <span><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({p['damage_per_gold']} dmg/g)</span></span>
                 <span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>
             </div>
             """
@@ -211,7 +211,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             return f"""
             <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
                 {header_html}
-                <div class="p-kda">{get_text('champion', lang=lang) if is_bot_duo else p['champion']} - KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
                 <div class="stats-pills">
                     {line_1_dmg}
                     {line_2_soaked}
@@ -518,6 +517,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         lbl_mit = get_text("mitigated", lang=lang)
         lbl_hl = get_text("healed", lang=lang)
 
+        team_gold_delta_final = t1_gold - t2_gold
+        t1_gold_delta_tag = f'<span class="lead-delta">+{team_gold_delta_final:,}</span>' if team_gold_delta_final > 0 else ""
+        t2_gold_delta_tag = f'<span class="lead-delta">+{abs(team_gold_delta_final):,}</span>' if team_gold_delta_final < 0 else ""
+
         # Pills Blue Team 5v5
         t1_pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t1_pinks}</b></span>"
         t1_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t1_vis}</b> ({t1_pink_badge})"
@@ -532,21 +535,20 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     <div class="team-avatar-stack">{t1_icons_html}</div>
                     <div class="p-meta">
                         <div class="p-name">{get_text("blue_team", lang=lang)}</div>
-                        <div class="p-champ">{get_text("team_combined_sub", lang=lang)}</div>
+                        <div class="p-champ">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> <span class="kda-ratio">({ratio_t1:.2f}:1)</span></div>
                     </div>
                 </div>
-                <div class="p-kda">{get_text("blue_team", lang=lang)} - KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> <span class="kda-ratio">({ratio_t1:.2f}:1)</span></div>
                 <div class="stats-pills">
                     <div class="pill pill-wide" title="{lbl_phys}: {t1_phys:,} | {lbl_mag}: {t1_mag:,} | {lbl_true}: {t1_tru:,}">
                         <span>{lbl_dmg}: <b>{t1_dmg:,}</b></span>
-                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
                     </div>
                     <div class="pill pill-wide" title="{lbl_taken}: {t1_taken:,} | {lbl_mit}: {t1_mit:,} | {lbl_hl}: {t1_hl:,}">
                         <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
-                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
                     </div>
                     <div class="pill pill-wide">
-                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b> <span style="color:var(--text-muted); font-size:0.75rem;">(dmg/g: <b>{round(t1_dmg / max(t1_gold, 1), 2)}</b>)</span></span>
+                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b> {t1_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t1_dmg / max(t1_gold, 1), 2)} dmg/g)</span></span>
                         <span><img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t1}/m)</span></span>
                     </div>
                     <div class="pill pill-wide">
@@ -564,9 +566,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                         <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
                     </div>
                 </div>
-                <div style="font-size:0.8rem; color:#cbd5e1; font-weight:700;">
-                    {get_text("gold", lang=lang)}: <b class="{'pos' if t1_gold >= t2_gold else 'neg'}">{'+' if t1_gold >= t2_gold else ''}{t1_gold - t2_gold:,}</b>
-                </div>
                 {delta_gold_section}
             </div>
 
@@ -574,22 +573,21 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                 <div class="p-header" style="justify-content: flex-end;">
                     <div class="p-meta" style="text-align: right;">
                         <div class="p-name">{get_text("red_team", lang=lang)}</div>
-                        <div class="p-champ">{get_text("team_combined_sub", lang=lang)}</div>
+                        <div class="p-champ">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> <span class="kda-ratio">({ratio_t2:.2f}:1)</span></div>
                     </div>
                     <div class="team-avatar-stack">{t2_icons_html}</div>
                 </div>
-                <div class="p-kda" style="justify-content: flex-end;">{get_text("red_team", lang=lang)} - KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> <span class="kda-ratio">({ratio_t2:.2f}:1)</span></div>
                 <div class="stats-pills">
                     <div class="pill pill-wide" title="{lbl_phys}: {t2_phys:,} | {lbl_mag}: {t2_mag:,} | {lbl_true}: {t2_tru:,}">
                         <span>{lbl_dmg}: <b>{t2_dmg:,}</b></span>
-                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
                     </div>
                     <div class="pill pill-wide" title="{lbl_taken}: {t2_taken:,} | {lbl_mit}: {t2_mit:,} | {lbl_hl}: {t2_hl:,}">
                         <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
-                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
                     </div>
                     <div class="pill pill-wide">
-                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> <span style="color:var(--text-muted); font-size:0.75rem;">(dmg/g: <b>{round(t2_dmg / max(t2_gold, 1), 2)}</b>)</span></span>
+                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> {t2_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t2_dmg / max(t2_gold, 1), 2)} dmg/g)</span></span>
                         <span><img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></span>
                     </div>
                     <div class="pill pill-wide">
@@ -1344,22 +1342,27 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            align-items: center;
+            gap: 4px;
         }}
         .duel-score-row {{
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
         }}
-        .score-label {{ color: var(--text-muted); font-size: 0.76rem; font-weight: 600; }}
+        .score-label {{ color: var(--text-muted); font-size: 0.76rem; font-weight: 600; text-align: right; min-width: 90px; }}
         
         .score-pill-lg {{
             background: #090d16;
             padding: 2px 10px;
             border-radius: 4px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
+            min-width: 65px;
         }}
         .score-blue-lg {{ color: #60a5fa; font-size: 1.05rem; font-weight: 800; }}
         .score-red-lg {{ color: #f87171; font-size: 1.05rem; font-weight: 800; }}
@@ -1369,9 +1372,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             background: #090d16;
             padding: 1px 8px;
             border-radius: 4px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
+            min-width: 65px;
         }}
         .score-blue-sm {{ color: #60a5fa; font-size: 0.82rem; font-weight: 700; }}
         .score-red-sm {{ color: #f87171; font-size: 0.82rem; font-weight: 700; }}
