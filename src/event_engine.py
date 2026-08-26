@@ -182,7 +182,8 @@ class MatchAnalysis:
             "matchups": matchups,
             "jungle_stats": jungle_stats,
             "all_objectives": self._extract_all_objectives(),
-            "key_events": self._extract_key_events()
+            "key_events": self._extract_key_events(),
+            "multikills": self._extract_multikill_sequences()
         }
         analysis_dict["raw_summary_text"] = self._generate_compact_raw_summary(analysis_dict)
         return analysis_dict
@@ -440,6 +441,78 @@ class MatchAnalysis:
                     })
 
         return events_log
+
+    def _extract_multikill_sequences(self) -> List[Dict[str, Any]]:
+        if not self.timeline:
+            return []
+        multikills = []
+        frames = self.timeline.get("info", {}).get("frames", [])
+        active_streaks = {}
+
+        for frame in frames:
+            for ev in frame.get("events", []):
+                if ev.get("type") == "CHAMPION_KILL":
+                    ts = ev.get("timestamp", 0)
+                    killer = ev.get("killerId", 0)
+                    victim = ev.get("victimId", 0)
+                    if not killer or not victim:
+                        continue
+
+                    k_p = self._get_part_dict(killer)
+                    v_p = self._get_part_dict(victim)
+
+                    streak = active_streaks.get(killer)
+                    allowed_window = 30000 if (streak and streak["count"] == 4) else 10000
+
+                    if streak and (ts - streak["last_ts"]) <= allowed_window:
+                        streak["count"] += 1
+                        streak["last_ts"] = ts
+                        streak["victims"].append({
+                            "champ": self.ddragon.get_clean_champion_name(v_p.get("championName", "")),
+                            "icon": self.ddragon.get_champion_icon_url(v_p.get("championName", "")),
+                            "name": v_p.get("riotIdGameName", "")
+                        })
+                    else:
+                        if streak and streak["count"] >= 3:
+                            multikills.append(streak)
+                        active_streaks[killer] = {
+                            "killer_id": killer,
+                            "killer_name": k_p.get("riotIdGameName", ""),
+                            "killer_champ": self.ddragon.get_clean_champion_name(k_p.get("championName", "")),
+                            "killer_icon": self.ddragon.get_champion_icon_url(k_p.get("championName", "")),
+                            "start_time": format_timestamp(ts),
+                            "last_ts": ts,
+                            "count": 1,
+                            "victims": [{
+                                "champ": self.ddragon.get_clean_champion_name(v_p.get("championName", "")),
+                                "icon": self.ddragon.get_champion_icon_url(v_p.get("championName", "")),
+                                "name": v_p.get("riotIdGameName", "")
+                            }]
+                        }
+
+        # Flush remaining streaks at game end
+        for killer, streak in active_streaks.items():
+            if streak and streak["count"] >= 3:
+                multikills.append(streak)
+
+        # Classificar tipo e ordenar por maior multikill primeiro (penta > quadra > triple), depois por tempo
+        for mk in multikills:
+            cnt = mk["count"]
+            if cnt >= 5:
+                mk["streak_type"] = "penta"
+                mk["title"] = "PENTAKILL"
+                mk["badge_icon"] = "👑"
+            elif cnt == 4:
+                mk["streak_type"] = "quadra"
+                mk["title"] = "QUADRA KILL"
+                mk["badge_icon"] = "🔥"
+            elif cnt == 3:
+                mk["streak_type"] = "triple"
+                mk["title"] = "TRIPLE KILL"
+                mk["badge_icon"] = "⚔️"
+
+        multikills.sort(key=lambda x: (-x["count"], x["last_ts"]))
+        return multikills
 
     def _extract_all_objectives(self) -> List[Dict[str, Any]]:
         if not self.timeline:
