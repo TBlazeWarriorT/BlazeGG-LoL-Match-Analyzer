@@ -107,20 +107,26 @@ input[type="text"], input[type="password"] {
     border-radius: 50%;
     border: 2px solid var(--card-border);
 }	.m-champ-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }	.m-sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }
-.m-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; }	.badge-win { background: #166534; color: #86efac; }
-.badge-loss { background: #991b1b; color: #fca5a5; }	.btn-to-analyze {
+.m-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; }
+.badge-win { background: #166534; color: #86efac; }
+.badge-loss { background: #991b1b; color: #fca5a5; }
+.btn-analyze {
     background: #0284c7;
-    color: #fff;
+    color: #fff !important;
     padding: 8px 14px;
     border-radius: 6px;
     font-weight: 700;
     font-size: 0.85rem;
-    text-decoration: none;
+    text-decoration: none !important;
     transition: background 0.2s;
+    display: inline-block;
+    cursor: pointer;
 }
-.btn-to-analyze:hover { background: #0369a1; }
+.btn-analyze:hover { background: #0369a1; }
+.btn-analyze:visited { color: #fff !important; }
 .btn-cached { background: #334155; }
-.btn-cached:hover { background: #475569; }	.error-banner {
+.btn-cached:hover { background: #475569; }
+	.error-banner {
     background: #991b1b;
     color: #fca5a5;    padding: 12px 16px;
     border-radius: 8px;
