@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from typing import Optional, Any
 from .config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, CACHE_DIR
@@ -35,4 +35,16 @@ def set_last_viewed(match_id: str, puuid: str, riot_id: str = ""):
     })
 
 def get_last_viewed() -> Optional[dict]:
+    return load_json(SESSION_FILE)
+
+def save_session(game_name: str, tag_line: str, puuid: str, match_id: str = ""):
+    save_json(SESSION_FILE, {
+        "game_name": game_name,
+        "tag_line": tag_line,
+        "riot_id": f"{game_name}#{tag_line}",
+        "puuid": puuid,
+        "match_id": match_id
+    })
+
+def get_last_session() -> Optional[dict]:
     return load_json(SESSION_FILE)

@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import glob
 from pathlib import Path
@@ -52,8 +52,7 @@ def main():
     p = analyzer.target_participant
     print(f"Partida {match_id} carregada.")
     print(f"Jogador analisado: {p.get('riotIdGameName')}#{p.get('riotIdTagline')} ({p.get('championName')})")
-    print("\n" + "="*50)
-    input("\nPressione Enter para sair...")
+    print("\n[+] Dashboard aberto no seu navegador padrão!")
 
 if __name__ == "__main__":
     main()
