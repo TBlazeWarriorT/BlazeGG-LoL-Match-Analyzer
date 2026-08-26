@@ -18,7 +18,9 @@ def save_json(file_path: Path, data: Any) -> None:
 def get_cached_match(match_id: str) -> Optional[dict]:
     return load_json(MATCH_CACHE_DIR / f"{match_id}.json")
 
-def save_cached_match(match_id: str, data: dict) -> None:
+def save_cached_match(match_id: str, data: dict, target_puuid: str = "") -> None:
+    if target_puuid and "metadata" in data:
+        data["metadata"]["target_puuid"] = target_puuid
     save_json(MATCH_CACHE_DIR / f"{match_id}.json", data)
 
 def get_cached_timeline(match_id: str) -> Optional[dict]:

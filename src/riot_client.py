@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 import time
 from typing import Optional, List, Dict, Any
 from .config import RIOT_API_KEY, RIOT_KEY_EXPIRES_AT, DEFAULT_ROUTING, DEFAULT_REGION
@@ -55,15 +55,18 @@ class RiotClient:
         matches = self._request(url)
         return matches or []
 
-    def get_match_detail(self, match_id: str) -> Dict[str, Any]:
+    def get_match_detail(self, match_id: str, target_puuid: str = "") -> Dict[str, Any]:
         cached = get_cached_match(match_id)
         if cached:
+            if target_puuid and "metadata" in cached and not cached["metadata"].get("target_puuid"):
+                cached["metadata"]["target_puuid"] = target_puuid
+                save_cached_match(match_id, cached, target_puuid)
             return cached
         url = f"https://{self.routing}.api.riotgames.com/lol/match/v5/matches/{match_id}"
         data = self._request(url)
         if not data:
             raise RiotAPIError(f"Partida {match_id} não encontrada.")
-        save_cached_match(match_id, data)
+        save_cached_match(match_id, data, target_puuid)
         return data
 
     def get_match_timeline(self, match_id: str) -> Dict[str, Any]:

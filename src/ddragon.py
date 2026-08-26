@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 from typing import Dict
 from .config import DDRAGON_CACHE_DIR
 from .cache_manager import load_json, save_json
@@ -12,6 +12,7 @@ class DataDragon:
         self.version = self._get_latest_version()
         self._items: Dict[str, str] = {}
         self._champions: Dict[str, str] = {}
+        self._champions_by_id: Dict[str, str] = {}
         self._load_dictionaries()
 
     def _get_latest_version(self) -> str:
@@ -59,7 +60,9 @@ class DataDragon:
         if cached_champs and "data" in cached_champs:
             for champ_id, details in cached_champs["data"].items():
                 key = str(details.get("key"))
-                self._champions[key] = details.get("name", champ_id)
+                name = details.get("name", champ_id)
+                self._champions[key] = name
+                self._champions_by_id[champ_id.lower()] = name
 
     def get_item_name(self, item_id: int) -> str:
         if not item_id or item_id == 0:
@@ -68,6 +71,12 @@ class DataDragon:
 
     def get_champion_name(self, key: int, fallback: str = "") -> str:
         return self._champions.get(str(key), fallback or f"Champ {key}")
+
+    def get_clean_champion_name(self, raw_champ_name: str) -> str:
+        if not raw_champ_name:
+            return ""
+        clean_key = raw_champ_name.replace(" ", "").replace("'", "").lower()
+        return self._champions_by_id.get(clean_key, raw_champ_name)
 
     def get_champion_icon_url(self, champ_name: str) -> str:
         if not champ_name:

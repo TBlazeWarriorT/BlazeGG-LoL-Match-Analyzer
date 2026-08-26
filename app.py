@@ -14,6 +14,26 @@ from src.ddragon import DataDragon
 PORT = 8000
 ddragon = DataDragon()
 
+def format_relative_time(creation_ms: int) -> str:
+    import time
+    if not creation_ms or creation_ms == 0:
+        return ""
+    diff_s = int(time.time() - (creation_ms / 1000))
+    if diff_s < 60:
+        return "agora mesmo"
+    elif diff_s < 3600:
+        m = diff_s // 60
+        return f"há {m} min"
+    elif diff_s < 86400:
+        h = diff_s // 3600
+        return f"há {h} hora{'s' if h > 1 else ''}"
+    elif diff_s < 604800:
+        d = diff_s // 86400
+        return f"há {d} dia{'s' if d > 1 else ''}"
+    else:
+        from datetime import datetime
+        return datetime.fromtimestamp(creation_ms / 1000).strftime("%d/%m/%Y")
+
 def get_cached_matches_list():
     matches = []
     if not MATCH_CACHE_DIR.exists():
@@ -23,27 +43,38 @@ def get_cached_matches_list():
             with open(f, "r", encoding="utf-8") as file:
                 data = json.load(file)
                 info = data.get("info", {})
-                mid = data.get("metadata", {}).get("matchId", f.stem)
+                meta = data.get("metadata", {})
+                mid = meta.get("matchId", f.stem)
                 dur_s = info.get("gameDuration", 0)
+                creation_ms = info.get("gameCreation", 0)
+                target_puuid = meta.get("target_puuid", "")
+                
+                parts = []
+                for p in info.get("participants", []):
+                    raw_champ = p.get("championName", "")
+                    parts.append({
+                        "name": p.get("riotIdGameName", ""),
+                        "tag": p.get("riotIdTagline", ""),
+                        "champion": ddragon.get_clean_champion_name(raw_champ),
+                        "icon": ddragon.get_champion_icon_url(raw_champ),
+                        "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
+                        "win": p.get("win", False),
+                        "puuid": p.get("puuid")
+                    })
+
                 matches.append({
                     "match_id": mid,
                     "game_mode": info.get("gameMode", "CLASSIC"),
                     "duration": f"{dur_s // 60}m {dur_s % 60}s",
-                    "participants": [
-                        {
-                            "name": p.get("riotIdGameName", ""),
-                            "tag": p.get("riotIdTagline", ""),
-                            "champion": p.get("championName", ""),
-                            "icon": ddragon.get_champion_icon_url(p.get("championName", "")),
-                            "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
-                            "win": p.get("win", False),
-                            "puuid": p.get("puuid")
-                        }
-                        for p in info.get("participants", [])
-                    ]
+                    "creation_ms": creation_ms,
+                    "relative_time": format_relative_time(creation_ms),
+                    "target_puuid": target_puuid,
+                    "participants": parts
                 })
         except Exception:
             continue
+    # Ordenar por data da mais recente para a mais antiga
+    matches.sort(key=lambda x: x.get("creation_ms", 0), reverse=True)
     return matches
 
 def clean_game_mode(mode: str) -> str:
@@ -58,12 +89,13 @@ def clean_game_mode(mode: str) -> str:
         return "URF"
     return m.capitalize()
 
-def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, is_cached=False):
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False):
     win_class = "card-win" if win else "card-loss"
     win_txt = "VITÓRIA" if win else "DERROTA"
     badge_class = "badge-win" if win else "badge-loss"
     btn_text = "Abrir Análise ➔" if is_cached else "Analisar Partida ➔"
     btn_class = "btn-analyze btn-cached" if is_cached else "btn-analyze"
+    time_badge = f'<span style="color:#64748b; font-size:0.78rem; margin-left:6px;">• {rel_time}</span>' if rel_time else ""
 
     return f"""
     <div class="match-item {win_class}">
@@ -75,7 +107,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal;">({riot_id})</span>
                     <span class="m-badge {badge_class}">{win_txt}</span>
                 </div>
-                <div class="m-sub">{clean_game_mode(mode)} • {duration} • KDA: <b>{kda}</b></div>
+                <div class="m-sub">{clean_game_mode(mode)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
             </div>
         </div>
         <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}">{btn_text}</a>
@@ -127,7 +159,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 render_match_card(
                     m["match_id"], m["champion"], m["champion_icon"],
                     f"{search_name}#{search_tag}", m["kda"], m["win"],
-                    m["duration"], m["game_mode"], m["puuid"], is_cached=False
+                    m["duration"], m["game_mode"], m["puuid"], rel_time=m.get("relative_time", ""), is_cached=False
                 )
                 for m in search_results
             ]
@@ -142,18 +174,29 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     if cached_list:
         c_cards = []
         for m in cached_list:
-            p = m["participants"][0] if m["participants"] else {}
-            if last_sess.get("puuid"):
+            # 1. Tenta pegar pelo target_puuid salvo especificamente nesta partida
+            p = None
+            if m.get("target_puuid"):
+                for part in m["participants"]:
+                    if part["puuid"] == m["target_puuid"]:
+                        p = part
+                        break
+            # 2. Se não tiver, tenta da sessão atual
+            if not p and last_sess.get("puuid"):
                 for part in m["participants"]:
                     if part["puuid"] == last_sess.get("puuid"):
                         p = part
                         break
+            # 3. Fallback: primeiro participante
+            if not p:
+                p = m["participants"][0] if m["participants"] else {}
+
             c_cards.append(
                 render_match_card(
                     m["match_id"], p.get("champion", ""), p.get("icon", ""),
                     f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
                     p.get("win", False), m["duration"], m["game_mode"],
-                    p.get("puuid", ""), is_cached=True
+                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True
                 )
             )
         cached_html = f"""
@@ -290,14 +333,25 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             font-size: 0.9rem;
         }}
         .no-data {{ color: var(--text-muted); font-style: italic; margin-top: 10px; }}
+        .form-group {{
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }}
+        .form-label {{
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div>
-                <h1>⚔️ LoL API Analyzer</h1>
-                <div style="color: var(--text-muted); margin-top: 4px;">Central de Partidas & Análise Head-to-Head</div>
+                <h1 style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px;">🔥 Blaze GG</h1>
+                <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">LoL Head-to-Head Analytics &amp; Match Explorer</div>
             </div>
             <div>{key_status_badge}</div>
         </div>
@@ -311,7 +365,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 <input type="text" name="game_name" placeholder="Nome de Jogo (Ex: Noob Master 46)" value="{def_name}" required style="flex: 2;"/>
                 <span style="color:#64748b; font-weight:800; font-size:1.3rem; margin:0 2px;">#</span>
                 <input type="text" name="tag_line" placeholder="TAG (Ex: CWB)" value="{def_tag}" required style="flex: 1; max-width: 140px;"/>
-                <button type="submit" class="btn">Buscar Partidas ➔</button>
+                <button type="submit" class="btn" id="btnSearch" onclick="this.innerText='Buscando...';">Buscar Partidas ➔</button>
             </form>
         </div>
 
@@ -325,15 +379,22 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 <h3 style="margin:0;">🔑 Configuração da Riot API Key</h3>
                 <a href="https://developer.riotgames.com" target="_blank" style="color:var(--accent); font-size:0.85rem; font-weight:700; text-decoration:none;">🔗 Abrir Portal Riot Developer ➔</a>
             </div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 12px 0;">
-                Chave atual: <b>{masked_key}</b> • Status: {expiry_msg}<br/>
-                <span style="font-size:0.78rem; color:#64748b;">(Chaves de desenvolvimento expiram a cada 24h. Ao gerar uma nova no site da Riot, você pode colar a chave e opcionalmente a linha de "Expires:" para contagem automática.)</span>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 14px 0;">
+                Chave atual: <b>{masked_key}</b> • Status: {expiry_msg}
             </p>
-            <form action="/save_key" method="POST" class="form-row" style="flex-direction:column; align-items:stretch; gap:10px;">
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required style="flex:1.5;"/>
-                    <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes" style="flex:2.5;"/>
-                    <button type="submit" class="btn" style="background:#16a34a; flex:0 0 auto;">Salvar Chave</button>
+            <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="flex: 1.2;">
+                        <label class="form-label">Riot API Key (Obrigatório):</label>
+                        <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required/>
+                    </div>
+                    <div class="form-group" style="flex: 1.8;">
+                        <label class="form-label">Lembrete de Data de Expiração (Opcional):</label>
+                        <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes"/>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn" style="background:#16a34a;">Salvar Configurações</button>
                 </div>
             </form>
         </div>
@@ -367,19 +428,21 @@ class AppHandler(BaseHTTPRequestHandler):
                 results = []
                 for mid in match_ids:
                     try:
-                        m = client.get_match_detail(mid)
+                        m = client.get_match_detail(mid, target_puuid=puuid)
                         info = m.get("info", {})
                         dur_s = info.get("gameDuration", 0)
+                        creation_ms = info.get("gameCreation", 0)
                         p = [x for x in info.get("participants", []) if x.get("puuid") == puuid][0]
-                        champ = p.get("championName", "")
+                        raw_champ = p.get("championName", "")
                         results.append({
                             "match_id": mid,
                             "puuid": puuid,
-                            "champion": champ,
-                            "champion_icon": ddragon.get_champion_icon_url(champ),
+                            "champion": ddragon.get_clean_champion_name(raw_champ),
+                            "champion_icon": ddragon.get_champion_icon_url(raw_champ),
                             "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
                             "win": p.get("win", False),
                             "duration": f"{dur_s // 60}m {dur_s % 60}s",
+                            "relative_time": format_relative_time(creation_ms),
                             "game_mode": info.get("gameMode", "CLASSIC")
                         })
                     except Exception:
@@ -417,7 +480,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 with open(REPORT_FILE, "r", encoding="utf-8") as rf:
                     content = rf.read()
                 
-                back_btn = '<div style="margin-bottom: 12px;"><a href="/" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:6px; border:1px solid #1f293d;">⬅ Voltar para a Central de Partidas</a></div>'
+                back_btn = '<div style="margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between;"><a href="/" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:6px; border:1px solid #1f293d;">⬅ Voltar para a Central de Partidas</a><span style="color:#64748b; font-weight:800; font-size:0.9rem;">🔥 Blaze GG</span></div>'
                 content = content.replace('<div class="header">', back_btn + '<div class="header">')
                 
                 self._send_html(content)
@@ -444,6 +507,9 @@ class AppHandler(BaseHTTPRequestHandler):
     def _send_html(self, html_str: str):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         self.end_headers()
         self.wfile.write(html_str.encode("utf-8"))
 

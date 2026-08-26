@@ -92,7 +92,8 @@ class MatchAnalysis:
                     "icon": self.ddragon.get_item_icon_url(iid)
                 })
 
-        champ_name = p.get("championName", "")
+        raw_champ = p.get("championName", "")
+        champ_name = self.ddragon.get_clean_champion_name(raw_champ)
         k = p.get("kills", 0)
         d = p.get("deaths", 0)
         a = p.get("assists", 0)
@@ -102,7 +103,8 @@ class MatchAnalysis:
             "teamId": p.get("teamId"),
             "riot_id": f"{p.get('riotIdGameName', '')}#{p.get('riotIdTagline', '')}",
             "champion": champ_name,
-            "champion_icon": self.ddragon.get_champion_icon_url(champ_name),
+            "champion_raw": raw_champ,
+            "champion_icon": self.ddragon.get_champion_icon_url(raw_champ),
             "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
             "kda": f"{k}/{d}/{a}",
             "kda_ratio": calculate_kda_ratio(k, d, a),
@@ -328,19 +330,21 @@ class MatchAnalysis:
                         streak_type = "multi"
 
                     is_solo = len(assisters) == 0
+                    k_raw = k_p.get("championName", "")
+                    v_raw = v_p.get("championName", "")
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
                         "time": t_str,
-                        "killer_champ": k_p.get("championName", "P"),
-                        "killer_icon": self.ddragon.get_champion_icon_url(k_p.get("championName", "")),
+                        "killer_champ": self.ddragon.get_clean_champion_name(k_raw),
+                        "killer_icon": self.ddragon.get_champion_icon_url(k_raw),
                         "killer_name": k_p.get("riotIdGameName", ""),
-                        "victim_champ": v_p.get("championName", "P"),
-                        "victim_icon": self.ddragon.get_champion_icon_url(v_p.get("championName", "")),
+                        "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
+                        "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
                         "is_solo": is_solo,
                         "assists_count": len(assisters),
-                        "assisters": [self._get_part_dict(aid).get("championName", "") for aid in assisters]
+                        "assisters": [self.ddragon.get_clean_champion_name(self._get_part_dict(aid).get("championName", "")) for aid in assisters]
                     })
 
                 elif ev_type == "ELITE_MONSTER_KILL":
@@ -360,13 +364,14 @@ class MatchAnalysis:
                     elif "BARON" in m_type:
                         asset_key = "baron_circle"
 
+                    k_raw = k_p.get("championName", "")
                     events_log.append({
                         "type": "objective",
                         "time": t_str,
                         "desc": desc,
                         "asset_key": asset_key,
-                        "killer_champ": k_p.get("championName", ""),
-                        "killer_icon": self.ddragon.get_champion_icon_url(k_p.get("championName", "")),
+                        "killer_champ": self.ddragon.get_clean_champion_name(k_raw),
+                        "killer_icon": self.ddragon.get_champion_icon_url(k_raw),
                         "killer_name": k_p.get("riotIdGameName", "")
                     })
 
