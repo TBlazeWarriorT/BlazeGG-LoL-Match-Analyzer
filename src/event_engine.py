@@ -220,10 +220,13 @@ class MatchAnalysis:
         # 4. DESTAQUES (Pentakills & Multikills)
         highlights = []
         for ev in data.get("key_events", []):
-            if ev.get("streak") == "penta":
+            streak = ev.get("streak", "normal")
+            if streak == "penta":
                 highlights.append(f"[{ev['time']}] PENTAKILL por {ev['killer_champ']} ({ev['killer_name']})")
-            elif ev.get("streak") == "multi":
-                highlights.append(f"[{ev['time']}] MULTI-KILL por {ev['killer_champ']} ({ev['killer_name']})")
+            elif streak == "quadra":
+                highlights.append(f"[{ev['time']}] QUADRA KILL por {ev['killer_champ']} ({ev['killer_name']})")
+            elif streak == "triple":
+                highlights.append(f"[{ev['time']}] TRIPLE KILL por {ev['killer_champ']} ({ev['killer_name']})")
         if highlights:
             lines.append("\n[HIGHLIGHTS]")
             lines.extend([f"• {h}" for h in highlights])
@@ -365,18 +368,27 @@ class MatchAnalysis:
                     k_p = self._get_part_dict(killer)
 
                     streak_type = "normal"
-                    if killer not in kill_streaks:
-                        kill_streaks[killer] = []
-                    kill_streaks[killer] = [t for t in kill_streaks[killer] if ts - t <= 10000]
-                    kill_streaks[killer].append(ts)
-                    count = len(kill_streaks[killer])
-                    if count >= 5:
+                    killer_streak = kill_streaks.get(killer, {"count": 0, "last_ts": 0})
+                    current_count = killer_streak["count"]
+                    last_ts = killer_streak["last_ts"]
+
+                    # Janela padrão de 10s entre abates; se for Quadra Kill (4 kills), a janela para Pentakill sobe para 30s
+                    allowed_window = 30000 if current_count == 4 else 10000
+
+                    if current_count > 0 and (ts - last_ts) <= allowed_window:
+                        new_count = current_count + 1
+                    else:
+                        new_count = 1
+
+                    kill_streaks[killer] = {"count": new_count, "last_ts": ts}
+
+                    if new_count >= 5:
                         streak_type = "penta"
-                    elif count == 4:
+                    elif new_count == 4:
                         streak_type = "quadra"
-                    elif count == 3:
+                    elif new_count == 3:
                         streak_type = "triple"
-                    elif count == 2:
+                    elif new_count == 2:
                         streak_type = "double"
 
                     is_solo = len(assisters) == 0
