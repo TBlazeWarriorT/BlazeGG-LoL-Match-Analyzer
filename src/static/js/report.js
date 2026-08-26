@@ -52,3 +52,66 @@ function copyRawSummary() {
     }
 }
 
+// Global Custom Tooltip Engine
+function initCustomTooltips() {
+    var tooltip = document.createElement("div");
+    tooltip.className = "custom-tooltip";
+    document.body.appendChild(tooltip);
+
+    var activeEl = null;
+
+    document.addEventListener("mouseover", function(e) {
+        var target = e.target.closest("[title], [data-tooltip]");
+        if (!target) return;
+
+        if (target.hasAttribute("title") && !target.hasAttribute("data-tooltip")) {
+            var rawTitle = target.getAttribute("title");
+            if (rawTitle && rawTitle.trim()) {
+                target.setAttribute("data-tooltip", rawTitle);
+                target.removeAttribute("title");
+            }
+        }
+
+        var text = target.getAttribute("data-tooltip");
+        if (!text) return;
+
+        activeEl = target;
+        tooltip.textContent = text;
+        tooltip.classList.add("visible");
+        positionTooltip(e);
+    });
+
+    document.addEventListener("mousemove", function(e) {
+        if (!activeEl) return;
+        positionTooltip(e);
+    });
+
+    document.addEventListener("mouseout", function(e) {
+        if (!activeEl) return;
+        var related = e.relatedTarget;
+        if (related && activeEl.contains(related)) return;
+        activeEl = null;
+        tooltip.classList.remove("visible");
+    });
+
+    function positionTooltip(e) {
+        var gap = 12;
+        var x = e.clientX + gap;
+        var y = e.clientY + gap;
+
+        var rect = tooltip.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth - 10) {
+            x = e.clientX - rect.width - gap;
+        }
+        if (y + rect.height > window.innerHeight - 10) {
+            y = e.clientY - rect.height - gap;
+        }
+        if (x < 10) x = 10;
+        if (y < 10) y = 10;
+
+        tooltip.style.left = x + "px";
+        tooltip.style.top = y + "px";
+    }
+}
+window.addEventListener("DOMContentLoaded", initCustomTooltips);
+

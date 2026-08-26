@@ -110,18 +110,27 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         lbl_hl = get_text("healed", lang=lang)
 
         line_1_dmg = f"""
-        <div class="pill pill-wide" title="{lbl_phys}: {dmg_phys:,} | {lbl_mag}: {dmg_mag:,} | {lbl_true}: {dmg_tru:,}">
-            <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
-            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+        <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+            <div class="pill-content-main">
+                <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
+            </div>
+            <div class="pill-content-detail">
+                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+            </div>
         </div>
         """
 
         line_2_soaked = f"""
-        <div class="pill pill-wide" title="{lbl_taken}: {dmg_tk:,} | {lbl_mit}: {dmg_mit:,} | {lbl_hl}: {dmg_hl:,}">
-            <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
-            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
+        <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+            <div class="pill-content-main">
+                <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
+            </div>
+            <div class="pill-content-detail">
+                <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
+            </div>
         </div>
         """
+
 
         line_3_gold_cs = f"""
         <div class="pill pill-wide">
@@ -509,14 +518,24 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                         <div class="p-champ">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> <span class="kda-ratio">({ratio_t1:.2f}:1)</span></div>
                     </div>
                 </div>
+
                 <div class="stats-pills">
-                    <div class="pill pill-wide" title="{lbl_phys}: {t1_phys:,} | {lbl_mag}: {t1_mag:,} | {lbl_true}: {t1_tru:,}">
-                        <span>{lbl_dmg}: <b>{t1_dmg:,}</b></span>
-                        <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
+                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+
+                        <div class="pill-content-main">
+                            <span>{lbl_dmg}: <b>{t1_dmg:,}</b> {t1_dmg_delta_tag}</span>
+                        </div>
+                        <div class="pill-content-detail">
+                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
+                        </div>
                     </div>
-                    <div class="pill pill-wide" title="{lbl_taken}: {t1_taken:,} | {lbl_mit}: {t1_mit:,} | {lbl_hl}: {t1_hl:,}">
-                        <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
-                        <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
+                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+                        <div class="pill-content-main">
+                            <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
+                        </div>
+                        <div class="pill-content-detail">
+                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
+                        </div>
                     </div>
                     <div class="pill pill-wide">
                         <span><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b> {t1_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t1_dmg / max(t1_gold, 1), 2)} dmg/g)</span></span>
@@ -549,14 +568,23 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     <div class="team-avatar-stack">{t2_icons_html}</div>
                 </div>
                 <div class="stats-pills">
-                    <div class="pill pill-wide" title="{lbl_phys}: {t2_phys:,} | {lbl_mag}: {t2_mag:,} | {lbl_true}: {t2_tru:,}">
-                        <span>{lbl_dmg}: <b>{t2_dmg:,}</b></span>
-                        <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
+                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+                        <div class="pill-content-main">
+                            <span>{lbl_dmg}: <b>{t2_dmg:,}</b> {t2_dmg_delta_tag}</span>
+                        </div>
+                        <div class="pill-content-detail">
+                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
+                        </div>
                     </div>
-                    <div class="pill pill-wide" title="{lbl_taken}: {t2_taken:,} | {lbl_mit}: {t2_mit:,} | {lbl_hl}: {t2_hl:,}">
-                        <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
-                        <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
+                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+                        <div class="pill-content-main">
+                            <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
+                        </div>
+                        <div class="pill-content-detail">
+                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
+                        </div>
                     </div>
+
                     <div class="pill pill-wide">
                         <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> {t2_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t2_dmg / max(t2_gold, 1), 2)} dmg/g)</span></span>
                         <span><img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></span>

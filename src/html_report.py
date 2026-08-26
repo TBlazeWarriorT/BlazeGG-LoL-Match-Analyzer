@@ -3,19 +3,12 @@ from pathlib import Path
 from typing import Dict, Any
 from .config import CACHE_DIR
 from .i18n import get_text
-from .report_components import (
-    calculate_gold_bar_share,
-    clean_mode_name,
-    get_queue_name,
-    render_all_duels,
-    render_match_awards,
-    render_multikills_section,
-    render_timeline_section,
-)
+import src.report_components as rc
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
 CSS_FILE = Path(__file__).parent / "static" / "css" / "report.css"
 JS_FILE = Path(__file__).parent / "static" / "js" / "report.js"
+
 
 def _load_static_assets() -> tuple[str, str]:
     css_content = ""
@@ -46,20 +39,21 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     t200_status = f'<span class="badge {t200_class}">{t200_txt}</span>'
 
     # Modular components
-    all_duels_rendered = render_all_duels(data, target_puuid=target_puuid, lang=lang)
+    all_duels_rendered = rc.render_all_duels(data, target_puuid=target_puuid, lang=lang)
 
     t1_players = team_100.get("players", [])
     t2_players = team_200.get("players", [])
     all_players = t1_players + t2_players
 
-    awards_html = render_match_awards(data, all_players, is_aram=is_aram, is_arena=is_arena, lang=lang)
-    multikills_html = render_multikills_section(data.get("multikills", []), lang=lang)
-    events_html, timeline_top_toggle_btn, timeline_toggle_btn = render_timeline_section(data, lang=lang)
+    awards_html = rc.render_match_awards(data, all_players, is_aram=is_aram, is_arena=is_arena, lang=lang)
+    multikills_html = rc.render_multikills_section(data.get("multikills", []), lang=lang)
+    events_html, timeline_top_toggle_btn, timeline_toggle_btn = rc.render_timeline_section(data, lang=lang)
 
     # Header & Mode lookup
-    match_mode = clean_mode_name(data.get("game_mode", "CLASSIC"))
-    queue_name = get_queue_name(data.get("queue_id", 0), lang=lang)
+    match_mode = rc.clean_mode_name(data.get("game_mode", "CLASSIC"))
+    queue_name = rc.get_queue_name(data.get("queue_id", 0), lang=lang)
     full_mode_display = f"{match_mode} ({queue_name})" if queue_name else match_mode
+
 
     target_player = None
     if target_puuid:

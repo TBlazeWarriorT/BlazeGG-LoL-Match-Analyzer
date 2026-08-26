@@ -193,3 +193,30 @@ input[type="text"], input[type="password"] {
     border-top: 1px solid #1e293b;
     margin-top: 10px;
 }
+
+/* Custom Floating Tooltip */
+.custom-tooltip {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 1px rgba(56, 189, 248, 0.4);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    white-space: pre-line;
+    max-width: 320px;
+    backdrop-filter: blur(8px);
+}
+.custom-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+

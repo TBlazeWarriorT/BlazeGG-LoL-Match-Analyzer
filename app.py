@@ -14,6 +14,7 @@ from src.i18n import get_text
 
 PORT = 8000
 HUB_CSS_FILE = Path(__file__).parent / "src" / "static" / "css" / "hub.css"
+HUB_JS_FILE = Path(__file__).parent / "src" / "static" / "js" / "report.js"
 ddragon = DataDragon(language="pt_BR")
 ddragon_en = DataDragon(language="en_US")
 
@@ -230,6 +231,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
     hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
+    hub_js = HUB_JS_FILE.read_text(encoding="utf-8") if HUB_JS_FILE.exists() else ""
 
     return f"""<!DOCTYPE html>
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
@@ -309,9 +311,13 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
         </div>
     </div>
+    <script>
+        {hub_js}
+    </script>
 </body>
 </html>
 """
+
 
 class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -402,11 +408,26 @@ class AppHandler(BaseHTTPRequestHandler):
                 import src.event_engine
                 import src.html_report
                 import src.i18n
+                import src.report_components
+                import src.report_components.duel_card
+                import src.report_components.awards_card
+                import src.report_components.multikill_card
+                import src.report_components.timeline
+                import src.report_components.jungle_strip
+                import src.report_components.utils
                 importlib.reload(src.i18n)
+                importlib.reload(src.report_components.utils)
+                importlib.reload(src.report_components.jungle_strip)
+                importlib.reload(src.report_components.duel_card)
+                importlib.reload(src.report_components.awards_card)
+                importlib.reload(src.report_components.multikill_card)
+                importlib.reload(src.report_components.timeline)
+                importlib.reload(src.report_components)
                 importlib.reload(src.event_engine)
                 importlib.reload(src.html_report)
 
                 analyzer = src.event_engine.MatchAnalysis(m, t, target_puuid=puuid, ddragon=dd)
+
                 data = analyzer.generate_full_analysis()
                 
                 src.html_report.generate_html_report(data, open_browser=False, lang=lang)
