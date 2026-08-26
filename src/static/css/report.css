@@ -595,10 +595,13 @@ body {
     font-size: 0.72rem;
     flex: 1;
     text-align: center;
+    color: var(--text-muted);
 }
-.pos { color: var(--green); }
-.neg { color: var(--red); }
+.delta-blue { color: #60a5fa !important; font-weight: 800; }
+.delta-red { color: #f87171 !important; font-weight: 800; }
+.delta-even { color: #94a3b8 !important; font-weight: 700; }
 .badge { padding: 4px 10px; border-radius: 14px; font-size: 0.8rem; font-weight: 700; }
+
 .win-badge { background: #166534; color: #86efac; }
 .loss-badge { background: #991b1b; color: #fca5a5; }
 .align-left { text-align: left; }

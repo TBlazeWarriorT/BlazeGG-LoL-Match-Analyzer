@@ -204,8 +204,12 @@ class MatchAnalysis:
         lines.append("\n[LANE MATCHUPS & GOLD DELTAS (Blue vs Red)]")
         for m in data["matchups"]:
             p1, p2 = m["player1"], m["player2"]
-            g_tags = " ".join([f"{k}:{v:+d}g" for k, v in m["gold_delta"].items()])
+            g_tags = " ".join([
+                f"{k}:{(v['diff'] if isinstance(v, dict) else v):+d}g"
+                for k, v in m["gold_delta"].items()
+            ])
             lines.append(f"• {m['role']} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']} | GankDeaths: {m['p1_stats']['other_deaths']}x{m['p2_stats']['other_deaths']}")
+
 
         # 3. JOGADORES (Blue & Red)
         def format_team_players(team_key, team_name):
@@ -281,8 +285,20 @@ class MatchAnalysis:
                     if m < len(frames):
                         f1 = frames[m].get("participantFrames", {}).get(str(id1), {})
                         f2 = frames[m].get("participantFrames", {}).get(str(id2), {})
-                        gold_diff[f"{m}m"] = f1.get("totalGold", 0) - f2.get("totalGold", 0)
-                        xp_diff[f"{m}m"] = f1.get("xp", 0) - f2.get("xp", 0)
+                        g1 = f1.get("totalGold", 0)
+                        g2 = f2.get("totalGold", 0)
+                        x1 = f1.get("xp", 0)
+                        x2 = f2.get("xp", 0)
+                        gold_diff[f"{m}m"] = {
+                            "diff": g1 - g2,
+                            "p1_val": g1,
+                            "p2_val": g2
+                        }
+                        xp_diff[f"{m}m"] = {
+                            "diff": x1 - x2,
+                            "p1_val": x1,
+                            "p2_val": x2
+                        }
 
                 matchups.append({
                     "role": role,
@@ -293,6 +309,7 @@ class MatchAnalysis:
                     "gold_delta": gold_diff,
                     "xp_delta": xp_diff
                 })
+
 
         return matchups
 

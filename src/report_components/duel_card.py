@@ -178,16 +178,49 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                      is_dmg_leader=(dmg_delta < 0), is_gold_leader=(gold_delta_final < 0),
                      delta_dmg=abs(dmg_delta), delta_gold=abs(gold_delta_final))
 
+    def format_delta_badge(time_label: str, delta_item: Any, is_xp: bool = False) -> str:
+        unit = "XP" if is_xp else "gold"
+        c1 = p1.get("champion", "Blue")
+        c2 = p2.get("champion", "Red")
+        
+        if isinstance(delta_item, dict):
+            diff = delta_item.get("diff", 0)
+            v1 = delta_item.get("p1_val", 0)
+            v2 = delta_item.get("p2_val", 0)
+        else:
+            diff = int(delta_item)
+            v1, v2 = None, None
+
+        lead_lbl = get_text("lead_label", lang=lang)
+        even_lbl = get_text("even_label", lang=lang)
+
+        if diff > 0:
+            lead_txt = f"<b style='color:#60a5fa;'>+{diff:,} {unit} ({c1})</b>"
+            cls_name = "delta-blue"
+            display_val = f"{diff:,}"
+        elif diff < 0:
+            lead_txt = f"<b style='color:#f87171;'>+{abs(diff):,} {unit} ({c2})</b>"
+            cls_name = "delta-red"
+            display_val = f"{abs(diff):,}"
+        else:
+            lead_txt = f"<b style='color:#94a3b8;'>{even_lbl} (0 {unit})</b>"
+            cls_name = "delta-even"
+            display_val = "0"
+
+        if v1 is not None and v2 is not None:
+            tt_html = f"<div style='text-align:left; font-size:0.75rem; line-height:1.4;'><span style='color:#60a5fa;'>🔵 {c1}:</span> <b>{v1:,}</b> {unit}<br/><span style='color:#f87171;'>🔴 {c2}:</span> <b>{v2:,}</b> {unit}<br/><hr style='border:0; border-top:1px solid #334155; margin:3px 0;'/>{lead_lbl} {lead_txt}</div>"
+        else:
+            tt_html = f"{lead_lbl} {lead_txt}"
+
+        return f'<span class="delta-tag" title="{tt_html}">{time_label}: <b class="{cls_name}">{display_val}</b></span>'
+
+
     delta_html = ""
     if gold_d:
-        gold_tags = "".join([
-            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
-            for k, v in gold_d.items()
-        ])
-        xp_tags = "".join([
-            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
-            for k, v in xp_d.items()
-        ]) if xp_d else ""
+        gold_tags = "".join([format_delta_badge(k, v, is_xp=False) for k, v in gold_d.items()])
+        xp_tags = "".join([format_delta_badge(k, v, is_xp=True) for k, v in xp_d.items()]) if xp_d else ""
+
+
 
         solo_deaths_1 = stats_1.get("solo_deaths", 0) if stats_1 else 0
         solo_deaths_2 = stats_2.get("solo_deaths", 0) if stats_2 else 0
@@ -408,9 +441,30 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
 
         duo_delta_gold = {}
         duo_delta_xp = {}
-        for k in m_bot["gold_delta"].keys():
-            duo_delta_gold[k] = m_bot["gold_delta"].get(k, 0) + m_sup["gold_delta"].get(k, 0)
-            duo_delta_xp[k] = m_bot["xp_delta"].get(k, 0) + m_sup["xp_delta"].get(k, 0)
+
+        def combine_deltas(d_bot, d_sup):
+            combined = {}
+            for k in set(list(d_bot.keys()) + list(d_sup.keys())):
+                v_bot = d_bot.get(k, 0)
+                v_sup = d_sup.get(k, 0)
+                if isinstance(v_bot, dict) or isinstance(v_sup, dict):
+                    diff_bot = v_bot.get("diff", 0) if isinstance(v_bot, dict) else int(v_bot)
+                    diff_sup = v_sup.get("diff", 0) if isinstance(v_sup, dict) else int(v_sup)
+                    p1_bot = v_bot.get("p1_val", 0) if isinstance(v_bot, dict) else 0
+                    p1_sup = v_sup.get("p1_val", 0) if isinstance(v_sup, dict) else 0
+                    p2_bot = v_bot.get("p2_val", 0) if isinstance(v_bot, dict) else 0
+                    p2_sup = v_sup.get("p2_val", 0) if isinstance(v_sup, dict) else 0
+                    combined[k] = {
+                        "diff": diff_bot + diff_sup,
+                        "p1_val": p1_bot + p1_sup,
+                        "p2_val": p2_bot + p2_sup
+                    }
+                else:
+                    combined[k] = int(v_bot) + int(v_sup)
+            return combined
+
+        duo_delta_gold = combine_deltas(m_bot.get("gold_delta", {}), m_sup.get("gold_delta", {}))
+        duo_delta_xp = combine_deltas(m_bot.get("xp_delta", {}), m_sup.get("xp_delta", {}))
 
         duels_html.append(render_duel_row(
             duo_p1, duo_p2, get_text("bot_duo_title", lang=lang),
@@ -420,6 +474,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             target_puuid=target_puuid,
             lang=lang
         ))
+
 
     # TEAM COMBINED (5v5 TOTAL)
     t1_players = team_100.get("players", [])
@@ -474,12 +529,52 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         team_delta_gold = {}
         for m in matchups:
             for k, v in m.get("gold_delta", {}).items():
-                team_delta_gold[k] = team_delta_gold.get(k, 0) + v
+                if k not in team_delta_gold:
+                    team_delta_gold[k] = {"diff": 0, "p1_val": 0, "p2_val": 0}
+                if isinstance(v, dict):
+                    team_delta_gold[k]["diff"] += v.get("diff", 0)
+                    team_delta_gold[k]["p1_val"] += v.get("p1_val", 0)
+                    team_delta_gold[k]["p2_val"] += v.get("p2_val", 0)
+                else:
+                    team_delta_gold[k]["diff"] += int(v)
+
+        def format_team_badge(time_label: str, item: Any) -> str:
+            diff = item.get("diff", 0) if isinstance(item, dict) else int(item)
+            v1 = item.get("p1_val", None) if isinstance(item, dict) else None
+            v2 = item.get("p2_val", None) if isinstance(item, dict) else None
+
+            lead_lbl = get_text("lead_label", lang=lang)
+            even_lbl = get_text("even_label", lang=lang)
+            blue_team_lbl = get_text("blue_team", lang=lang)
+            red_team_lbl = get_text("red_team", lang=lang)
+
+            if diff > 0:
+                lead_txt = f"<b style='color:#60a5fa;'>+{diff:,} gold ({blue_team_lbl})</b>"
+                cls_name = "delta-blue"
+                display_val = f"{diff:,}"
+            elif diff < 0:
+                lead_txt = f"<b style='color:#f87171;'>+{abs(diff):,} gold ({red_team_lbl})</b>"
+                cls_name = "delta-red"
+                display_val = f"{abs(diff):,}"
+            else:
+                lead_txt = f"<b style='color:#94a3b8;'>{even_lbl} (0 gold)</b>"
+                cls_name = "delta-even"
+                display_val = "0"
+
+            if v1 is not None and v2 is not None and (v1 > 0 or v2 > 0):
+                tt_html = f"<div style='text-align:left; font-size:0.75rem; line-height:1.4;'><span style='color:#60a5fa;'>🔵 {blue_team_lbl}:</span> <b>{v1:,}</b> gold<br/><span style='color:#f87171;'>🔴 {red_team_lbl}:</span> <b>{v2:,}</b> gold<br/><hr style='border:0; border-top:1px solid #334155; margin:3px 0;'/>{lead_lbl} {lead_txt}</div>"
+            else:
+                tt_html = f"{lead_lbl} {lead_txt}"
+
+            return f'<span class="delta-tag" title="{tt_html}">{time_label}: <b class="{cls_name}">{display_val}</b></span>'
+
 
         team_gold_tags = "".join([
-            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
+            format_team_badge(k, v)
             for k, v in team_delta_gold.items()
         ]) if team_delta_gold else ""
+
+
 
         delta_gold_section = f"""
         <div class="delta-box" style="margin-top:6px;">

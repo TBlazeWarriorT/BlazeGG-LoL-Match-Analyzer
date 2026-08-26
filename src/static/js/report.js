@@ -76,9 +76,14 @@ function initCustomTooltips() {
         if (!text) return;
 
         activeEl = target;
-        tooltip.textContent = text;
+        if (text.includes("<") && text.includes(">")) {
+            tooltip.innerHTML = text;
+        } else {
+            tooltip.textContent = text;
+        }
         tooltip.classList.add("visible");
         positionTooltip(e);
+
     });
 
     document.addEventListener("mousemove", function(e) {
