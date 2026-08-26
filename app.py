@@ -152,23 +152,24 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     opp_champ = opp
                     break
 
-    avatar_block = f'<img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})"/>'
+    avatar_block = f'<img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})" onclick="promptSearchSummoner(\'{g_name}\', \'{t_line}\')"/>'
     if opp_champ:
-        opp_riot = f"{opp_champ['name']}#{opp_champ['tag']}"
+        opp_gname = opp_champ.get('name', '')
+        opp_tline = opp_champ.get('tag', '')
+        opp_riot = f"{opp_gname}#{opp_tline}"
         opp_title = f"Oponente Direto: {opp_champ['champion']} ({opp_riot})" if lang == "pt_BR" else f"Direct Opponent: {opp_champ['champion']} ({opp_riot})"
         avatar_block = f"""
         <div class="h2h-avatar-duo">
-            <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})"/>
+            <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})" onclick="promptSearchSummoner(\'{g_name}\', \'{t_line}\')"/>
             <span class="h2h-vs-badge">VS</span>
-            <img class="champ-avatar-opp" src="{opp_champ['icon']}" alt="{opp_champ['champion']}" title="{opp_title}"/>
+            <img class="champ-avatar-opp" src="{opp_champ['icon']}" alt="{opp_champ['champion']}" title="{opp_title}" onclick="promptSearchSummoner(\'{opp_gname}\', \'{opp_tline}\')"/>
         </div>
         """
 
-
     teams_html = ""
     if team_100 and team_200:
-        t1_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}"/>' for p in team_100])
-        t2_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}"/>' for p in team_200])
+        t1_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>' for p in team_100])
+        t2_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>' for p in team_200])
         teams_html = f"""
         <div class="m-teams-strip">
             <div class="m-team-group m-team-blue">{t1_icons}</div>
@@ -176,6 +177,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
             <div class="m-team-group m-team-red">{t2_icons}</div>
         </div>
         """
+
 
     return f"""
     <div class="match-item {win_class}">
@@ -260,7 +262,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
     cached_html = ""
     if cached_list:
-        c_cards = []
+        # Group cached matches by target summoner
+        summoner_groups = {}
         for m in cached_list:
             p = None
             if m.get("target_puuid"):
@@ -276,15 +279,57 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             if not p:
                 p = m["participants"][0] if m["participants"] else {}
 
-            c_cards.append(
-                render_match_card(
-                    m["match_id"], p.get("champion", ""), p.get("icon", ""),
-                    f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
-                    p.get("win", False), m["duration"], m["game_mode"],
-                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
-                    team_100=m.get("team_100"), team_200=m.get("team_200")
-                )
+            card_html = render_match_card(
+                m["match_id"], p.get("champion", ""), p.get("icon", ""),
+                f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
+                p.get("win", False), m["duration"], m["game_mode"],
+                p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
+                team_100=m.get("team_100"), team_200=m.get("team_200")
             )
+
+            s_name = p.get("name", "")
+            s_tag = p.get("tag", "")
+            s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else ("Global / Diversos" if lang == "pt_BR" else "Global / Other")
+            summoner_groups.setdefault(s_label, []).append(card_html)
+
+        # Build tabs
+        tab_buttons = []
+        tab_panes = []
+        sorted_groups = sorted(summoner_groups.items(), key=lambda x: len(x[1]), reverse=True)
+        
+        # Decide initial active tab (prefer session summoner or highest match count)
+        sess_label = f"{last_sess.get('game_name', '')}#{last_sess.get('tag_line', '')}"
+        active_tab_idx = 0
+        for idx, (label, _) in enumerate(sorted_groups):
+            if label.lower() == sess_label.lower():
+                active_tab_idx = idx
+                break
+
+        del_prompt = "Excluir todas as partidas salvas deste invocador?" if lang == "pt_BR" else "Delete all saved matches for this summoner?"
+        for idx, (s_label, cards_list) in enumerate(sorted_groups):
+            is_active = (idx == active_tab_idx)
+            btn_active_cls = "active" if is_active else ""
+            pane_active_cls = "active" if is_active else ""
+            tab_id = f"cache-tab-{idx}"
+
+            tab_buttons.append(f"""
+            <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})">
+                <span>{s_label}</span>
+                <span class="cache-tab-count">{len(cards_list)}</span>
+                <form action="/delete_summoner_cache" method="POST" style="display:inline; margin:0;" onsubmit="event.stopPropagation(); return confirm('{del_prompt}');">
+                    <input type="hidden" name="summoner_label" value="{s_label}"/>
+                    <input type="hidden" name="lang" value="{lang}"/>
+                    <button type="submit" class="cache-tab-delete" title="Excluir partidas deste invocador" style="background:none; border:none; cursor:pointer;" onclick="event.stopPropagation();">✕</button>
+                </form>
+            </div>
+            """)
+
+
+            tab_panes.append(f"""
+            <div id="{tab_id}" class="cache-tab-content {pane_active_cls}">
+                {"".join(cards_list)}
+            </div>
+            """)
 
         c_title = get_text("cached_matches_title", lang=lang, count=len(cached_list))
         cached_html = f"""
@@ -295,9 +340,17 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     <button type="submit" class="btn" style="background:#475569; font-size:0.78rem; padding:6px 12px;">{get_text('btn_clear_cache', lang=lang)}</button>
                 </form>
             </div>
-            <div class="matches-grid" style="margin-top:14px;">{"".join(c_cards)}</div>
+            
+            <div class="cache-tabs-nav">
+                {"".join(tab_buttons)}
+            </div>
+
+            <div class="cache-tabs-container">
+                {"".join(tab_panes)}
+            </div>
         </div>
         """
+
 
     error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
@@ -577,6 +630,43 @@ class AppHandler(BaseHTTPRequestHandler):
             if new_key:
                 save_api_key(new_key, exp_text)
             self._redirect(f"/?lang={lang}")
+        elif parsed.path == "/delete_summoner_cache":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8")
+            form_data = parse_qs(body)
+            s_label = form_data.get("summoner_label", [""])[0].strip()
+            lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
+            
+            if s_label:
+                from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
+                if MATCH_CACHE_DIR.exists():
+                    for f in MATCH_CACHE_DIR.glob("*.json"):
+                        try:
+                            with open(f, "r", encoding="utf-8") as file:
+                                data = json.load(file)
+                            info = data.get("info", {})
+                            meta = data.get("metadata", {})
+                            target_puuid = meta.get("target_puuid", "")
+                            
+                            p_match = False
+                            for part in info.get("participants", []):
+                                p_label = f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}"
+                                if target_puuid and part.get("puuid") == target_puuid:
+                                    if p_label.lower() == s_label.lower():
+                                        p_match = True
+                                        break
+                                elif not target_puuid and p_label.lower() == s_label.lower():
+                                    p_match = True
+                                    break
+                            
+                            if p_match:
+                                m_id = meta.get("matchId", f.stem)
+                                f.unlink(missing_ok=True)
+                                if TIMELINE_CACHE_DIR.exists():
+                                    (TIMELINE_CACHE_DIR / f"{m_id}.json").unlink(missing_ok=True)
+                        except Exception:
+                            continue
+            self._redirect(f"/?lang={lang}")
         elif parsed.path == "/clear_cache":
             from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
             for d in [MATCH_CACHE_DIR, TIMELINE_CACHE_DIR]:
@@ -589,6 +679,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self._redirect("/")
         else:
             self._redirect("/")
+
 
     def _send_html(self, html_str: str):
         self.send_response(200)

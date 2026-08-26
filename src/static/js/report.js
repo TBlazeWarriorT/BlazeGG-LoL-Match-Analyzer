@@ -1,4 +1,38 @@
 var timelineExpanded = false;
+
+function promptSearchSummoner(name, tag) {
+    if (!name || !tag) return;
+    var msg = (window.REPORT_I18N && window.REPORT_I18N.lang === 'pt_BR' || document.documentElement.lang.includes('pt')) 
+        ? "Deseja buscar as partidas de " + name + "#" + tag + "?"
+        : "Do you want to search matches for " + name + "#" + tag + "?";
+    if (confirm(msg)) {
+        var lang = (document.documentElement.lang.includes('pt')) ? 'pt_BR' : 'en_US';
+        window.location.href = "/search?game_name=" + encodeURIComponent(name) + "&tag_line=" + encodeURIComponent(tag) + "&lang=" + lang;
+    }
+}
+
+function switchCacheTab(tabIndex) {
+
+    var buttons = document.querySelectorAll(".cache-tab-btn");
+    var contents = document.querySelectorAll(".cache-tab-content");
+    
+    buttons.forEach(function(btn, i) {
+        if (i === tabIndex) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+
+    contents.forEach(function(content, i) {
+        if (i === tabIndex) {
+            content.classList.add("active");
+        } else {
+            content.classList.remove("active");
+        }
+    });
+}
+
 function toggleTimeline() {
     var hiddenItems = document.querySelectorAll(".events-list .timeline-hidden, .events-list .timeline-visible-expanded");
     var btn = document.getElementById("toggleTimelineBtn");
