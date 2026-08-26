@@ -41,7 +41,9 @@ LANGUAGES = {
         "mode": "Modo",
         "you_tag": "VOCÊ",
         "solo_deaths": "Mortes Solo:",
+        "lane_deaths": "Mortes na Rota:",
         "other_deaths": "Outras Mortes:",
+
         "gold_delta_title": "Vantagem de Ouro por Minuto:",
         "xp_delta_title": "Vantagem de XP por Minuto:",
         "lead_label": "Vantagem:",
@@ -155,7 +157,9 @@ LANGUAGES = {
         "mode": "Mode",
         "you_tag": "YOU",
         "solo_deaths": "Solo Deaths:",
+        "lane_deaths": "Lane Deaths:",
         "other_deaths": "Other Deaths:",
+
         "gold_delta_title": "Gold Lead by Minute:",
         "xp_delta_title": "XP Lead by Minute:",
         "lead_label": "Lead:",

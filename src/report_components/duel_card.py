@@ -257,6 +257,32 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 </div>
             </div>
             """
+        else:
+            lane_d1 = stats_1.get("d1_lane_deaths", 0) if stats_1 else 0
+            lane_d2 = stats_1.get("d2_lane_deaths", 0) if stats_1 else 0
+            other_d1 = stats_1.get("d1_other_deaths", 0) if stats_1 else 0
+            other_d2 = stats_1.get("d2_other_deaths", 0) if stats_1 else 0
+            duel_info_box = f"""
+            <div class="duel-scores-wrapper">
+                <div class="duel-score-row">
+                    <span class="score-label">{get_text("lane_deaths", lang=lang)}</span>
+                    <div class="score-pill-lg">
+                        <b class="score-blue-lg">{lane_d1}</b>
+                        <span class="score-x-lg">x</span>
+                        <b class="score-red-lg">{lane_d2}</b>
+                    </div>
+                </div>
+                <div class="duel-score-row" style="margin-top: 3px;">
+                    <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
+                    <div class="score-pill-sm">
+                        <b class="score-blue-sm">{other_d1}</b>
+                        <span class="score-x-sm">x</span>
+                        <b class="score-red-sm">{other_d2}</b>
+                    </div>
+                </div>
+            </div>
+            """
+
 
         delta_html = f"""
         <div class="duel-center">
@@ -479,10 +505,13 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             duo_p1, duo_p2, get_text("bot_duo_title", lang=lang),
             gold_d=duo_delta_gold,
             xp_d=duo_delta_xp,
+            stats_1=m_bot.get("bot_duo_stats", {}),
+            stats_2={},
             is_bot_duo=True,
             target_puuid=target_puuid,
             lang=lang
         ))
+
 
 
     # TEAM COMBINED (5v5 TOTAL)

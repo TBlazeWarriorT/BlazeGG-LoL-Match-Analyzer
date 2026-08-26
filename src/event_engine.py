@@ -312,8 +312,48 @@ class MatchAnalysis:
                     "xp_delta": xp_diff
                 })
 
+        # Calculate 2v2 isolated lane deaths for bot duo
+
+        bot_pair = p_by_role.get("BOTTOM", [])
+        sup_pair = p_by_role.get("UTILITY", [])
+        if len(bot_pair) == 2 and len(sup_pair) == 2:
+            d1_ids = {bot_pair[0]["participantId"], sup_pair[0]["participantId"]}
+            d2_ids = {bot_pair[1]["participantId"], sup_pair[1]["participantId"]}
+            d1_lane_deaths, d1_other_deaths = 0, 0
+            d2_lane_deaths, d2_other_deaths = 0, 0
+
+            for frame in frames:
+                for ev in frame.get("events", []):
+                    if ev.get("type") == "CHAMPION_KILL":
+                        vic = ev.get("victimId")
+                        kil = ev.get("killerId")
+                        ass = ev.get("assistingParticipantIds", [])
+                        involved_enemies = set([kil] + ass)
+
+                        if vic in d1_ids:
+                            # If all killer and assisters are strictly from enemy duo (d2_ids)
+                            if involved_enemies.issubset(d2_ids):
+                                d1_lane_deaths += 1
+                            else:
+                                d1_other_deaths += 1
+                        elif vic in d2_ids:
+                            # If all killer and assisters are strictly from blue duo (d1_ids)
+                            if involved_enemies.issubset(d1_ids):
+                                d2_lane_deaths += 1
+                            else:
+                                d2_other_deaths += 1
+
+            for m in matchups:
+                if m["role"] in ("BOTTOM", "UTILITY"):
+                    m["bot_duo_stats"] = {
+                        "d1_lane_deaths": d1_lane_deaths,
+                        "d1_other_deaths": d1_other_deaths,
+                        "d2_lane_deaths": d2_lane_deaths,
+                        "d2_other_deaths": d2_other_deaths
+                    }
 
         return matchups
+
 
     def _calculate_jungle_objectives(self) -> Dict[str, Any]:
         stats = {
