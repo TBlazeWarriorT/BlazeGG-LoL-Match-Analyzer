@@ -2,8 +2,32 @@ from typing import Dict, Any, List
 from ..asset_cache import AssetManager
 from ..i18n import get_text
 
-def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]], is_aram: bool = False, is_arena: bool = False, lang: str = "pt_BR") -> str:
+def assign_competition_ranks(items: List[Any], key_fn, max_items: int = 3) -> List[tuple]:
+    """
+    Standard competition ranking (1224 ranking):
+    Equal values get the rank of the first member of the tie.
+    """
+    sorted_items = sorted(items, key=key_fn, reverse=True)[:max_items]
     rank_classes = ["rank-gold", "rank-silver", "rank-bronze"]
+    
+    ranked_tuples = []
+    current_rank_idx = 0
+    
+    for i, item in enumerate(sorted_items):
+        val = key_fn(item)
+        if i == 0:
+            current_rank_idx = 0
+        else:
+            prev_val = key_fn(sorted_items[i - 1])
+            if val < prev_val:
+                current_rank_idx = i  # drops to the current position index (e.g. 0, 0 -> 2 bronze)
+        
+        cls = rank_classes[min(current_rank_idx, len(rank_classes) - 1)]
+        ranked_tuples.append((item, cls))
+    
+    return ranked_tuples
+
+def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]], is_aram: bool = False, is_arena: bool = False, lang: str = "pt_BR") -> str:
     icon_gold = AssetManager.get_asset_uri("gold_icon")
 
     # 1. Jungle
@@ -48,19 +72,19 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     if t2_jungler:
         junglers_keys.add((t2_jungler.get("riot_id", ""), t2_jungler.get("champion", "")))
 
-    top_jungle_sorted = sorted(
-        player_obj_scores.items(),
-        key=lambda x: (1 if x[0] in junglers_keys else 0, x[1]),
-        reverse=True
+    top_jungle_filtered = [item for item in player_obj_scores.items() if item[1] > 0]
+    jungle_ranked = assign_competition_ranks(
+        top_jungle_filtered,
+        key_fn=lambda x: (1 if x[0] in junglers_keys else 0, x[1]),
+        max_items=2
     )
-    top_jungle_filtered = [item for item in top_jungle_sorted if item[1] > 0][:2]
 
     jungle_items_list = []
-    for idx, ((k_name, k_champ), count) in enumerate(top_jungle_filtered):
+    for (k_name, k_champ), count, rank_cls in [(item[0], item[1], cls) for item, cls in jungle_ranked]:
         found_p = next((p for p in all_players if p.get("champion") == k_champ), None)
         icon_src = found_p.get("champion_icon", "") if found_p else ""
         jungle_items_list.append(f"""
-        <div class="award-item {rank_classes[idx]}">
+        <div class="award-item {rank_cls}">
             <div class="award-champ-info">
                 <img class="award-avatar" src="{icon_src}" alt="{k_champ}"/>
                 <span class="award-name">{k_name} ({k_champ})</span>
@@ -71,74 +95,75 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     jungle_items = "".join(jungle_items_list) if jungle_items_list else f"<div style='color:var(--text-muted); font-size:0.82rem; font-style:italic;'>{get_text('no_data', lang=lang)}</div>"
 
     # 2. Mayhem
-    top_damage = sorted(all_players, key=lambda x: x.get("damage_to_champions", 0), reverse=True)[:3]
+    mayhem_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("damage_to_champions", 0), max_items=3)
     mayhem_items = "".join([
         f"""
-        <div class="award-item {rank_classes[idx]}">
+        <div class="award-item {rank_cls}">
             <div class="award-champ-info">
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
             <span class="award-val">{p.get('damage_to_champions', 0):,} DMG</span>
         </div>
-        """ for idx, p in enumerate(top_damage)
+        """ for p, rank_cls in mayhem_ranked
     ])
 
     # 3. Greed
-    top_gold = sorted(all_players, key=lambda x: x.get("gold_total", 0), reverse=True)[:3]
+    greed_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("gold_total", 0), max_items=3)
     greed_items = "".join([
         f"""
-        <div class="award-item {rank_classes[idx]}">
+        <div class="award-item {rank_cls}">
             <div class="award-champ-info">
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
             <span class="award-val">{p.get('gold_total', 0):,} <img class="mini-icon" src="{icon_gold}"/></span>
         </div>
-        """ for idx, p in enumerate(top_gold)
+        """ for p, rank_cls in greed_ranked
     ])
 
     # 4. Might
-    top_might = sorted(all_players, key=lambda x: x.get("damage_taken", 0) + x.get("damage_mitigated", 0), reverse=True)[:3]
+    might_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("damage_taken", 0) + x.get("damage_mitigated", 0), max_items=3)
     might_items = "".join([
         f"""
-        <div class="award-item {rank_classes[idx]}">
+        <div class="award-item {rank_cls}">
             <div class="award-champ-info">
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
             <span class="award-val">{(p.get('damage_taken', 0) + p.get('damage_mitigated', 0)):,}</span>
         </div>
-        """ for idx, p in enumerate(top_might)
+        """ for p, rank_cls in might_ranked
     ])
 
     # 5. Visionary
-    top_vision = sorted(all_players, key=lambda x: x.get("vision_score", 0), reverse=True)[:3]
+    vision_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("vision_score", 0), max_items=3)
     visionary_items = "".join([
         f"""
-        <div class="award-item {rank_classes[idx]}">
+        <div class="award-item {rank_cls}">
             <div class="award-champ-info">
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
             <span class="award-val">{p.get('vision_score', 0)} score ({p.get('detector_wards', 0)} <img class='mini-icon mini-icon-round' src='https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png' title='Control Wards'/>)</span>
         </div>
-        """ for idx, p in enumerate(top_vision)
+        """ for p, rank_cls in vision_ranked
     ])
 
     # 6. Demolisher
-    top_turret = sorted(all_players, key=lambda x: x.get("damage_to_turrets", 0), reverse=True)[:3]
+    turret_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("damage_to_turrets", 0), max_items=3)
     demolisher_items = "".join([
         f"""
-        <div class="award-item {rank_classes[idx]}">
+        <div class="award-item {rank_cls}">
             <div class="award-champ-info">
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
             <span class="award-val">{p.get('damage_to_turrets', 0):,} DMG</span>
         </div>
-        """ for idx, p in enumerate(top_turret)
+        """ for p, rank_cls in turret_ranked
     ])
+
 
     award_cards = []
 

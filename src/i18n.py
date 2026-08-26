@@ -91,8 +91,9 @@ LANGUAGES = {
         "team_combined_sub": "Estatísticas Acumuladas da Equipe",
         "match_awards_title": "🏆 Pódios e Destaques da Partida (Match Awards)",
         "award_jungle_title": "👑 King of the Jungle",
-        "award_jungle_desc": "Mais Objetivos Neutros Abatidos",
+        "award_jungle_desc": "Mais Objetivos Neutros Abatidos por Equipe",
         "award_mayhem_title": "💥 King of Mayhem",
+
         "award_mayhem_desc": "Top Causadores de Dano",
         "award_greed_title": "💰 King of Greed",
         "award_greed_desc": "Mais Ricos da Partida",
@@ -209,8 +210,9 @@ LANGUAGES = {
         "team_combined_sub": "Full Team Aggregated Stats",
         "match_awards_title": "🏆 Match Awards & Podium",
         "award_jungle_title": "👑 King of the Jungle",
-        "award_jungle_desc": "Most Neutral Objectives Slain",
+        "award_jungle_desc": "Most Neutral Objectives Slain Per Team",
         "award_mayhem_title": "💥 King of Mayhem",
+
         "award_mayhem_desc": "Top Damage Dealers",
         "award_greed_title": "💰 King of Greed",
         "award_greed_desc": "Top Gold Earners",
