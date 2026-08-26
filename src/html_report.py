@@ -56,9 +56,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             soul_class = "soul-dragon-badge" if is_soul else ""
             soul_title_tag = " • DRAGON SOUL!" if is_soul else ""
             items_html.append(
-                f'<div class="jungle-badge-wrapper {soul_class}" title="[{item["time"]}] {item["name"]}{soul_title_tag}">'
+                f'<div class="jungle-badge-wrapper" title="[{item["time"]}] {item["name"]}{soul_title_tag}">'
                 f'<img class="obj-badge-icon-lg {soul_class}" src="{AssetManager.get_asset_uri(item["asset_key"])}"/>'
-                f'<span class="badge-time">{item["time"]}</span>'
+                f'<span class="badge-time" style="{"color:#f59e0b; font-weight:800;" if is_soul else ""}">{item["time"]}</span>'
                 f'</div>'
             )
         return "".join(items_html)
@@ -189,29 +189,29 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                 for k, v in xp_d.items()
             ]) if xp_d else ""
 
-            solo_kills_1 = stats_1.get("solo_kills", 0) if stats_1 else 0
-            solo_kills_2 = stats_2.get("solo_kills", 0) if stats_2 else 0
+            solo_deaths_1 = stats_1.get("solo_deaths", 0) if stats_1 else 0
+            solo_deaths_2 = stats_2.get("solo_deaths", 0) if stats_2 else 0
 
             duel_info_box = ""
             if not is_bot_duo:
-                ganks_1 = stats_1.get("other_deaths", 0) if stats_1 else 0
-                ganks_2 = stats_2.get("other_deaths", 0) if stats_2 else 0
+                other_1 = stats_1.get("other_deaths", 0) if stats_1 else 0
+                other_2 = stats_2.get("other_deaths", 0) if stats_2 else 0
                 duel_info_box = f"""
                 <div class="duel-scores-wrapper">
                     <div class="duel-score-row">
-                        <span class="score-label">{get_text("solo_kills", lang=lang)}</span>
+                        <span class="score-label">{get_text("solo_deaths", lang=lang)}</span>
                         <div class="score-pill-lg">
-                            <b class="score-blue-lg">{solo_kills_1}</b>
+                            <b class="score-blue-lg">{solo_deaths_1}</b>
                             <span class="score-x-lg">x</span>
-                            <b class="score-red-lg">{solo_kills_2}</b>
+                            <b class="score-red-lg">{solo_deaths_2}</b>
                         </div>
                     </div>
                     <div class="duel-score-row" style="margin-top: 3px;">
-                        <span class="score-label">{get_text("gank_deaths", lang=lang)}</span>
+                        <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
                         <div class="score-pill-sm">
-                            <b class="score-blue-sm">{ganks_1}</b>
+                            <b class="score-blue-sm">{other_1}</b>
                             <span class="score-x-sm">x</span>
-                            <b class="score-red-sm">{ganks_2}</b>
+                            <b class="score-red-sm">{other_2}</b>
                         </div>
                     </div>
                 </div>
@@ -568,27 +568,45 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         <h3>{get_text('match_awards_title', lang=lang)}</h3>
         <div class="awards-grid">
             <div class="award-card">
-                <div class="award-header">{get_text('award_jungle_title', lang=lang)}</div>
+                <div>
+                    <div class="award-header">{get_text('award_jungle_title', lang=lang)}</div>
+                    <div class="award-desc">{get_text('award_jungle_desc', lang=lang)}</div>
+                </div>
                 <div class="award-list">{jungle_items}</div>
             </div>
             <div class="award-card">
-                <div class="award-header">{get_text('award_mayhem_title', lang=lang)}</div>
+                <div>
+                    <div class="award-header">{get_text('award_mayhem_title', lang=lang)}</div>
+                    <div class="award-desc">{get_text('award_mayhem_desc', lang=lang)}</div>
+                </div>
                 <div class="award-list">{mayhem_items}</div>
             </div>
             <div class="award-card">
-                <div class="award-header">{get_text('award_greed_title', lang=lang)}</div>
+                <div>
+                    <div class="award-header">{get_text('award_greed_title', lang=lang)}</div>
+                    <div class="award-desc">{get_text('award_greed_desc', lang=lang)}</div>
+                </div>
                 <div class="award-list">{greed_items}</div>
             </div>
             <div class="award-card">
-                <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
+                <div>
+                    <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
+                    <div class="award-desc">{get_text('award_might_desc', lang=lang)}</div>
+                </div>
                 <div class="award-list">{might_items}</div>
             </div>
             <div class="award-card">
-                <div class="award-header">{get_text('award_visionary_title', lang=lang)}</div>
+                <div>
+                    <div class="award-header">{get_text('award_visionary_title', lang=lang)}</div>
+                    <div class="award-desc">{get_text('award_visionary_desc', lang=lang)}</div>
+                </div>
                 <div class="award-list">{visionary_items}</div>
             </div>
             <div class="award-card">
-                <div class="award-header">{get_text('award_demolisher_title', lang=lang)}</div>
+                <div>
+                    <div class="award-header">{get_text('award_demolisher_title', lang=lang)}</div>
+                    <div class="award-desc">{get_text('award_demolisher_desc', lang=lang)}</div>
+                </div>
                 <div class="award-list">{demolisher_items}</div>
             </div>
         </div>
@@ -925,8 +943,13 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             font-weight: 800;
             font-size: 1rem;
             color: #f59e0b;
+        }}
+        .award-desc {{
+            font-size: 0.75rem;
+            color: var(--text-muted);
             border-bottom: 1px solid #1e293b;
             padding-bottom: 8px;
+            margin-top: -4px;
         }}
         .award-list {{
             display: flex;
@@ -942,10 +965,74 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             border-radius: 6px;
             border-left: 3px solid transparent;
             gap: 8px;
+            transition: all 0.2s ease;
         }}
-        .rank-gold {{ border-left-color: #fbbf24; background: rgba(251, 191, 36, 0.08); }}
-        .rank-silver {{ border-left-color: #94a3b8; background: rgba(148, 163, 184, 0.08); }}
-        .rank-bronze {{ border-left-color: #d97706; background: rgba(217, 119, 6, 0.08); }}
+        .rank-gold {{
+            border-left-color: #fbbf24;
+            background: linear-gradient(90deg, rgba(251, 191, 36, 0.15) 0%, rgba(21, 29, 48, 0.9) 100%);
+            padding: 9px 14px;
+            border-left-width: 4px;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
+        }}
+        .rank-gold .award-avatar {{
+            width: 32px;
+            height: 32px;
+            border: 2px solid #fbbf24;
+        }}
+        .rank-gold .award-name {{
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #fff;
+        }}
+        .rank-gold .award-val {{
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #fef08a;
+        }}
+        
+        .rank-silver {{
+            border-left-color: #94a3b8;
+            background: rgba(148, 163, 184, 0.08);
+            padding: 7px 12px;
+        }}
+        .rank-silver .award-avatar {{
+            width: 28px;
+            height: 28px;
+            border: 1px solid #94a3b8;
+        }}
+        .rank-silver .award-name {{
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }}
+        .rank-silver .award-val {{
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #cbd5e1;
+        }}
+
+        .rank-bronze {{
+            border-left-color: #d97706;
+            background: rgba(217, 119, 6, 0.06);
+            padding: 6px 10px;
+            opacity: 0.9;
+        }}
+        .rank-bronze .award-avatar {{
+            width: 24px;
+            height: 24px;
+            border: 1px solid #d97706;
+        }}
+        .rank-bronze .award-name {{
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }}
+        .rank-bronze .award-val {{
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #d97706;
+        }}
+
         .award-champ-info {{
             display: flex;
             align-items: center;
@@ -954,25 +1041,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
-        .award-avatar {{
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 1px solid #334155;
-            flex-shrink: 0;
-        }}
         .award-name {{
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #f1f5f9;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
         .award-val {{
-            font-size: 0.88rem;
-            font-weight: 800;
-            color: var(--accent);
             white-space: nowrap;
             flex-shrink: 0;
         }}
