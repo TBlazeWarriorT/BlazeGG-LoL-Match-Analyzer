@@ -13,6 +13,7 @@ from src.ddragon import DataDragon
 from src.i18n import get_text
 
 PORT = 8000
+HUB_CSS_FILE = Path(__file__).parent / "src" / "static" / "css" / "hub.css"
 ddragon = DataDragon(language="pt_BR")
 ddragon_en = DataDragon(language="en_US")
 
@@ -228,6 +229,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
     error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
+    hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
+
     return f"""<!DOCTYPE html>
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
@@ -235,209 +238,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     <title>Blaze GG - LoL Analytics</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
     <style>
-        :root {{
-            --bg-color: #080c14;
-            --card-bg: #111827;
-            --card-border: #1f293d;
-            --text-color: #f3f4f6;
-            --text-muted: #9ca3af;
-            --accent: #38bdf8;
-            --blue-team: #2563eb;
-            --red-team: #dc2626;
-        }}
-        * {{ box-sizing: border-box; }}
-        html, body {{
-            min-height: 100vh;
-            background-color: var(--bg-color);
-        }}
-        body {{
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0;
-            padding: 24px;
-            display: flex;
-            justify-content: center;
-        }}
-        .container {{
-            max-width: 1000px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }}
-        .header {{
-            background: linear-gradient(135deg, rgba(249, 115, 22, 0.16) 0%, rgba(234, 88, 12, 0.05) 45%, #0f172a 100%);
-            border: 1px solid #2d262b;
-            padding: 20px 24px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.06);
-        }}
-        .logo-title {{
-            background: linear-gradient(90deg, #fb923c, #f97316, #ef4444);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }}
-        .header h1 {{ margin: 0; font-size: 1.5rem; }}
-        .section-card {{
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-        }}
-        .section-card h3 {{ margin-top: 0; font-size: 1.15rem; color: var(--accent); }}
-        .summoner-link {{
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            text-decoration: none;
-            font-weight: normal;
-            transition: color 0.2s;
-        }}
-        .summoner-link:hover {{
-            color: var(--accent);
-            text-decoration: underline;
-        }}
-        .form-row {{
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }}
-        input[type="text"], input[type="password"] {{
-            background: #090d16;
-            border: 1px solid var(--card-border);
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            flex: 1;
-        }}
-        .btn {{
-            background: #2563eb;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s;
-            text-decoration: none;
-            font-size: 0.95rem;
-        }}
-        .btn:hover {{ background: #1d4ed8; }}
-        .matches-grid {{ display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }}
-        .match-item {{
-            background: #0d1322;
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid #4b5563;
-        }}
-        .card-win {{ border-left-color: #22c55e; }}
-        .card-loss {{ border-left-color: #ef4444; }}
-        .m-left {{ display: flex; align-items: center; gap: 14px; }}
-        .champ-avatar-lg {{
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            border: 2px solid var(--card-border);
-        }}
-        .m-champ-name {{ font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }}
-        .m-sub {{ color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }}
-        .m-badge {{ padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; }}
-        .badge-win {{ background: #166534; color: #86efac; }}
-        .badge-loss {{ background: #991b1b; color: #fca5a5; }}
-        .btn-analyze {{
-            background: #0284c7;
-            color: #fff;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            text-decoration: none;
-            transition: background 0.2s;
-        }}
-        .btn-analyze:hover {{ background: #0369a1; }}
-        .btn-cached {{ background: #334155; }}
-        .btn-cached:hover {{ background: #475569; }}
-        .error-banner {{
-            background: #991b1b;
-            color: #fca5a5;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }}
-        .no-data {{ color: var(--text-muted); font-style: italic; margin-top: 10px; }}
-        .form-group {{
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            flex: 1;
-        }}
-        .form-label {{
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: var(--text-muted);
-        }}
-        .lang-picker {{
-            position: fixed;
-            top: 16px;
-            right: 20px;
-            display: flex;
-            gap: 4px;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
-            padding: 4px 6px;
-            border-radius: 20px;
-            border: 1px solid var(--card-border);
-            z-index: 999;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }}
-        .lang-btn {{
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.82rem;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 14px;
-            cursor: pointer;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-        }}
-        .lang-btn:hover {{
-            color: #fff;
-        }}
-        .lang-btn.active {{
-            background: #2563eb;
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
-        }}
-        .flag-icon {{
-            width: 16px;
-            height: 12px;
-            border-radius: 2px;
-            display: inline-block;
-            vertical-align: middle;
-        }}
-        .legal-footer {{
-            text-align: center;
-            color: #475569;
-            font-size: 0.75rem;
-            line-height: 1.5;
-            padding: 20px 0 10px 0;
-            border-top: 1px solid #1e293b;
-            margin-top: 10px;
-        }}
+{hub_css}
     </style>
 </head>
 <body>
