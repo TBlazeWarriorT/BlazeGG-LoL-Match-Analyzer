@@ -11,6 +11,7 @@ from src.cache_manager import load_json, get_last_viewed
 from src.ddragon import DataDragon
 from src.event_engine import MatchAnalysis
 from src.formatter import format_as_whatsapp_text
+from src.html_report import generate_html_report
 
 def main():
     last_session = get_last_viewed()
@@ -36,11 +37,16 @@ def main():
 
     ddragon = DataDragon()
     analyzer = MatchAnalysis(match_data, timeline_data, target_puuid=target_puuid, ddragon=ddragon)
+    summary = analyzer.generate_summary()
+
+    # Gera e abre a página no navegador
+    print(f"\n[+] Abrindo relatorio visual no navegador...")
+    generate_html_report(summary, open_browser=True)
 
     print("\n" + "="*50)
     print(f"DADOS DA ULTIMA PARTIDA SALVA ({match_id})")
     print("="*50 + "\n")
-    print(format_as_whatsapp_text(analyzer.generate_summary()))
+    print(format_as_whatsapp_text(summary))
     print("\n" + "="*50)
     input("\nPressione Enter para sair...")
 
