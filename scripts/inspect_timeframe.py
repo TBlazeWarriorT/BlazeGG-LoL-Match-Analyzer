@@ -2,6 +2,7 @@
 import sys
 import glob
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
