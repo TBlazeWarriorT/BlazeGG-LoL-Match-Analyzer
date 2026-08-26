@@ -97,6 +97,11 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
     btn_class = "btn-analyze btn-cached" if is_cached else "btn-analyze"
     time_badge = f'<span style="color:#64748b; font-size:0.78rem; margin-left:6px;">• {rel_time}</span>' if rel_time else ""
 
+    # Extrair name e tag para link de busca direta
+    parts = riot_id.split("#") if "#" in riot_id else [riot_id, ""]
+    g_name, t_line = parts[0], parts[1]
+    search_link = f"/search?game_name={g_name}&tag_line={t_line}" if t_line else "#"
+
     return f"""
     <div class="match-item {win_class}">
         <div class="m-left">
@@ -104,7 +109,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
             <div>
                 <div class="m-champ-name">
                     {champ_name} 
-                    <span style="color:var(--text-muted); font-size:0.85rem; font-weight:normal;">({riot_id})</span>
+                    <a href="{search_link}" class="summoner-link" title="Buscar partidas deste invocador">({riot_id})</a>
                     <span class="m-badge {badge_class}">{win_txt}</span>
                 </div>
                 <div class="m-sub">{clean_game_mode(mode)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
@@ -201,8 +206,13 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             )
         cached_html = f"""
         <div class="section-card" style="margin-top: 24px;">
-            <h3>💾 Partidas Salvas no Cache Local (Offline)</h3>
-            <div class="matches-grid">{"".join(c_cards)}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">💾 Partidas Salvas no Cache Local ({len(cached_list)})</h3>
+                <form action="/clear_cache" method="POST" onsubmit="return confirm('Deseja realmente apagar o cache de partidas salvas?');">
+                    <button type="submit" class="btn" style="background:#475569; font-size:0.78rem; padding:6px 12px;">🗑️ Limpar Cache</button>
+                </form>
+            </div>
+            <div class="matches-grid" style="margin-top:14px;">{"".join(c_cards)}</div>
         </div>
         """
 
@@ -212,7 +222,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>LoL API Analyzer - Central de Partidas</title>
+    <title>Blaze GG - LoL Analytics</title>
     <style>
         :root {{
             --bg-color: #080c14;
@@ -225,8 +235,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             --red-team: #dc2626;
         }}
         * {{ box-sizing: border-box; }}
-        body {{
+        html, body {{
+            min-height: 100vh;
             background-color: var(--bg-color);
+        }}
+        body {{
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
@@ -242,13 +255,19 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             gap: 20px;
         }}
         .header {{
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 1px solid var(--card-border);
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.16) 0%, rgba(234, 88, 12, 0.05) 45%, #0f172a 100%);
+            border: 1px solid #2d262b;
             padding: 20px 24px;
             border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.06);
+        }}
+        .logo-title {{
+            background: linear-gradient(90deg, #fb923c, #f97316, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }}
         .header h1 {{ margin: 0; font-size: 1.5rem; }}
         .section-card {{
@@ -258,6 +277,17 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             padding: 20px;
         }}
         .section-card h3 {{ margin-top: 0; font-size: 1.15rem; color: var(--accent); }}
+        .summoner-link {{
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-decoration: none;
+            font-weight: normal;
+            transition: color 0.2s;
+        }}
+        .summoner-link:hover {{
+            color: var(--accent);
+            text-decoration: underline;
+        }}
         .form-row {{
             display: flex;
             gap: 12px;
@@ -350,7 +380,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     <div class="container">
         <div class="header">
             <div>
-                <h1 style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px;">🔥 Blaze GG</h1>
+                <h1 class="logo-title" style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px; margin:0;">🔥 Blaze GG</h1>
                 <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">LoL Head-to-Head Analytics &amp; Match Explorer</div>
             </div>
             <div>{key_status_badge}</div>
@@ -500,6 +530,16 @@ class AppHandler(BaseHTTPRequestHandler):
             exp_text = form_data.get("expires_text", [""])[0].strip()
             if new_key:
                 save_api_key(new_key, exp_text)
+            self._redirect("/")
+        elif parsed.path == "/clear_cache":
+            from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
+            for d in [MATCH_CACHE_DIR, TIMELINE_CACHE_DIR]:
+                if d.exists():
+                    for f in d.glob("*.json"):
+                        try:
+                            f.unlink()
+                        except Exception:
+                            pass
             self._redirect("/")
         else:
             self._redirect("/")
