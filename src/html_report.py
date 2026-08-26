@@ -606,7 +606,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     rank_classes = ["rank-gold", "rank-silver", "rank-bronze"]
 
     # 1. Jungle (Smite Master / Neutral Objectives)
-    jungle_obj_counts = {}
     objs_source = data.get("all_objectives", [])
     if not objs_source:
         objs_source = [
@@ -614,16 +613,52 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             for ev in data.get("key_events", []) if ev.get("type") == "objective"
         ]
 
+    # Identificar junglers de cada equipe
+    t1_jungler = next((p for p in t1_players if p.get("role") == "JUNGLE"), None)
+    t2_jungler = next((p for p in t2_players if p.get("role") == "JUNGLE"), None)
+
+    # Contagem de objetivos
+    player_obj_scores = {}
+    for p in all_players:
+        key = (p.get("riot_id", ""), p.get("champion", ""))
+        player_obj_scores[key] = 0
+
     for ev in objs_source:
+        k_team = ev.get("killer_team", 0)
+        k_id = ev.get("killer_id", 0)
         k_champ = ev.get("killer_champ", "")
         k_name = ev.get("killer_name", "")
-        if k_champ:
-            key = (k_name, k_champ)
-            jungle_obj_counts[key] = jungle_obj_counts.get(key, 0) + 1
+        assisters = ev.get("assisting_participant_ids", [])
 
-    top_jungle_sorted = sorted(jungle_obj_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        # Se a equipe 100 abateu o objetivo, pontua o jungler do time 100
+        if k_team == 100 and t1_jungler:
+            t1_key = (t1_jungler.get("riot_id", ""), t1_jungler.get("champion", ""))
+            player_obj_scores[t1_key] = player_obj_scores.get(t1_key, 0) + 1
+        elif k_team == 200 and t2_jungler:
+            t2_key = (t2_jungler.get("riot_id", ""), t2_jungler.get("champion", ""))
+            player_obj_scores[t2_key] = player_obj_scores.get(t2_key, 0) + 1
+        elif k_champ:
+            # Fallback caso o time não esteja identificado
+            k_key = (k_name, k_champ)
+            player_obj_scores[k_key] = player_obj_scores.get(k_key, 0) + 1
+
+    # Ordenar priorizando os junglers no pódio
+    junglers_keys = set()
+    if t1_jungler:
+        junglers_keys.add((t1_jungler.get("riot_id", ""), t1_jungler.get("champion", "")))
+    if t2_jungler:
+        junglers_keys.add((t2_jungler.get("riot_id", ""), t2_jungler.get("champion", "")))
+
+    top_jungle_sorted = sorted(
+        player_obj_scores.items(),
+        key=lambda x: (1 if x[0] in junglers_keys else 0, x[1]),
+        reverse=True
+    )
+    # Filtrar apenas quem tem > 0 e limitar a 2 (os junglers) ou 3 se houver helpers
+    top_jungle_filtered = [item for item in top_jungle_sorted if item[1] > 0][:2]
+
     jungle_items_list = []
-    for idx, ((k_name, k_champ), count) in enumerate(top_jungle_sorted):
+    for idx, ((k_name, k_champ), count) in enumerate(top_jungle_filtered):
         found_p = next((p for p in all_players if p.get("champion") == k_champ), None)
         icon_src = found_p.get("champion_icon", "") if found_p else ""
         jungle_items_list.append(f"""

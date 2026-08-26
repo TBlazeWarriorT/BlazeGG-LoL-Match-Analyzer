@@ -447,7 +447,8 @@ class MatchAnalysis:
                         "killer_id": killer,
                         "killer_champ": k_champ,
                         "killer_name": k_name,
-                        "killer_team": ev.get("killerTeamId", 0)
+                        "killer_team": ev.get("killerTeamId", 0),
+                        "assisting_participant_ids": ev.get("assistingParticipantIds", [])
                     })
         return obj_list
 
