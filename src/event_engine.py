@@ -180,6 +180,7 @@ class MatchAnalysis:
             },
             "matchups": matchups,
             "jungle_stats": jungle_stats,
+            "all_objectives": self._extract_all_objectives(),
             "key_events": self._extract_key_events()
         }
         analysis_dict["raw_summary_text"] = self._generate_compact_raw_summary(analysis_dict)
@@ -297,6 +298,7 @@ class MatchAnalysis:
         }
         if not self.timeline:
             return stats
+        drake_count_by_team = {100: 0, 200: 0}
         frames = self.timeline.get("info", {}).get("frames", [])
         for frame in frames:
             for ev in frame.get("events", []):
@@ -310,9 +312,17 @@ class MatchAnalysis:
                         if p.get("participantId") == killer_id:
                             killer_team = p.get("teamId")
                             break
+                    if not killer_team and ev.get("killerTeamId") in (100, 200):
+                        killer_team = ev.get("killerTeamId")
+
                     if killer_team in stats:
                         asset_key = "dragon_circle"
+                        is_soul = False
                         if "DRAGON" in m_type:
+                            if "ELDER" not in str(m_sub).upper():
+                                drake_count_by_team[killer_team] += 1
+                                if drake_count_by_team[killer_team] == 4:
+                                    is_soul = True
                             asset_key = get_dragon_asset_key(m_sub)
                         elif "HORDE" in m_type or "GRUB" in m_type:
                             asset_key = "sru_voidgrub_circle"
@@ -321,10 +331,15 @@ class MatchAnalysis:
                         elif "BARON" in m_type:
                             asset_key = "baron_circle"
 
+                        clean_name = clean_monster_name(m_type, m_sub)
+                        if is_soul:
+                            clean_name = f"{clean_name} (SOUL 🐉)"
+
                         stats[killer_team]["timeline_sequence"].append({
                             "time": t_str,
-                            "name": clean_monster_name(m_type, m_sub),
-                            "asset_key": asset_key
+                            "name": clean_name,
+                            "asset_key": asset_key,
+                            "is_soul": is_soul
                         })
         return stats
 
@@ -405,7 +420,33 @@ class MatchAnalysis:
                         "killer_name": k_p.get("riotIdGameName", "")
                     })
 
-        return events_log[:30]
+        return events_log
+
+    def _extract_all_objectives(self) -> List[Dict[str, Any]]:
+        if not self.timeline:
+            return []
+        obj_list = []
+        frames = self.timeline.get("info", {}).get("frames", [])
+        for frame in frames:
+            for ev in frame.get("events", []):
+                if ev.get("type") == "ELITE_MONSTER_KILL":
+                    m_type = ev.get("monsterType", "")
+                    m_sub = ev.get("monsterSubType", "")
+                    killer = ev.get("killerId", 0)
+                    k_p = self._get_part_dict(killer)
+                    k_raw = k_p.get("championName", "")
+                    k_name = k_p.get("riotIdGameName", "")
+                    k_champ = self.ddragon.get_clean_champion_name(k_raw)
+                    obj_list.append({
+                        "time": format_timestamp(ev.get("timestamp", 0)),
+                        "type": m_type,
+                        "sub_type": m_sub,
+                        "killer_id": killer,
+                        "killer_champ": k_champ,
+                        "killer_name": k_name,
+                        "killer_team": ev.get("killerTeamId", 0)
+                    })
+        return obj_list
 
     def _get_part_dict(self, participant_id: int) -> Dict[str, Any]:
         for p in self.participants:

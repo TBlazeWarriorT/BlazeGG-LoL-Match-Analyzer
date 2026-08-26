@@ -19,6 +19,16 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     jungle = data.get("jungle_stats", {})
     target_puuid = data.get("target_puuid", "")
     raw_summary = data.get("raw_summary_text", "")
+    dur_s_game = data.get("duration_seconds", 0)
+    if not dur_s_game:
+        # Fallback parsing duration string 'Xm Ys'
+        dur_str = data.get("duration", "0m 0s")
+        try:
+            m_part = int(dur_str.split("m")[0].strip()) if "m" in dur_str else 0
+            s_part = int(dur_str.split("m")[1].replace("s", "").strip()) if "m" in dur_str and "s" in dur_str else 0
+            dur_s_game = m_part * 60 + s_part
+        except Exception:
+            dur_s_game = 1800
 
     icon_gold = AssetManager.get_asset_uri("gold_icon")
     icon_xp = AssetManager.get_asset_uri("xp_icon")
@@ -40,13 +50,18 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     def render_jungle_chronological(seq):
         if not seq:
             return f'<div class="empty-jungle-slot">{"Nenhum objetivo neutro" if lang=="pt_BR" else "No neutral objectives"}</div>'
-        return "".join([
-            f'<div class="jungle-badge-wrapper" title="[{item["time"]}] {item["name"]}">'
-            f'<img class="obj-badge-icon-lg" src="{AssetManager.get_asset_uri(item["asset_key"])}"/>'
-            f'<span class="badge-time">{item["time"]}</span>'
-            f'</div>'
-            for item in seq
-        ])
+        items_html = []
+        for item in seq:
+            is_soul = item.get("is_soul", False)
+            soul_class = "soul-dragon-badge" if is_soul else ""
+            soul_title_tag = " • DRAGON SOUL!" if is_soul else ""
+            items_html.append(
+                f'<div class="jungle-badge-wrapper {soul_class}" title="[{item["time"]}] {item["name"]}{soul_title_tag}">'
+                f'<img class="obj-badge-icon-lg {soul_class}" src="{AssetManager.get_asset_uri(item["asset_key"])}"/>'
+                f'<span class="badge-time">{item["time"]}</span>'
+                f'</div>'
+            )
+        return "".join(items_html)
 
     def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None, xp_d=None, is_bot_duo=False, extra_badges_1="", extra_badges_2=""):
         is_t1 = p1.get("puuid") == target_puuid
@@ -99,6 +114,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     </div>
                 </div>
                 """
+            icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
+
             spells_html = "".join([
                 f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
                 for s in p.get("spells", []) if s.get("icon")
@@ -109,7 +126,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             spells_runes_strip = f"""
             <div class="spells-runes-strip">
                 {rune_html}
-                <div class="spells-col">{spells_html}</div>
+                <div class="spells-row">{spells_html}</div>
             </div>
             """ if (spells_html or rune_html) else ""
 
@@ -122,7 +139,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
             vis_val = p.get("vision_score", 0)
             pinks_val = p.get("detector_wards", 0)
-            vis_txt = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pinks_val} 👁️)"
+            pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b></span>"
+            vis_txt = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
             mitigated_val = p.get("damage_mitigated", 0)
             turret_dmg_val = p.get("damage_to_turrets", 0)
 
@@ -313,12 +331,17 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         ratio_d1 = (d1_kills + d1_assists) / max(d1_deaths, 1)
         ratio_d2 = (d2_kills + d2_assists) / max(d2_deaths, 1)
 
+        dur_min_calc = max(dur_s_game / 60.0, 1.0)
+        csm_d1 = round(d1_cs / dur_min_calc, 1)
+        csm_d2 = round(d2_cs / dur_min_calc, 1)
+
         duo_p1 = {
             "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"],
             "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"],
             "kda": f"{d1_kills}/{d1_deaths}/{d1_assists}",
             "kda_ratio": f"{ratio_d1:.2f}:1" if d1_deaths > 0 else "Perfect",
             "cs": d1_cs,
+            "cs_per_min": csm_d1,
             "damage_to_champions": d1_dmg,
             "damage_per_gold": round(d1_dmg / max(d1_gold, 1), 2),
             "damage_taken": d1_taken,
@@ -332,6 +355,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             "kda": f"{d2_kills}/{d2_deaths}/{d2_assists}",
             "kda_ratio": f"{ratio_d2:.2f}:1" if d2_deaths > 0 else "Perfect",
             "cs": d2_cs,
+            "cs_per_min": csm_d2,
             "damage_to_champions": d2_dmg,
             "damage_per_gold": round(d2_dmg / max(d2_gold, 1), 2),
             "damage_taken": d2_taken,
@@ -374,33 +398,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         ratio_t1 = (t1_kills + t1_assists) / max(t1_deaths, 1)
         ratio_t2 = (t2_kills + t2_assists) / max(t2_deaths, 1)
 
+        csm_t1 = round(t1_cs / dur_min_calc, 1)
+        csm_t2 = round(t2_cs / dur_min_calc, 1)
+
         t1_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t1_players])
         t2_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t2_players])
-
-        team_p1 = {
-            "champ1": "Blue Team (5v5)", "icon1": t1_players[0]["champion_icon"] if t1_players else "",
-            "champ2": "", "icon2": "",
-            "kda": f"{t1_kills}/{t1_deaths}/{t1_assists}",
-            "kda_ratio": f"{ratio_t1:.2f}:1",
-            "cs": t1_cs,
-            "damage_to_champions": t1_dmg,
-            "damage_per_gold": round(t1_dmg / max(t1_gold, 1), 2),
-            "damage_taken": t1_taken,
-            "gold_total": t1_gold,
-            "puuid": target_puuid if target_puuid in [p.get("puuid") for p in t1_players] else ""
-        }
-        team_p2 = {
-            "champ1": "Red Team (5v5)", "icon1": t2_players[0]["champion_icon"] if t2_players else "",
-            "champ2": "", "icon2": "",
-            "kda": f"{t2_kills}/{t2_deaths}/{t2_assists}",
-            "kda_ratio": f"{ratio_t2:.2f}:1",
-            "cs": t2_cs,
-            "damage_to_champions": t2_dmg,
-            "damage_per_gold": round(t2_dmg / max(t2_gold, 1), 2),
-            "damage_taken": t2_taken,
-            "gold_total": t2_gold,
-            "puuid": target_puuid if target_puuid in [p.get("puuid") for p in t2_players] else ""
-        }
 
         duels_html.append(f"""
         <div class="duel-row team-combined-row">
@@ -412,7 +414,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                         <div class="p-champ">{get_text("team_combined_sub", lang=lang)}</div>
                     </div>
                 </div>
-                <div class="p-kda">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> ({ratio_t1:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b></div>
+                <div class="p-kda">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> ({ratio_t1:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t1}/m)</span></div>
                 <div class="stats-pills">
                     <div class="pill">{get_text("damage", lang=lang)}: <b>{t1_dmg:,}</b></div>
                     <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{round(t1_dmg / max(t1_gold, 1), 2)}</b></div>
@@ -442,7 +444,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     </div>
                     <div class="team-avatar-stack">{t2_icons_html}</div>
                 </div>
-                <div class="p-kda" style="justify-content: flex-end;">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> ({ratio_t2:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b></div>
+                <div class="p-kda" style="justify-content: flex-end;">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> ({ratio_t2:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></div>
                 <div class="stats-pills">
                     <div class="pill">{get_text("damage", lang=lang)}: <b>{t2_dmg:,}</b></div>
                     <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{round(t2_dmg / max(t2_gold, 1), 2)}</b></div>
@@ -455,18 +457,48 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
     all_duels_rendered = "".join(duels_html)
 
-    # PÓDIOS DA PARTIDA (MATCH AWARDS)
+    # PÓDIOS DA PARTIDA (MATCH AWARDS - 6 PÓDIOS EM GRID 3x2)
     all_players = t1_players + t2_players
     rank_classes = ["rank-gold", "rank-silver", "rank-bronze"]
-    rank_medals = ["🥇", "🥈", "🥉"]
 
-    # 1. Mayhem (Damage)
+    # 1. Jungle (Smite Master / Neutral Objectives)
+    jungle_obj_counts = {}
+    objs_source = data.get("all_objectives", [])
+    if not objs_source:
+        objs_source = [
+            {"killer_champ": ev.get("killer_champ"), "killer_name": ev.get("killer_name")}
+            for ev in data.get("key_events", []) if ev.get("type") == "objective"
+        ]
+
+    for ev in objs_source:
+        k_champ = ev.get("killer_champ", "")
+        k_name = ev.get("killer_name", "")
+        if k_champ:
+            key = (k_name, k_champ)
+            jungle_obj_counts[key] = jungle_obj_counts.get(key, 0) + 1
+
+    top_jungle_sorted = sorted(jungle_obj_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+    jungle_items_list = []
+    for idx, ((k_name, k_champ), count) in enumerate(top_jungle_sorted):
+        found_p = next((p for p in all_players if p.get("champion") == k_champ), None)
+        icon_src = found_p.get("champion_icon", "") if found_p else ""
+        jungle_items_list.append(f"""
+        <div class="award-item {rank_classes[idx]}">
+            <div class="award-champ-info">
+                <img class="award-avatar" src="{icon_src}" alt="{k_champ}"/>
+                <span class="award-name">{k_name} ({k_champ})</span>
+            </div>
+            <span class="award-val">{count} obj{'s' if count > 1 else ''}</span>
+        </div>
+        """)
+    jungle_items = "".join(jungle_items_list) if jungle_items_list else f"<div style='color:var(--text-muted); font-size:0.82rem; font-style:italic;'>{get_text('no_data', lang=lang)}</div>"
+
+    # 2. Mayhem (Damage)
     top_damage = sorted(all_players, key=lambda x: x.get("damage_to_champions", 0), reverse=True)[:3]
     mayhem_items = "".join([
         f"""
         <div class="award-item {rank_classes[idx]}">
             <div class="award-champ-info">
-                <span>{rank_medals[idx]}</span>
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
@@ -475,13 +507,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         """ for idx, p in enumerate(top_damage)
     ])
 
-    # 2. Greed (Gold)
+    # 3. Greed (Gold)
     top_gold = sorted(all_players, key=lambda x: x.get("gold_total", 0), reverse=True)[:3]
     greed_items = "".join([
         f"""
         <div class="award-item {rank_classes[idx]}">
             <div class="award-champ-info">
-                <span>{rank_medals[idx]}</span>
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
@@ -490,13 +521,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         """ for idx, p in enumerate(top_gold)
     ])
 
-    # 3. Might (Damage Taken + Mitigated)
+    # 4. Might (Damage Taken + Mitigated)
     top_might = sorted(all_players, key=lambda x: x.get("damage_taken", 0) + x.get("damage_mitigated", 0), reverse=True)[:3]
     might_items = "".join([
         f"""
         <div class="award-item {rank_classes[idx]}">
             <div class="award-champ-info">
-                <span>{rank_medals[idx]}</span>
                 <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
@@ -505,32 +535,33 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         """ for idx, p in enumerate(top_might)
     ])
 
-    # 4. Jungle (Smite Master / Neutral Objectives)
-    jungle_obj_counts = {}
-    for ev in data.get("key_events", []):
-        if ev.get("type") == "objective" and ev.get("killer_champ"):
-            k_name = ev.get("killer_name", "")
-            k_champ = ev.get("killer_champ", "")
-            key = (k_name, k_champ)
-            jungle_obj_counts[key] = jungle_obj_counts.get(key, 0) + 1
-
-    top_jungle_sorted = sorted(jungle_obj_counts.items(), key=lambda x: x[1], reverse=True)[:3]
-    jungle_items_list = []
-    for idx, ((k_name, k_champ), count) in enumerate(top_jungle_sorted):
-        # Encontrar avatar
-        found_p = next((p for p in all_players if p.get("champion") == k_champ), None)
-        icon_src = found_p.get("champion_icon", "") if found_p else ""
-        jungle_items_list.append(f"""
+    # 5. Visionary (Vision Score)
+    top_vision = sorted(all_players, key=lambda x: x.get("vision_score", 0), reverse=True)[:3]
+    visionary_items = "".join([
+        f"""
         <div class="award-item {rank_classes[idx]}">
             <div class="award-champ-info">
-                <span>{rank_medals[idx]}</span>
-                <img class="award-avatar" src="{icon_src}" alt="{k_champ}"/>
-                <span class="award-name">{k_name} ({k_champ})</span>
+                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
             </div>
-            <span class="award-val">{count} obj{'s' if count > 1 else ''}</span>
+            <span class="award-val">{p.get('vision_score', 0)} score ({p.get('detector_wards', 0)} <img class='mini-icon mini-icon-round' src='https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png' title='Control Wards'/>)</span>
         </div>
-        """)
-    jungle_items = "".join(jungle_items_list) if jungle_items_list else f"<div style='color:var(--text-muted); font-size:0.82rem; font-style:italic;'>{get_text('no_data', lang=lang)}</div>"
+        """ for idx, p in enumerate(top_vision)
+    ])
+
+    # 6. Demolisher (Turret Damage)
+    top_turret = sorted(all_players, key=lambda x: x.get("damage_to_turrets", 0), reverse=True)[:3]
+    demolisher_items = "".join([
+        f"""
+        <div class="award-item {rank_classes[idx]}">
+            <div class="award-champ-info">
+                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+            </div>
+            <span class="award-val">{p.get('damage_to_turrets', 0):,} DMG</span>
+        </div>
+        """ for idx, p in enumerate(top_turret)
+    ])
 
     awards_html = f"""
     <div class="card">
@@ -551,6 +582,14 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             <div class="award-card">
                 <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
                 <div class="award-list">{might_items}</div>
+            </div>
+            <div class="award-card">
+                <div class="award-header">{get_text('award_visionary_title', lang=lang)}</div>
+                <div class="award-list">{visionary_items}</div>
+            </div>
+            <div class="award-card">
+                <div class="award-header">{get_text('award_demolisher_title', lang=lang)}</div>
+                <div class="award-list">{demolisher_items}</div>
             </div>
         </div>
     </div>
@@ -822,28 +861,30 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         .spells-runes-strip {{
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             background: #0a0e1a;
-            padding: 3px 6px;
+            padding: 4px 8px;
             border-radius: 6px;
             border: 1px solid var(--card-border);
         }}
-        .spells-col {{
+        .spells-row {{
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            align-items: center;
+            gap: 4px;
         }}
         .spell-icon {{
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            border: 1px solid #334155;
         }}
         .rune-icon {{
-            width: 22px;
-            height: 22px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             background: #0f172a;
             border: 1px solid #334155;
+            padding: 1px;
         }}
         .team-combined-row {{
             background: linear-gradient(180deg, #1e1b4b 0%, #0d1322 100%);
@@ -864,7 +905,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         }}
         .awards-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 14px;
             margin-top: 14px;
         }}
@@ -897,9 +938,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             align-items: center;
             justify-content: space-between;
             background: #151d30;
-            padding: 6px 10px;
+            padding: 7px 12px;
             border-radius: 6px;
             border-left: 3px solid transparent;
+            gap: 8px;
         }}
         .rank-gold {{ border-left-color: #fbbf24; background: rgba(251, 191, 36, 0.08); }}
         .rank-silver {{ border-left-color: #94a3b8; background: rgba(148, 163, 184, 0.08); }}
@@ -908,22 +950,31 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             display: flex;
             align-items: center;
             gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }}
         .award-avatar {{
             width: 28px;
             height: 28px;
             border-radius: 50%;
             border: 1px solid #334155;
+            flex-shrink: 0;
         }}
         .award-name {{
             font-size: 0.85rem;
             font-weight: 700;
             color: #f1f5f9;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }}
         .award-val {{
             font-size: 0.88rem;
             font-weight: 800;
             color: var(--accent);
+            white-space: nowrap;
+            flex-shrink: 0;
         }}
         
         .jungle-mini-strip {{
@@ -949,6 +1000,16 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             border-radius: 50%;
             border: 1px solid #38bdf8;
             background: #0f172a;
+            transition: all 0.2s ease;
+        }}
+        .soul-dragon-badge {{
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.7) !important;
+            transform: scale(1.1);
+        }}
+        .mini-icon-round {{
+            border-radius: 50% !important;
+            border: 1px solid #334155;
         }}
         .badge-time {{
             font-size: 0.65rem;
