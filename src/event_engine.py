@@ -17,27 +17,21 @@ def parse_time_str(time_str: str) -> int:
 
 ROLES_ORDER = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
 
-CD_DRAGON_BASE = "https://raw.communitydragon.org/latest/game/assets/ux/announcements"
-ICON_DRAGON = f"{CD_DRAGON_BASE}/dragon_circle.png"
-ICON_GRUBS = f"{CD_DRAGON_BASE}/sru_voidgrub_circle.png"
-ICON_HERALD = f"{CD_DRAGON_BASE}/sruriftherald_circle.png"
-ICON_BARON = f"{CD_DRAGON_BASE}/baron_circle.png"
-
-def get_dragon_icon(sub_type: str = "") -> str:
+def get_dragon_asset_key(sub_type: str = "") -> str:
     sub = sub_type.upper()
     if "AIR" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_air.png"
+        return "dragon_circle_air"
     elif "CHEMTECH" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_chemtech.png"
+        return "dragon_circle_chemtech"
     elif "EARTH" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_earth.png"
+        return "dragon_circle_earth"
     elif "FIRE" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_fire.png"
+        return "dragon_circle_fire"
     elif "HEXTECH" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_hextech.png"
+        return "dragon_circle_hextech"
     elif "WATER" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_water.png"
-    return ICON_DRAGON
+        return "dragon_circle_water"
+    return "dragon_circle"
 
 class MatchAnalysis:
     def __init__(self, match_data: Dict[str, Any], timeline_data: Dict[str, Any], target_puuid: Optional[str] = None, ddragon: Optional[DataDragon] = None):
@@ -250,12 +244,12 @@ class MatchAnalysis:
                     if len(assisters) == 0:
                         events_log.append({
                             "text": f"[{t_str}] <b>{k_name}</b> matou SOLO <b>{v_name}</b>",
-                            "icon": None
+                            "asset_key": None
                         })
                     else:
                         events_log.append({
                             "text": f"[{t_str}] <b>{k_name}</b> abateu <b>{v_name}</b> (Ajuda: {len(assisters)})",
-                            "icon": None
+                            "asset_key": None
                         })
 
                 elif ev_type == "ELITE_MONSTER_KILL":
@@ -265,20 +259,19 @@ class MatchAnalysis:
                     k_name = self._get_part_name(killer)
                     desc = f"{m_type} ({m_sub})" if m_sub else m_type
                     
-                    # Identificar ícone correspondente
-                    icon_url = ICON_DRAGON
+                    asset_key = "dragon_circle"
                     if "DRAGON" in m_type:
-                        icon_url = get_dragon_icon(m_sub)
+                        asset_key = get_dragon_asset_key(m_sub)
                     elif "HORDE" in m_type or "GRUB" in m_type:
-                        icon_url = ICON_GRUBS
+                        asset_key = "sru_voidgrub_circle"
                     elif "HERALD" in m_type:
-                        icon_url = ICON_HERALD
+                        asset_key = "sruriftherald_circle"
                     elif "BARON" in m_type:
-                        icon_url = ICON_BARON
+                        asset_key = "baron_circle"
 
                     events_log.append({
                         "text": f"[{t_str}] <b>{desc}</b> abatido por <b>{k_name}</b>",
-                        "icon": icon_url
+                        "asset_key": asset_key
                     })
 
         return events_log[:20]

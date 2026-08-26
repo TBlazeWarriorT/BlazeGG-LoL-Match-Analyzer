@@ -2,30 +2,33 @@
 from pathlib import Path
 from typing import Dict, Any, List
 from .config import CACHE_DIR
+from .asset_cache import AssetManager
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
 
-CD_DRAGON_BASE = "https://raw.communitydragon.org/latest/game/assets/ux/announcements"
-ICON_DRAGON = f"{CD_DRAGON_BASE}/dragon_circle.png"
-ICON_GRUBS = f"{CD_DRAGON_BASE}/sru_voidgrub_circle.png"
-ICON_HERALD = f"{CD_DRAGON_BASE}/sruriftherald_circle.png"
-ICON_BARON = f"{CD_DRAGON_BASE}/baron_circle.png"
-
-def get_dragon_icon(sub_type: str = "") -> str:
+def get_dragon_asset_key(sub_type: str = "") -> str:
     sub = sub_type.upper()
     if "AIR" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_air.png"
+        return "dragon_circle_air"
     elif "CHEMTECH" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_chemtech.png"
+        return "dragon_circle_chemtech"
     elif "EARTH" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_earth.png"
+        return "dragon_circle_earth"
     elif "FIRE" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_fire.png"
+        return "dragon_circle_fire"
     elif "HEXTECH" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_hextech.png"
+        return "dragon_circle_hextech"
     elif "WATER" in sub:
-        return f"{CD_DRAGON_BASE}/dragon_circle_water.png"
-    return ICON_DRAGON
+        return "dragon_circle_water"
+    return "dragon_circle"
+
+def calculate_bar_share(val1: int, val2: int) -> float:
+    tot = val1 + val2
+    if tot == 0:
+        return 50.0
+    ratio = val1 / tot
+    adjusted = 50.0 + (ratio - 0.5) * 200.0
+    return max(5.0, min(95.0, adjusted))
 
 def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Path:
     team_100 = data.get("team_100", {})
@@ -34,31 +37,39 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
     jungle = data.get("jungle_stats", {})
     target_puuid = data.get("target_puuid", "")
 
+    # Assets individuais pixel-perfect em Base64
+    icon_dragon = AssetManager.get_asset_uri("dragon_circle")
+    icon_grubs = AssetManager.get_asset_uri("sru_voidgrub_circle")
+    icon_herald = AssetManager.get_asset_uri("sruriftherald_circle")
+    icon_baron = AssetManager.get_asset_uri("baron_circle")
+    icon_gold = AssetManager.get_asset_uri("gold_icon")
+    icon_xp = AssetManager.get_asset_uri("xp_icon")
+    icon_cs = AssetManager.get_asset_uri("cs_icon")
+
     t100_win = team_100.get("win", False)
     t200_win = team_200.get("win", False)
     t100_status = '<span class="badge win-badge">VITÓRIA</span>' if t100_win else '<span class="badge loss-badge">DERROTA</span>'
     t200_status = '<span class="badge win-badge">VITÓRIA</span>' if t200_win else '<span class="badge loss-badge">DERROTA</span>'
 
-    # Objetivos da Selva
     j100 = jungle.get(100, {})
     j200 = jungle.get(200, {})
     jungle_html = f"""
     <div class="card jungle-card">
-        <h3><img class="header-icon" src="{ICON_BARON}"/> Disputa de Objetivos Neutros</h3>
+        <h3><img class="header-icon" src="{icon_baron}"/> Disputa de Objetivos Neutros</h3>
         <div class="jungle-grid">
             <div class="team-jungle">
                 <h4>🔵 Time Azul {t100_status}</h4>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_DRAGON}"/> Dragões: <b>{j100.get('dragons', 0)}</b></div>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_GRUBS}"/> Vastilarvas: <b>{j100.get('grubs', 0)}</b></div>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_HERALD}"/> Arauto: <b>{j100.get('herald', 0)}</b></div>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_BARON}"/> Barão: <b>{j100.get('baron', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_dragon}"/> Dragões: <b>{j100.get('dragons', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_grubs}"/> Vastilarvas: <b>{j100.get('grubs', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_herald}"/> Arauto: <b>{j100.get('herald', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_baron}"/> Barão: <b>{j100.get('baron', 0)}</b></div>
             </div>
             <div class="team-jungle">
                 <h4>🔴 Time Vermelho {t200_status}</h4>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_DRAGON}"/> Dragões: <b>{j200.get('dragons', 0)}</b></div>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_GRUBS}"/> Vastilarvas: <b>{j200.get('grubs', 0)}</b></div>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_HERALD}"/> Arauto: <b>{j200.get('herald', 0)}</b></div>
-                <div class="obj-stat"><img class="obj-icon" src="{ICON_BARON}"/> Barão: <b>{j200.get('baron', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_dragon}"/> Dragões: <b>{j200.get('dragons', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_grubs}"/> Vastilarvas: <b>{j200.get('grubs', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_herald}"/> Arauto: <b>{j200.get('herald', 0)}</b></div>
+                <div class="obj-stat"><img class="obj-icon" src="{icon_baron}"/> Barão: <b>{j200.get('baron', 0)}</b></div>
             </div>
         </div>
     </div>
@@ -67,6 +78,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
     def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None, xp_d=None):
         is_t1 = p1.get("puuid") == target_puuid
         is_t2 = p2.get("puuid") == target_puuid
+
+        g1 = p1.get("gold_total", 0)
+        g2 = p2.get("gold_total", 0)
+        p1_share = calculate_bar_share(g1, g2)
+        p2_share = 100.0 - p1_share
 
         def p_card(p, is_target, is_left=True):
             items_html = "".join([
@@ -86,12 +102,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                         <div class="p-champ">{p['champion']}</div>
                     </div>
                 </div>
-                <div class="p-kda">KDA: <b>{p['kda']}</b> | CS: <b>{p['cs']}</b></div>
+                <div class="p-kda">KDA: <b>{p['kda']}</b> | <img class="mini-icon" src="{icon_cs}"/> <b>{p['cs']}</b></div>
                 <div class="stats-pills">
                     <div class="pill">Dano: <b>{p['damage_to_champions']:,}</b></div>
                     <div class="pill">Dano/Ouro: <b>{p['damage_per_gold']}</b></div>
                     <div class="pill">Tomado: <b>{p['damage_taken']:,}</b></div>
-                    <div class="pill">Ouro: <b>{p['gold_total']:,}g</b></div>
+                    <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b></div>
                 </div>
                 <div class="items-flex">{items_html}</div>
             </div>
@@ -103,11 +119,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         delta_html = ""
         if gold_d:
             gold_tags = "".join([
-                f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}g</b></span>'
+                f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
                 for k, v in gold_d.items()
             ])
             xp_tags = "".join([
-                f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,} XP</b></span>'
+                f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
                 for k, v in xp_d.items()
             ]) if xp_d else ""
 
@@ -122,7 +138,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             delta_html = f"""
             <div class="duel-center">
                 <div class="role-badge-lg">{role_title}</div>
-                <div class="vs-label">VS</div>
+                
+                <div class="lane-bar-container" title="Distribuição de Vantagem de Ouro na Lane">
+                    <div class="lane-bar-blue" style="width: {p1_share:.1f}%;"></div>
+                    <div class="lane-bar-red" style="width: {p2_share:.1f}%;"></div>
+                </div>
+
                 <div class="duel-duels">
                     <div class="duel-sub-stats">
                         <span>Solo Kills: <b class="pos">{solo_kills_1}</b></span> |
@@ -136,9 +157,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                     </div>
                 </div>
                 <div class="delta-box">
-                    <div class="delta-title">Δ Ouro (Azul - Vermelho):</div>
+                    <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> Diferença de Ouro (Azul - Vermelho):</div>
                     <div class="delta-flex">{gold_tags}</div>
-                    {f'<div class="delta-title" style="margin-top:4px;">Δ XP:</div><div class="delta-flex">{xp_tags}</div>' if xp_tags else ''}
+                    {f'<div class="delta-title" style="margin-top:4px;"><img class="mini-icon" src="{icon_xp}"/> Diferença de XP:</div><div class="delta-flex">{xp_tags}</div>' if xp_tags else ''}
                 </div>
             </div>
             """
@@ -190,34 +211,40 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         t2_deaths = p2_bot["deaths"] + p2_sup["deaths"]
         t2_assists = p2_bot["assists"] + p2_sup["assists"]
 
+        duo_share = calculate_bar_share(t1_gold, t2_gold)
+
         duo_delta_gold = {}
         for k in m_bot["gold_delta"].keys():
             duo_delta_gold[k] = m_bot["gold_delta"].get(k, 0) + m_sup["gold_delta"].get(k, 0)
 
         duo_gold_tags = "".join([
-            f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}g</b></span>'
+            f'<span class="delta-tag">@{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
             for k, v in duo_delta_gold.items()
         ])
 
         bot_duo_summary_html = f"""
         <div class="card bot-duo-card">
             <div class="bot-duo-header">
-                <h3>BOT LANE 2v2 (Duo Somado: ADC + SUP)</h3>
+                <h3>👥 BOT LANE 2v2 (Duo Somado: ADC + SUP)</h3>
             </div>
             <div class="bot-duo-grid">
                 <div class="duo-team-stat align-left">
                     <h4>🔵 Duo Azul ({p1_bot['champion']} + {p1_sup['champion']})</h4>
-                    <div>Abates Duo: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> | CS Total: <b>{t1_cs}</b></div>
-                    <div>Dano Somado: <b>{t1_dmg:,}</b> | Ouro Total: <b>{t1_gold:,}g</b></div>
+                    <div>Abates Duo: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> | <img class="mini-icon" src="{icon_cs}"/> Total: <b>{t1_cs}</b></div>
+                    <div>Dano Somado: <b>{t1_dmg:,}</b> | <img class="mini-icon" src="{icon_gold}"/> Total: <b>{t1_gold:,}</b></div>
                 </div>
                 <div class="duo-delta-box">
-                    <div class="vs-label" style="font-size:0.9rem; margin-bottom:4px;">Δ OURO 2v2 (Azul - Vermelho)</div>
+                    <div class="lane-bar-container" style="margin-bottom: 8px;">
+                        <div class="lane-bar-blue" style="width: {duo_share:.1f}%;"></div>
+                        <div class="lane-bar-red" style="width: {100.0 - duo_share:.1f}%;"></div>
+                    </div>
+                    <div class="delta-title" style="margin-bottom:4px;"><img class="mini-icon" src="{icon_gold}"/> Diferença de Ouro 2v2:</div>
                     <div class="delta-flex" style="justify-content:center;">{duo_gold_tags}</div>
                 </div>
                 <div class="duo-team-stat align-right">
                     <h4>🔴 Duo Vermelho ({p2_bot['champion']} + {p2_sup['champion']})</h4>
-                    <div>Abates Duo: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> | CS Total: <b>{t2_cs}</b></div>
-                    <div>Dano Somado: <b>{t2_dmg:,}</b> | Ouro Total: <b>{t2_gold:,}g</b></div>
+                    <div>Abates Duo: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> | <img class="mini-icon" src="{icon_cs}"/> Total: <b>{t2_cs}</b></div>
+                    <div>Dano Somado: <b>{t2_dmg:,}</b> | <img class="mini-icon" src="{icon_gold}"/> Total: <b>{t2_gold:,}</b></div>
                 </div>
             </div>
         </div>
@@ -238,13 +265,13 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
 
     all_duels_rendered = "".join(duels_html)
 
-    # Eventos com ícones da CommunityDragon
     events_list_items = []
     for ev in data.get("key_events", []):
         raw_text = ev.get("text") if isinstance(ev, dict) else str(ev)
-        icon_url = ev.get("icon") if isinstance(ev, dict) else None
+        asset_key = ev.get("asset_key") if isinstance(ev, dict) else None
         
-        icon_html = f'<img class="event-icon" src="{icon_url}"/> ' if icon_url else ""
+        icon_uri = AssetManager.get_asset_uri(asset_key) if asset_key else ""
+        icon_html = f'<img class="event-icon" src="{icon_uri}"/> ' if icon_uri else ""
         events_list_items.append(f'<li class="event-item">{icon_html}{raw_text}</li>')
 
     events_html = "".join(events_list_items)
@@ -358,7 +385,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             border-radius: 4px;
             margin-left: 6px;
         }}
-        .p-kda {{ font-size: 0.88rem; color: #e2e8f0; }}
+        .p-kda {{ font-size: 0.88rem; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }}
         .stats-pills {{
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -370,8 +397,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             padding: 5px 8px;
             border-radius: 4px;
             color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }}
         .pill b {{ color: #f3f4f6; }}
+        .mini-icon {{ width: 14px; height: 14px; vertical-align: middle; }}
         .items-flex {{ display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }}
         .item-icon {{
             width: 26px;
@@ -396,7 +427,26 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             border-radius: 20px;
             letter-spacing: 0.5px;
         }}
-        .vs-label {{ font-size: 1.1rem; font-weight: 900; color: #64748b; }}
+        
+        .lane-bar-container {{
+            width: 100%;
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            display: flex;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            margin: 4px 0;
+        }}
+        .lane-bar-blue {{
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            transition: width 0.3s ease;
+        }}
+        .lane-bar-red {{
+            background: linear-gradient(90deg, #f87171, #ef4444);
+            transition: width 0.3s ease;
+        }}
+
         .duel-duels {{
             font-size: 0.76rem;
             color: var(--text-muted);
@@ -412,7 +462,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             width: 100%;
             font-size: 0.76rem;
         }}
-        .delta-title {{ color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }}
+        .delta-title {{ color: var(--text-muted); margin-bottom: 4px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; }}
         .delta-flex {{ display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }}
         .delta-tag {{ background: #080c14; padding: 2px 6px; border-radius: 4px; }}
         .pos {{ color: var(--green); }}
@@ -423,7 +473,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         .align-left {{ text-align: left; }}
         .align-right {{ text-align: left; }}
         
-        /* BOT DUO */
         .bot-duo-card {{
             background: linear-gradient(180deg, #131c31 0%, #0d1322 100%);
             border: 1px solid #2a3a5e;
@@ -448,7 +497,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             border: 1px solid var(--card-border);
         }}
         
-        /* JUNGLE & EVENTS */
         .header-icon {{ width: 22px; height: 22px; vertical-align: middle; margin-right: 6px; }}
         .obj-icon {{ width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; border-radius: 50%; }}
         .event-icon {{ width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; border-radius: 50%; }}
