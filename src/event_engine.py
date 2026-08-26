@@ -33,6 +33,28 @@ def get_dragon_asset_key(sub_type: str = "") -> str:
         return "dragon_circle_water"
     return "dragon_circle"
 
+def clean_monster_name(monster_type: str, sub_type: str = "") -> str:
+    m = monster_type.upper()
+    s = sub_type.upper()
+    if "DRAGON" in m:
+        element_map = {
+            "FIRE_DRAGON": "Dragão Infernal",
+            "EARTH_DRAGON": "Dragão da Montanha",
+            "WATER_DRAGON": "Dragão do Oceano",
+            "AIR_DRAGON": "Dragão das Nuvens",
+            "CHEMTECH_DRAGON": "Dragão Quimtec",
+            "HEXTECH_DRAGON": "Dragão Hextec",
+            "ELDER_DRAGON": "Dragão Ancião"
+        }
+        return element_map.get(s, "Dragão Elemental")
+    elif "HORDE" in m or "GRUB" in m:
+        return "Vastilarva"
+    elif "HERALD" in m:
+        return "Arauto do Vale"
+    elif "BARON" in m:
+        return "Barão de Na'Shor"
+    return monster_type
+
 class MatchAnalysis:
     def __init__(self, match_data: Dict[str, Any], timeline_data: Dict[str, Any], target_puuid: Optional[str] = None, ddragon: Optional[DataDragon] = None):
         self.match = match_data
@@ -64,9 +86,6 @@ class MatchAnalysis:
                     "icon": self.ddragon.get_item_icon_url(iid)
                 })
 
-        perks = p.get("perks", {}).get("styles", [])
-        primary_rune = perks[0].get("selections", [{}])[0].get("perk", 0) if perks and perks[0].get("selections") else 0
-
         champ_name = p.get("championName", "")
         return {
             "participantId": p.get("participantId"),
@@ -89,7 +108,6 @@ class MatchAnalysis:
             "damage_per_gold": round(total_dmg / max(gold, 1), 2),
             "vision_score": p.get("visionScore", 0),
             "items": items,
-            "primary_rune": primary_rune,
             "win": p.get("win", False)
         }
 
@@ -120,7 +138,6 @@ class MatchAnalysis:
             },
             "matchups": matchups,
             "jungle_stats": jungle_stats,
-            "timeline_curves": self._calculate_timeline_curves(players),
             "key_events": self._extract_key_events()
         }
 
@@ -186,7 +203,10 @@ class MatchAnalysis:
         return matchups
 
     def _calculate_jungle_objectives(self) -> Dict[str, Any]:
-        stats = {100: {"dragons": 0, "grubs": 0, "herald": 0, "baron": 0}, 200: {"dragons": 0, "grubs": 0, "herald": 0, "baron": 0}}
+        stats = {
+            100: {"dragons": [], "grubs": 0, "herald": 0, "baron": 0},
+            200: {"dragons": [], "grubs": 0, "herald": 0, "baron": 0}
+        }
         if not self.timeline:
             return stats
         frames = self.timeline.get("info", {}).get("frames", [])
@@ -194,6 +214,7 @@ class MatchAnalysis:
             for ev in frame.get("events", []):
                 if ev.get("type") == "ELITE_MONSTER_KILL":
                     m_type = ev.get("monsterType", "")
+                    m_sub = ev.get("monsterSubType", "")
                     killer_id = ev.get("killerId", 0)
                     killer_team = None
                     for p in self.participants:
@@ -202,7 +223,10 @@ class MatchAnalysis:
                             break
                     if killer_team in stats:
                         if "DRAGON" in m_type:
-                            stats[killer_team]["dragons"] += 1
+                            stats[killer_team]["dragons"].append({
+                                "asset_key": get_dragon_asset_key(m_sub),
+                                "name": clean_monster_name(m_type, m_sub)
+                            })
                         elif "HORDE" in m_type or "GRUB" in m_type:
                             stats[killer_team]["grubs"] += 1
                         elif "HERALD" in m_type:
@@ -210,18 +234,6 @@ class MatchAnalysis:
                         elif "BARON" in m_type:
                             stats[killer_team]["baron"] += 1
         return stats
-
-    def _calculate_timeline_curves(self, players: List[Dict[str, Any]]) -> Dict[str, Any]:
-        frames = self.timeline.get("info", {}).get("frames", []) if self.timeline else []
-        timeline_data = {p["participantId"]: {"champion": p["champion"], "gold": [], "xp": []} for p in players}
-        for frame in frames:
-            p_frames = frame.get("participantFrames", {})
-            for pid_str, p_info in p_frames.items():
-                pid = int(pid_str)
-                if pid in timeline_data:
-                    timeline_data[pid]["gold"].append(p_info.get("totalGold", 0))
-                    timeline_data[pid]["xp"].append(p_info.get("xp", 0))
-        return timeline_data
 
     def _extract_key_events(self) -> List[Dict[str, str]]:
         if not self.timeline:
@@ -243,12 +255,12 @@ class MatchAnalysis:
 
                     if len(assisters) == 0:
                         events_log.append({
-                            "text": f"[{t_str}] <b>{k_name}</b> matou SOLO <b>{v_name}</b>",
+                            "text": f"[{t_str}] &nbsp; <b>{k_name}</b> matou SOLO <b>{v_name}</b>",
                             "asset_key": None
                         })
                     else:
                         events_log.append({
-                            "text": f"[{t_str}] <b>{k_name}</b> abateu <b>{v_name}</b> (Ajuda: {len(assisters)})",
+                            "text": f"[{t_str}] &nbsp; <b>{k_name}</b> abateu <b>{v_name}</b> (Ajuda: {len(assisters)})",
                             "asset_key": None
                         })
 
@@ -257,7 +269,7 @@ class MatchAnalysis:
                     m_sub = ev.get("monsterSubType", "")
                     killer = ev.get("killerId")
                     k_name = self._get_part_name(killer)
-                    desc = f"{m_type} ({m_sub})" if m_sub else m_type
+                    desc = clean_monster_name(m_type, m_sub)
                     
                     asset_key = "dragon_circle"
                     if "DRAGON" in m_type:
@@ -270,11 +282,11 @@ class MatchAnalysis:
                         asset_key = "baron_circle"
 
                     events_log.append({
-                        "text": f"[{t_str}] <b>{desc}</b> abatido por <b>{k_name}</b>",
+                        "text": f"[{t_str}] &nbsp; <b>{desc}</b> abatido por <b>{k_name}</b>",
                         "asset_key": asset_key
                     })
 
-        return events_log[:20]
+        return events_log[:25]
 
     def _get_part_name(self, participant_id: int) -> str:
         for p in self.participants:
