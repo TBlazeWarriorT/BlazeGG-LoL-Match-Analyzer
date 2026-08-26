@@ -1,5 +1,20 @@
+﻿# Environment & Secrets
 .env
+.env*.local
+
+# Cache & Downloads
 data_cache/
+*.json.cache
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 .venv/
+venv/
+env/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
