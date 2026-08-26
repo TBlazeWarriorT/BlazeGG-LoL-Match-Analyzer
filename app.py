@@ -222,10 +222,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
     return f"""<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
     <meta charset="UTF-8">
     <title>Blaze GG - LoL Analytics</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
     <style>
         :root {{
             --bg-color: #080c14;
@@ -372,6 +373,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             gap: 6px;
             flex: 1;
         }}
+        .form-label {{
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }}
         .lang-picker {{
             position: fixed;
             top: 16px;
@@ -409,12 +415,32 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             color: #fff;
             box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
         }}
+        .flag-icon {{
+            width: 16px;
+            height: 12px;
+            border-radius: 2px;
+            display: inline-block;
+            vertical-align: middle;
+        }}
+        .legal-footer {{
+            text-align: center;
+            color: #475569;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            padding: 20px 0 10px 0;
+            border-top: 1px solid #1e293b;
+            margin-top: 10px;
+        }}
     </style>
 </head>
 <body>
     <div class="lang-picker">
-        <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">🇺🇸 EN</a>
-        <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">🇧🇷 PT</a>
+        <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
+            <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
+        </a>
+        <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
+            <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
+        </a>
     </div>
 
     <div class="container">
@@ -469,6 +495,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     <button type="submit" class="btn" style="background:#16a34a;">{get_text('btn_save_config', lang=lang)}</button>
                 </div>
             </form>
+        </div>
+
+        <div class="legal-footer">
+            Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
         </div>
     </div>
 </body>
@@ -555,10 +585,6 @@ class AppHandler(BaseHTTPRequestHandler):
                 
                 with open(REPORT_FILE, "r", encoding="utf-8") as rf:
                     content = rf.read()
-                
-                back_txt = get_text("back_to_hub", lang=lang)
-                back_btn = f'<div style="margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between;"><a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:6px; border:1px solid #1f293d;">{back_txt}</a><span style="color:#64748b; font-weight:800; font-size:0.9rem;">🔥 Blaze GG</span></div>'
-                content = content.replace('<div class="header">', back_btn + '<div class="header">')
                 
                 self._send_html(content)
             except Exception as e:

@@ -393,7 +393,20 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     favicon_url = target_player.get("champion_icon", "") if target_player else ""
     target_nick = target_player.get("riot_id", "") if target_player else ""
     target_kda = target_player.get("kda", "") if target_player else ""
-    match_mode = data.get('game_mode', 'CLASSIC')
+
+    def clean_mode_name(mode_str: str) -> str:
+        m = str(mode_str).upper()
+        if m == "CLASSIC":
+            return "Summoner's Rift"
+        elif m == "ARAM":
+            return "ARAM"
+        elif m == "CHERRY":
+            return "Arena"
+        elif m == "URF":
+            return "URF"
+        return m.capitalize()
+
+    match_mode = clean_mode_name(data.get('game_mode', 'CLASSIC'))
     match_id_str = data.get('match_id', '')
 
     tab_title_parts = []
@@ -407,6 +420,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     browser_tab_title = " • ".join(tab_title_parts)
 
     favicon_link = f'<link rel="icon" type="image/png" href="{favicon_url}"/>' if favicon_url else ''
+
+    header_avatar_html = f'<img src="{favicon_url}" alt="{target_nick}" style="width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);"/>' if favicon_url else ''
 
     html_content = f"""<!DOCTYPE html>
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
@@ -881,19 +896,50 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             color: #fff;
             box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
         }}
+        .flag-icon {{
+            width: 16px;
+            height: 12px;
+            border-radius: 2px;
+            display: inline-block;
+            vertical-align: middle;
+        }}
+        .legal-footer {{
+            text-align: center;
+            color: #475569;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            padding: 20px 0 10px 0;
+            border-top: 1px solid #1e293b;
+            margin-top: 16px;
+        }}
     </style>
 </head>
 <body>
     <div class="lang-picker">
-        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">🇺🇸 EN</a>
-        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">🇧🇷 PT</a>
+        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
+            <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
+        </a>
+        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
+            <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
+        </a>
     </div>
 
     <div class="container">
-        <div class="header">
-            <div>
-                <h1 style="margin:0; font-size: 1.4rem;">🔥 Blaze GG ({data.get('match_id')})</h1>
-                <div style="color: var(--text-muted); margin-top: 4px;">{get_text('duration', lang=lang)}: {data.get('duration')} | {get_text('mode', lang=lang)}: {data.get('game_mode')}</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
+            <a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:8px; border:1px solid var(--card-border); transition:background 0.2s;" onmouseover="this.style.background='#1f293d'" onmouseout="this.style.background='#111827'">{get_text('back_to_hub', lang=lang)}</a>
+            <span style="color:#94a3b8; font-weight:800; font-size:1.05rem; letter-spacing:0.5px;">🔥 <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span></span>
+        </div>
+
+        <div class="header" style="display:flex; align-items:center; gap:16px;">
+            {header_avatar_html}
+            <div style="flex:1;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <h1 style="margin:0; font-size: 1.45rem; font-weight:800; color:#fff;">{target_nick}</h1>
+                    <span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_kda}</span>
+                </div>
+                <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem;">
+                    <span style="color:#94a3b8; font-family:monospace;">{data.get('match_id')}</span> • <b>{match_mode}</b> • {get_text('duration', lang=lang)}: <b>{data.get('duration')}</b>
+                </div>
             </div>
         </div>
 
@@ -922,6 +968,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                 <button class="copy-btn" onclick="copyRawSummary()">{get_text('copy_summary_btn', lang=lang)}</button>
             </div>
             <textarea id="rawSummaryText" class="raw-textarea" readonly>{raw_summary}</textarea>
+        </div>
+
+        <div class="legal-footer">
+            Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
         </div>
     </div>
 
