@@ -43,6 +43,8 @@ LANGUAGES = {
         "solo_deaths": "Mortes Solo:",
         "lane_deaths": "Mortes na Rota:",
         "other_deaths": "Outras Mortes:",
+        "executions": "Execuções:",
+
 
         "gold_delta_title": "Vantagem de Ouro por Minuto:",
         "xp_delta_title": "Vantagem de XP por Minuto:",
@@ -159,6 +161,8 @@ LANGUAGES = {
         "solo_deaths": "Solo Deaths:",
         "lane_deaths": "Lane Deaths:",
         "other_deaths": "Other Deaths:",
+        "executions": "Executions:",
+
 
         "gold_delta_title": "Gold Lead by Minute:",
         "xp_delta_title": "XP Lead by Minute:",

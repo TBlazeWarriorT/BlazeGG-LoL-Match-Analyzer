@@ -118,6 +118,17 @@ class MatchAnalysis:
                 perk_id = selections[0].get("perk", 0)
         rune_info = self.ddragon.get_rune_info(perk_id) if perk_id else {"name": "", "icon": ""}
 
+        # Executions count from timeline
+        exec_count = 0
+        frames = self.timeline.get("info", {}).get("frames", []) if self.timeline else []
+        for frame in frames:
+            for ev in frame.get("events", []):
+                if ev.get("type") == "CHAMPION_KILL" and ev.get("victimId") == p.get("participantId"):
+                    kil = ev.get("killerId", 0)
+                    ass = ev.get("assistingParticipantIds", [])
+                    if kil == 0 and not ass:
+                        exec_count += 1
+
         return {
             "participantId": p.get("participantId"),
             "puuid": p.get("puuid"),
@@ -129,7 +140,7 @@ class MatchAnalysis:
             "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
             "champ_level": p.get("champLevel", 1),
             "kda": f"{k}/{d}/{a}",
-
+            "executions": exec_count,
             "kda_ratio": calculate_kda_ratio(k, d, a),
             "kills": k,
             "deaths": d,
@@ -154,6 +165,7 @@ class MatchAnalysis:
             "items": items,
             "win": p.get("win", False)
         }
+
 
     def generate_full_analysis(self) -> Dict[str, Any]:
         duration_s = self.info.get("gameDuration", 0)
@@ -258,24 +270,30 @@ class MatchAnalysis:
                 p1, p2 = pair[0], pair[1]
                 id1, id2 = p1["participantId"], p2["participantId"]
 
-                p1_solo_deaths, p1_other_deaths, p1_solo_kills = 0, 0, 0
-                p2_solo_deaths, p2_other_deaths, p2_solo_kills = 0, 0, 0
+                p1_solo_deaths, p1_other_deaths, p1_solo_kills, p1_executions = 0, 0, 0, 0
+                p2_solo_deaths, p2_other_deaths, p2_solo_kills, p2_executions = 0, 0, 0, 0
 
                 for frame in frames:
                     for ev in frame.get("events", []):
                         if ev.get("type") == "CHAMPION_KILL":
                             vic = ev.get("victimId")
-                            kil = ev.get("killerId")
+                            kil = ev.get("killerId", 0)
                             ass = ev.get("assistingParticipantIds", [])
+                            if ass is None:
+                                ass = []
                             
                             if vic == id1:
-                                if kil == id2 and len(ass) == 0:
+                                if kil == 0 and len(ass) == 0:
+                                    p1_executions += 1
+                                elif kil == id2 and len(ass) == 0:
                                     p1_solo_deaths += 1
                                     p2_solo_kills += 1
                                 else:
                                     p1_other_deaths += 1
                             elif vic == id2:
-                                if kil == id1 and len(ass) == 0:
+                                if kil == 0 and len(ass) == 0:
+                                    p2_executions += 1
+                                elif kil == id1 and len(ass) == 0:
                                     p2_solo_deaths += 1
                                     p1_solo_kills += 1
                                 else:
@@ -306,39 +324,42 @@ class MatchAnalysis:
                     "role": role,
                     "player1": p1,
                     "player2": p2,
-                    "p1_stats": {"solo_deaths": p1_solo_deaths, "other_deaths": p1_other_deaths, "solo_kills": p1_solo_kills},
-                    "p2_stats": {"solo_deaths": p2_solo_deaths, "other_deaths": p2_other_deaths, "solo_kills": p2_solo_kills},
+                    "p1_stats": {"solo_deaths": p1_solo_deaths, "other_deaths": p1_other_deaths, "solo_kills": p1_solo_kills, "executions": p1_executions},
+                    "p2_stats": {"solo_deaths": p2_solo_deaths, "other_deaths": p2_other_deaths, "solo_kills": p2_solo_kills, "executions": p2_executions},
                     "gold_delta": gold_diff,
                     "xp_delta": xp_diff
                 })
 
         # Calculate 2v2 isolated lane deaths for bot duo
-
         bot_pair = p_by_role.get("BOTTOM", [])
         sup_pair = p_by_role.get("UTILITY", [])
         if len(bot_pair) == 2 and len(sup_pair) == 2:
             d1_ids = {bot_pair[0]["participantId"], sup_pair[0]["participantId"]}
             d2_ids = {bot_pair[1]["participantId"], sup_pair[1]["participantId"]}
-            d1_lane_deaths, d1_other_deaths = 0, 0
-            d2_lane_deaths, d2_other_deaths = 0, 0
+            d1_lane_deaths, d1_other_deaths, d1_executions = 0, 0, 0
+            d2_lane_deaths, d2_other_deaths, d2_executions = 0, 0, 0
 
             for frame in frames:
                 for ev in frame.get("events", []):
                     if ev.get("type") == "CHAMPION_KILL":
                         vic = ev.get("victimId")
-                        kil = ev.get("killerId")
+                        kil = ev.get("killerId", 0)
                         ass = ev.get("assistingParticipantIds", [])
+                        if ass is None:
+                            ass = []
                         involved_enemies = set([kil] + ass)
 
                         if vic in d1_ids:
-                            # If all killer and assisters are strictly from enemy duo (d2_ids)
-                            if involved_enemies.issubset(d2_ids):
+                            if kil == 0 and len(ass) == 0:
+                                d1_executions += 1
+                            elif involved_enemies.issubset(d2_ids):
                                 d1_lane_deaths += 1
                             else:
                                 d1_other_deaths += 1
                         elif vic in d2_ids:
-                            # If all killer and assisters are strictly from blue duo (d1_ids)
-                            if involved_enemies.issubset(d1_ids):
+                            if kil == 0 and len(ass) == 0:
+                                d2_executions += 1
+                            elif involved_enemies.issubset(d1_ids):
                                 d2_lane_deaths += 1
                             else:
                                 d2_other_deaths += 1
@@ -348,9 +369,12 @@ class MatchAnalysis:
                     m["bot_duo_stats"] = {
                         "d1_lane_deaths": d1_lane_deaths,
                         "d1_other_deaths": d1_other_deaths,
+                        "d1_executions": d1_executions,
                         "d2_lane_deaths": d2_lane_deaths,
-                        "d2_other_deaths": d2_other_deaths
+                        "d2_other_deaths": d2_other_deaths,
+                        "d2_executions": d2_executions
                     }
+
 
         return matchups
 

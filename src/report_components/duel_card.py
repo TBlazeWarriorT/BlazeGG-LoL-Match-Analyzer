@@ -237,6 +237,20 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         if not is_bot_duo:
             other_1 = stats_1.get("other_deaths", 0) if stats_1 else 0
             other_2 = stats_2.get("other_deaths", 0) if stats_2 else 0
+            exec_1 = stats_1.get("executions", 0) if stats_1 else 0
+            exec_2 = stats_2.get("executions", 0) if stats_2 else 0
+            exec_html = ""
+            if exec_1 > 0 or exec_2 > 0:
+                exec_html = f"""
+                <div class="duel-score-row" style="margin-top: 3px;">
+                    <span class="score-label" style="color:#94a3b8;">💀 {get_text("executions", lang=lang)}</span>
+                    <div class="score-pill-sm" style="background:#1e293b; border-color:#334155;">
+                        <b class="score-blue-sm" style="color:#cbd5e1;">{exec_1}</b>
+                        <span class="score-x-sm">x</span>
+                        <b class="score-red-sm" style="color:#cbd5e1;">{exec_2}</b>
+                    </div>
+                </div>
+                """
             duel_info_box = f"""
             <div class="duel-scores-wrapper">
                 <div class="duel-score-row">
@@ -255,6 +269,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                         <b class="score-red-sm">{other_2}</b>
                     </div>
                 </div>
+                {exec_html}
             </div>
             """
         else:
@@ -262,6 +277,20 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             lane_d2 = stats_1.get("d2_lane_deaths", 0) if stats_1 else 0
             other_d1 = stats_1.get("d1_other_deaths", 0) if stats_1 else 0
             other_d2 = stats_1.get("d2_other_deaths", 0) if stats_1 else 0
+            exec_d1 = stats_1.get("d1_executions", 0) if stats_1 else 0
+            exec_d2 = stats_1.get("d2_executions", 0) if stats_1 else 0
+            exec_html = ""
+            if exec_d1 > 0 or exec_d2 > 0:
+                exec_html = f"""
+                <div class="duel-score-row" style="margin-top: 3px;">
+                    <span class="score-label" style="color:#94a3b8;">💀 {get_text("executions", lang=lang)}</span>
+                    <div class="score-pill-sm" style="background:#1e293b; border-color:#334155;">
+                        <b class="score-blue-sm" style="color:#cbd5e1;">{exec_d1}</b>
+                        <span class="score-x-sm">x</span>
+                        <b class="score-red-sm" style="color:#cbd5e1;">{exec_d2}</b>
+                    </div>
+                </div>
+                """
             duel_info_box = f"""
             <div class="duel-scores-wrapper">
                 <div class="duel-score-row">
@@ -280,8 +309,10 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                         <b class="score-red-sm">{other_d2}</b>
                     </div>
                 </div>
+                {exec_html}
             </div>
             """
+
 
 
         delta_html = f"""
@@ -552,6 +583,9 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         t2_vis = sum(p.get("vision_score", 0) for p in t2_players)
         t1_pinks = sum(p.get("detector_wards", 0) for p in t1_players)
         t2_pinks = sum(p.get("detector_wards", 0) for p in t2_players)
+        t1_execs = sum(p.get("executions", 0) for p in t1_players)
+        t2_execs = sum(p.get("executions", 0) for p in t2_players)
+
         t1_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t1_players)
         t2_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t2_players)
 
@@ -641,6 +675,32 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         lbl_mit = get_text("mitigated", lang=lang)
         lbl_hl = get_text("healed", lang=lang)
 
+        team_exec_html = ""
+        if t1_execs > 0 or t2_execs > 0:
+            t1_exec_list = [f"{p['champion']} ({p['executions']})" if p['executions'] > 1 else p['champion'] for p in t1_players if p.get("executions", 0) > 0]
+            t2_exec_list = [f"{p['champion']} ({p['executions']})" if p['executions'] > 1 else p['champion'] for p in t2_players if p.get("executions", 0) > 0]
+            
+            tt_lines = ["<b>💀 Execuções (Mortes neutras sem abate):</b>" if lang == "pt_BR" else "<b>💀 Executions (Neutral deaths):</b>"]
+            if t1_exec_list:
+                tt_lines.append(f"<span style='color:#60a5fa;'>🔵 Blue:</span> " + ", ".join(t1_exec_list))
+            if t2_exec_list:
+                tt_lines.append(f"<span style='color:#f87171;'>🔴 Red:</span> " + ", ".join(t2_exec_list))
+            tt_exec_str = "<br/>".join(tt_lines)
+
+            team_exec_html = f"""
+            <div class="duel-scores-wrapper" style="margin-top: 6px;">
+                <div class="duel-score-row" title="{tt_exec_str}">
+                    <span class="score-label" style="color:#94a3b8; cursor:help;">💀 {get_text("executions", lang=lang)}</span>
+                    <div class="score-pill-sm" style="background:#1e293b; border-color:#334155; cursor:help;">
+                        <b class="score-blue-sm" style="color:#cbd5e1;">{t1_execs}</b>
+                        <span class="score-x-sm">x</span>
+                        <b class="score-red-sm" style="color:#cbd5e1;">{t2_execs}</b>
+                    </div>
+                </div>
+            </div>
+            """
+
+
         duels_html.append(f"""
         <div class="duel-row team-combined-row">
             <div class="player-card border-blue">
@@ -689,8 +749,10 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                         <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
                     </div>
                 </div>
+                {team_exec_html}
                 {delta_gold_section}
             </div>
+
 
             <div class="player-card border-red">
                 <div class="p-header" style="justify-content: flex-end;">
