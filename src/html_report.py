@@ -786,16 +786,19 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         .copy-btn:hover {{ background: #1d4ed8; }}
         .raw-textarea {{
             width: 100%;
-            height: 150px;
             background: #090d16;
-            color: #94a3b8;
+            color: #cbd5e1;
             font-family: Consolas, Monaco, "Courier New", monospace;
             font-size: 0.82rem;
-            padding: 12px;
+            line-height: 1.45;
+            padding: 14px;
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            resize: vertical;
-            white-space: pre;
+            resize: none;
+            overflow: hidden;
+            white-space: pre-wrap;
+            box-sizing: border-box;
+            display: block;
         }}
     </style>
 </head>
@@ -837,6 +840,15 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
     </div>
 
     <script>
+        function autoResizeTextarea() {{
+            var ta = document.getElementById("rawSummaryText");
+            if (ta) {{
+                ta.style.height = "auto";
+                ta.style.height = (ta.scrollHeight + 10) + "px";
+            }}
+        }}
+        window.addEventListener("load", autoResizeTextarea);
+
         function copyRawSummary() {{
             var copyText = document.getElementById("rawSummaryText");
             copyText.select();

@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List
 from .ddragon import DataDragon
 
 def format_timestamp(ms: int) -> str:
@@ -155,27 +155,46 @@ class MatchAnalysis:
 
     def _generate_compact_raw_summary(self, data: Dict[str, Any]) -> str:
         lines = []
-        lines.append(f"MATCH: {data['match_id']} | DURATION: {data['duration']} | WINNER: {'BLUE' if data['team_100']['win'] else 'RED'}")
-        
-        lines.append("\n[BLUE TEAM]")
-        for p in data['team_100']['players']:
-            items_str = ", ".join([it['name'] for it in p['items']]) or "None"
-            lines.append(f"• {p['role']} {p['champion']} ({p['riot_id']}): KDA {p['kda']} ({p['kda_ratio']}) | CS {p['cs']} | DMG {p['damage_to_champions']:,} | GOLD {p['gold_total']:,} | D/G {p['damage_per_gold']} | ITEMS: {items_str}")
+        winner = "BLUE" if data["team_100"]["win"] else "RED"
+        lines.append(f"MATCH: {data['match_id']} | DURATION: {data['duration']} | WINNER: {winner}")
 
-        lines.append("\n[RED TEAM]")
-        for p in data['team_200']['players']:
-            items_str = ", ".join([it['name'] for it in p['items']]) or "None"
-            lines.append(f"• {p['role']} {p['champion']} ({p['riot_id']}): KDA {p['kda']} ({p['kda_ratio']}) | CS {p['cs']} | DMG {p['damage_to_champions']:,} | GOLD {p['gold_total']:,} | D/G {p['damage_per_gold']} | ITEMS: {items_str}")
+        # 1. OBJETIVOS PRINCIPAIS
+        j1 = data["jungle_stats"].get(100, {}).get("timeline_sequence", [])
+        j2 = data["jungle_stats"].get(200, {}).get("timeline_sequence", [])
+        j1_str = ", ".join([f"{x['name']}({x['time']})" for x in j1]) or "None"
+        j2_str = ", ".join([f"{x['name']}({x['time']})" for x in j2]) or "None"
+        lines.append(f"\n[OBJECTIVES]\n• Blue Team: {j1_str}\n• Red Team: {j2_str}")
 
-        lines.append("\n[LANE DELTAS (Blue - Red Gold)]")
-        for m in data['matchups']:
-            p1, p2 = m['player1'], m['player2']
-            g_tags = " ".join([f"@{k}:{v:+d}g" for k, v in m['gold_delta'].items()])
-            lines.append(f"• {m['role']} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']}")
+        # 2. CONFRONTOS DE LANE E DELTAS
+        lines.append("\n[LANE MATCHUPS & GOLD DELTAS (Blue vs Red)]")
+        for m in data["matchups"]:
+            p1, p2 = m["player1"], m["player2"]
+            g_tags = " ".join([f"{k}:{v:+d}g" for k, v in m["gold_delta"].items()])
+            lines.append(f"• {m['role']} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']} | GankDeaths: {m['p1_stats']['other_deaths']}x{m['p2_stats']['other_deaths']}")
+
+        # 3. JOGADORES (Blue & Red)
+        def format_team_players(team_key, team_name):
+            t_lines = [f"\n[{team_name} TEAM]"]
+            for p in data[team_key]["players"]:
+                items_str = ", ".join([it["name"] for it in p["items"]]) or "None"
+                t_lines.append(f"• {p['role']} {p['champion']} ({p['riot_id']}): KDA {p['kda']} | CS {p['cs']} | DMG {p['damage_to_champions']:,} | GOLD {p['gold_total']:,} | ITEMS: {items_str}")
+            return t_lines
+
+        lines.extend(format_team_players("team_100", "BLUE"))
+        lines.extend(format_team_players("team_200", "RED"))
+
+        # 4. DESTAQUES (Pentakills & Multikills)
+        highlights = []
+        for ev in data.get("key_events", []):
+            if ev.get("streak") == "penta":
+                highlights.append(f"[{ev['time']}] PENTAKILL por {ev['killer_champ']} ({ev['killer_name']})")
+            elif ev.get("streak") == "multi":
+                highlights.append(f"[{ev['time']}] MULTI-KILL por {ev['killer_champ']} ({ev['killer_name']})")
+        if highlights:
+            lines.append("\n[HIGHLIGHTS]")
+            lines.extend([f"• {h}" for h in highlights])
 
         full_text = "\n".join(lines)
-        if len(full_text) > 1950:
-            full_text = full_text[:1950] + "\n..."
         return full_text
 
     def _calculate_all_matchups(self, players: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
