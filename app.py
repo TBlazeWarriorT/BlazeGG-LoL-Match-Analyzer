@@ -595,13 +595,22 @@ class AppHandler(BaseHTTPRequestHandler):
                     puuid = last_sess.get("puuid")
 
                 dd = get_ddragon(lang)
-                analyzer = MatchAnalysis(m, t, target_puuid=puuid, ddragon=dd)
+                
+                # Dynamic hot reload during development
+                import importlib
+                import src.event_engine
+                import src.html_report
+                import src.i18n
+                importlib.reload(src.i18n)
+                importlib.reload(src.event_engine)
+                importlib.reload(src.html_report)
+
+                analyzer = src.event_engine.MatchAnalysis(m, t, target_puuid=puuid, ddragon=dd)
                 data = analyzer.generate_full_analysis()
                 
-                from src.html_report import generate_html_report, REPORT_FILE
-                generate_html_report(data, open_browser=False, lang=lang)
+                src.html_report.generate_html_report(data, open_browser=False, lang=lang)
                 
-                with open(REPORT_FILE, "r", encoding="utf-8") as rf:
+                with open(src.html_report.REPORT_FILE, "r", encoding="utf-8") as rf:
                     content = rf.read()
                 
                 self._send_html(content)
