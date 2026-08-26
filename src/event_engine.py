@@ -39,26 +39,28 @@ def get_dragon_asset_key(sub_type: str = "") -> str:
         return "dragon_circle_water"
     return "dragon_circle"
 
-def clean_monster_name(monster_type: str, sub_type: str = "") -> str:
+def clean_monster_name(monster_type: str, sub_type: str = "", lang: str = "pt_BR") -> str:
+    from .i18n import get_text
     m = monster_type.upper()
     s = sub_type.upper()
     if "DRAGON" in m:
         element_map = {
-            "FIRE_DRAGON": "Dragão Infernal",
-            "EARTH_DRAGON": "Dragão da Montanha",
-            "WATER_DRAGON": "Dragão do Oceano",
-            "AIR_DRAGON": "Dragão das Nuvens",
-            "CHEMTECH_DRAGON": "Dragão Quimtec",
-            "HEXTECH_DRAGON": "Dragão Hextec",
-            "ELDER_DRAGON": "Dragão Ancião"
+            "FIRE_DRAGON": "dragon_infernal",
+            "EARTH_DRAGON": "dragon_mountain",
+            "WATER_DRAGON": "dragon_ocean",
+            "AIR_DRAGON": "dragon_cloud",
+            "CHEMTECH_DRAGON": "dragon_chemtech",
+            "HEXTECH_DRAGON": "dragon_hextech",
+            "ELDER_DRAGON": "dragon_elder"
         }
-        return element_map.get(s, "Dragão Elemental")
+        key = element_map.get(s, "dragon_elemental")
+        return get_text(key, lang=lang)
     elif "HORDE" in m or "GRUB" in m:
-        return "Vastilarva"
+        return get_text("grub", lang=lang)
     elif "HERALD" in m:
-        return "Arauto do Vale"
+        return get_text("herald", lang=lang)
     elif "BARON" in m:
-        return "Barão de Na'Shor"
+        return get_text("baron", lang=lang)
     return monster_type
 
 class MatchAnalysis:
@@ -97,6 +99,10 @@ class MatchAnalysis:
         k = p.get("kills", 0)
         d = p.get("deaths", 0)
         a = p.get("assists", 0)
+        cs = p.get("totalMinionsKilled", 0) + p.get("neutralMinionsKilled", 0)
+        dur_m = max(self.info.get("gameDuration", 0) / 60.0, 1.0)
+        cs_per_min = round(cs / dur_m, 1)
+
         return {
             "participantId": p.get("participantId"),
             "puuid": p.get("puuid"),
@@ -111,7 +117,8 @@ class MatchAnalysis:
             "kills": k,
             "deaths": d,
             "assists": a,
-            "cs": p.get("totalMinionsKilled", 0) + p.get("neutralMinionsKilled", 0),
+            "cs": cs,
+            "cs_per_min": cs_per_min,
             "gold_total": gold,
             "damage_to_champions": total_dmg,
             "damage_taken": p.get("totalDamageTaken", 0),

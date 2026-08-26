@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, Any, List
 from .config import CACHE_DIR
 from .asset_cache import AssetManager
+from .i18n import get_text
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
 
@@ -11,7 +12,7 @@ def calculate_gold_bar_share(delta: int) -> float:
     val = 50.0 + (fraction * 50.0)
     return max(4.0, min(96.0, val))
 
-def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Path:
+def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: str = "pt_BR") -> Path:
     team_100 = data.get("team_100", {})
     team_200 = data.get("team_200", {})
     matchups = data.get("matchups", [])
@@ -25,15 +26,20 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
 
     t100_win = team_100.get("win", False)
     t200_win = team_200.get("win", False)
-    t100_status = '<span class="badge win-badge">VITÓRIA</span>' if t100_win else '<span class="badge loss-badge">DERROTA</span>'
-    t200_status = '<span class="badge win-badge">VITÓRIA</span>' if t200_win else '<span class="badge loss-badge">DERROTA</span>'
+    t100_txt = get_text("win", lang=lang) if t100_win else get_text("loss", lang=lang)
+    t200_txt = get_text("win", lang=lang) if t200_win else get_text("loss", lang=lang)
+    t100_class = "win-badge" if t100_win else "loss-badge"
+    t200_class = "win-badge" if t200_win else "loss-badge"
+
+    t100_status = f'<span class="badge {t100_class}">{t100_txt}</span>'
+    t200_status = f'<span class="badge {t200_class}">{t200_txt}</span>'
 
     j100 = jungle.get(100, {})
     j200 = jungle.get(200, {})
 
     def render_jungle_chronological(seq):
         if not seq:
-            return '<div class="empty-jungle-slot">Nenhum objetivo neutro feito</div>'
+            return f'<div class="empty-jungle-slot">{"Nenhum objetivo neutro" if lang=="pt_BR" else "No neutral objectives"}</div>'
         return "".join([
             f'<div class="jungle-badge-wrapper" title="[{item["time"]}] {item["name"]}">'
             f'<img class="obj-badge-icon-lg" src="{AssetManager.get_asset_uri(item["asset_key"])}"/>'
@@ -59,13 +65,17 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         def p_card(p, is_target, is_left=True, badges_html="", is_dmg_leader=False, is_gold_leader=False, delta_dmg=0, delta_gold=0):
             align_class = "align-left" if is_left else "align-right"
             border_side = "border-blue" if is_left else "border-red"
-            target_badge = '<span class="target-tag">VOCÊ</span>' if is_target else ""
+            target_badge = f'<span class="target-tag">{get_text("you_tag", lang=lang)}</span>' if is_target else ""
             
             # Badges verdes de delta final
             dmg_delta_tag = f'<span class="lead-delta">+{delta_dmg:,}</span>' if is_dmg_leader and delta_dmg > 0 else ""
             gold_delta_tag = f'<span class="lead-delta">+{delta_gold:,}</span>' if is_gold_leader and delta_gold > 0 else ""
 
             kda_ratio_tag = f'<span class="kda-ratio">({p.get("kda_ratio", "")})</span>' if p.get("kda_ratio") else ""
+
+            cs_val = p.get("cs", 0)
+            cs_pm = p.get("cs_per_min", 0)
+            cs_display = f"<b>{cs_val}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({cs_pm}/m)</span>"
 
             if is_bot_duo:
                 return f"""
@@ -77,14 +87,14 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                         </div>
                         <div class="p-meta">
                             <div class="p-name">{p['champ1']} &amp; {p['champ2']}</div>
-                            <div class="p-champ">Duo Bot Lane (Combined)</div>
+                            <div class="p-champ">{get_text("bot_duo_sub", lang=lang)}</div>
                         </div>
                     </div>
-                    <div class="p-kda">KDA: <b>{p['kda']}</b> {kda_ratio_tag} | <img class="mini-icon" src="{icon_cs}"/> <b>{p['cs']}</b></div>
+                    <div class="p-kda">KDA: <b>{p['kda']}</b> {kda_ratio_tag} | <img class="mini-icon" src="{icon_cs}"/> {cs_display}</div>
                     <div class="stats-pills">
-                        <div class="pill">Dano: <b>{p['damage_to_champions']:,}</b> {dmg_delta_tag}</div>
-                        <div class="pill">Dano/Ouro: <b>{p['damage_per_gold']}</b></div>
-                        <div class="pill">Tomado: <b>{p['damage_taken']:,}</b></div>
+                        <div class="pill">{get_text("damage", lang=lang)}: <b>{p['damage_to_champions']:,}</b> {dmg_delta_tag}</div>
+                        <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{p['damage_per_gold']}</b></div>
+                        <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{p['damage_taken']:,}</b></div>
                         <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag}</div>
                     </div>
                 </div>
@@ -106,11 +116,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                         <div class="p-champ">{p['champion']}</div>
                     </div>
                 </div>
-                <div class="p-kda">KDA: <b>{p['kda']}</b> {kda_ratio_tag} | <img class="mini-icon" src="{icon_cs}"/> <b>{p['cs']}</b></div>
+                <div class="p-kda">KDA: <b>{p['kda']}</b> {kda_ratio_tag} | <img class="mini-icon" src="{icon_cs}"/> {cs_display}</div>
                 <div class="stats-pills">
-                    <div class="pill">Dano: <b>{p['damage_to_champions']:,}</b> {dmg_delta_tag}</div>
-                    <div class="pill">Dano/Ouro: <b>{p['damage_per_gold']}</b></div>
-                    <div class="pill">Tomado: <b>{p['damage_taken']:,}</b></div>
+                    <div class="pill">{get_text("damage", lang=lang)}: <b>{p['damage_to_champions']:,}</b> {dmg_delta_tag}</div>
+                    <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{p['damage_per_gold']}</b></div>
+                    <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{p['damage_taken']:,}</b></div>
                     <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag}</div>
                 </div>
                 <div class="items-flex">{items_html}</div>
@@ -147,7 +157,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                 duel_info_box = f"""
                 <div class="duel-scores-wrapper">
                     <div class="duel-score-row">
-                        <span class="score-label">Solo Kills:</span>
+                        <span class="score-label">{get_text("solo_kills", lang=lang)}</span>
                         <div class="score-pill-lg">
                             <b class="score-blue-lg">{solo_kills_1}</b>
                             <span class="score-x-lg">x</span>
@@ -155,7 +165,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                         </div>
                     </div>
                     <div class="duel-score-row" style="margin-top: 3px;">
-                        <span class="score-label">Mortes p/ Ganks / Outros:</span>
+                        <span class="score-label">{get_text("gank_deaths", lang=lang)}</span>
                         <div class="score-pill-sm">
                             <b class="score-blue-sm">{ganks_1}</b>
                             <span class="score-x-sm">x</span>
@@ -181,9 +191,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                 {duel_info_box}
 
                 <div class="delta-box">
-                    <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> Variação de Ouro (Azul - Vermelho):</div>
+                    <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> {get_text("gold_delta_title", lang=lang)}</div>
                     <div class="delta-flex">{gold_tags}</div>
-                    {f'<div class="delta-title" style="margin-top:5px;"><img class="mini-icon" src="{icon_xp}"/> Variação de XP:</div><div class="delta-flex">{xp_tags}</div>' if xp_tags else ''}
+                    {f'<div class="delta-title" style="margin-top:5px;"><img class="mini-icon" src="{icon_xp}"/> {get_text("xp_delta_title", lang=lang)}</div><div class="delta-flex">{xp_tags}</div>' if xp_tags else ''}
                 </div>
             </div>
             """
@@ -312,7 +322,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             duo_delta_xp[k] = m_bot["xp_delta"].get(k, 0) + m_sup["xp_delta"].get(k, 0)
 
         duels_html.append(render_duel_row(
-            duo_p1, duo_p2, "BOT LANE (COMBINED 2v2)",
+            duo_p1, duo_p2, get_text("bot_duo_title", lang=lang),
             gold_d=duo_delta_gold,
             xp_d=duo_delta_xp,
             is_bot_duo=True
@@ -328,11 +338,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         
         if ev_type == "objective":
             icon_uri = AssetManager.get_asset_uri(ev.get("asset_key", ""))
+            slain_txt = get_text("slain_by", lang=lang)
             events_list_items.append(f"""
             <li class="event-item event-obj">
                 <span class="event-time">{t}</span>
                 <img class="event-avatar" src="{icon_uri}"/>
-                <span class="event-desc"><b>{ev['desc']}</b> abatido por <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
+                <span class="event-desc"><b>{ev['desc']}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)
         else:
@@ -346,7 +357,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                 streak_class = "event-multi"
                 streak_badge = '<span class="multi-badge badge-multi">MULTI KILL! ⚔️</span>'
 
-            assists_txt = f" (+{ev['assists_count']} assistência{'s' if ev['assists_count'] > 1 else ''})" if ev['assists_count'] > 0 else " <span class='tag-solokill'>SOLO</span>"
+            elim_txt = get_text("eliminated", lang=lang)
+            c_ast = ev.get('assists_count', 0)
+            ast_label = get_text("assists_plural", lang=lang) if c_ast > 1 else get_text("assists", lang=lang)
+            assists_txt = f" (+{c_ast} {ast_label})" if c_ast > 0 else f" <span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
 
             events_list_items.append(f"""
             <li class="event-item event-kill {streak_class}">
@@ -357,7 +371,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
                     <img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/>
                 </div>
                 <span class="event-desc">
-                    <b>{ev['killer_champ']}</b> ({ev['killer_name']}) eliminou <b>{ev['victim_champ']}</b> ({ev['victim_name']}){assists_txt}
+                    <b>{ev['killer_champ']}</b> ({ev['killer_name']}) {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}){assists_txt}
                 </span>
                 {streak_badge}
             </li>
@@ -365,12 +379,42 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
 
     events_html = "".join(events_list_items)
 
+    # Identificar jogador alvo (Host) para Favicon e Título da Aba
+    all_players = team_100.get("players", []) + team_200.get("players", [])
+    target_player = None
+    if target_puuid:
+        for p in all_players:
+            if p.get("puuid") == target_puuid:
+                target_player = p
+                break
+    if not target_player and all_players:
+        target_player = all_players[0]
+
+    favicon_url = target_player.get("champion_icon", "") if target_player else ""
+    target_nick = target_player.get("riot_id", "") if target_player else ""
+    target_kda = target_player.get("kda", "") if target_player else ""
+    match_mode = data.get('game_mode', 'CLASSIC')
+    match_id_str = data.get('match_id', '')
+
+    tab_title_parts = []
+    if target_nick:
+        tab_title_parts.append(target_nick)
+    if target_kda:
+        tab_title_parts.append(f"({target_kda})")
+    if match_mode:
+        tab_title_parts.append(match_mode)
+    tab_title_parts.append(f"LoL Head-to-Head Duel Analytics ({match_id_str})")
+    browser_tab_title = " • ".join(tab_title_parts)
+
+    favicon_link = f'<link rel="icon" type="image/png" href="{favicon_url}"/>' if favicon_url else ''
+
     html_content = f"""<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LoL Head-to-Head - {data.get('match_id')}</title>
+    <title>{browser_tab_title}</title>
+    {favicon_link}
     <style>
         :root {{
             --bg-color: #080c14;
@@ -800,20 +844,62 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
             box-sizing: border-box;
             display: block;
         }}
+        .lang-picker {{
+            position: fixed;
+            top: 16px;
+            right: 20px;
+            display: flex;
+            gap: 4px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 4px 6px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }}
+        .lang-btn {{
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }}
+        .lang-btn:hover {{
+            color: #fff;
+        }}
+        .lang-btn.active {{
+            background: #2563eb;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+        }}
     </style>
 </head>
 <body>
+    <div class="lang-picker">
+        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">🇺🇸 EN</a>
+        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">🇧🇷 PT</a>
+    </div>
+
     <div class="container">
         <div class="header">
             <div>
-                <h1 style="margin:0; font-size: 1.4rem;">LoL Head-to-Head Duel Analytics ({data.get('match_id')})</h1>
-                <div style="color: var(--text-muted); margin-top: 4px;">Duração: {data.get('duration')} | Modo: {data.get('game_mode')}</div>
+                <h1 style="margin:0; font-size: 1.4rem;">🔥 Blaze GG ({data.get('match_id')})</h1>
+                <div style="color: var(--text-muted); margin-top: 4px;">{get_text('duration', lang=lang)}: {data.get('duration')} | {get_text('mode', lang=lang)}: {data.get('game_mode')}</div>
             </div>
         </div>
 
         <div class="team-titles">
-            <div style="color: #60a5fa;">🔵 Time Azul {t100_status}</div>
-            <div style="color: #f87171;">🔴 Time Vermelho {t200_status}</div>
+            <div style="color: #60a5fa;">{get_text('blue_team', lang=lang)} {t100_status}</div>
+            <div style="color: #f87171;">{get_text('red_team', lang=lang)} {t200_status}</div>
         </div>
 
         <!-- CONFRONTOS LADO A LADO -->
@@ -823,7 +909,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
 
         <!-- Momentos Chave -->
         <div class="card">
-            <h3>🎯 Linha do Tempo & Momentos Chave</h3>
+            <h3>{get_text('timeline_title', lang=lang)}</h3>
             <ul class="events-list">
                 {events_html}
             </ul>
@@ -832,8 +918,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True) -> Pat
         <!-- Resumo Bruto / LLM Prompt Box -->
         <div class="card">
             <div class="raw-summary-header">
-                <h3 style="margin:0;">📋 Resumo Factual Bruto (Pronto para IA / Copiar)</h3>
-                <button class="copy-btn" onclick="copyRawSummary()">Copiar Resumo</button>
+                <h3 style="margin:0;">{get_text('raw_summary_title', lang=lang)}</h3>
+                <button class="copy-btn" onclick="copyRawSummary()">{get_text('copy_summary_btn', lang=lang)}</button>
             </div>
             <textarea id="rawSummaryText" class="raw-textarea" readonly>{raw_summary}</textarea>
         </div>
