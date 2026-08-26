@@ -1,0 +1,573 @@
+from typing import Dict, Any, List
+from ..asset_cache import AssetManager
+from ..i18n import get_text
+from .utils import calculate_gold_bar_share
+from .jungle_strip import render_jungle_chronological
+
+def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None, xp_d=None, 
+                    is_bot_duo=False, extra_badges_1="", extra_badges_2="", target_puuid="", lang="pt_BR") -> str:
+    is_t1 = p1.get("puuid") == target_puuid
+    is_t2 = p2.get("puuid") == target_puuid
+
+    dmg_delta = p1.get("damage_to_champions", 0) - p2.get("damage_to_champions", 0)
+    gold_delta_final = p1.get("gold_total", 0) - p2.get("gold_total", 0)
+
+    bar_threshold = 8000.0 if is_bot_duo else 5000.0
+    p1_share = calculate_gold_bar_share(gold_delta_final, max_delta=bar_threshold)
+    p2_share = 100.0 - p1_share
+
+    gap_limit = 3500 if is_bot_duo else 2000
+    gap_badge_left = '<span class="gap-seal gap-left">GAP! 🔥</span>' if gold_delta_final >= gap_limit else ""
+    gap_badge_right = '<span class="gap-seal gap-right">GAP! 🔥</span>' if gold_delta_final <= -gap_limit else ""
+
+    icon_gold = AssetManager.get_asset_uri("gold_icon")
+    icon_xp = AssetManager.get_asset_uri("xp_icon")
+    icon_cs = AssetManager.get_asset_uri("cs_icon")
+    icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
+
+    def p_card(p, is_target, is_left=True, badges_html="", is_dmg_leader=False, is_gold_leader=False, delta_dmg=0, delta_gold=0):
+        align_class = "align-left" if is_left else "align-right"
+        border_side = "border-blue" if is_left else "border-red"
+        target_badge = f'<span class="target-tag">{get_text("you_tag", lang=lang)}</span>' if is_target else ""
+        
+        dmg_delta_tag = f'<span class="lead-delta">+{delta_dmg:,}</span>' if is_dmg_leader and delta_dmg > 0 else ""
+        gold_delta_tag = f'<span class="lead-delta">+{delta_gold:,}</span>' if is_gold_leader and delta_gold > 0 else ""
+
+        kda_ratio_tag = f'<span class="kda-ratio">({p.get("kda_ratio", "")})</span>' if p.get("kda_ratio") else ""
+
+        cs_val = p.get("cs", 0)
+        cs_pm = p.get("cs_per_min", 0)
+        cs_display = f"<b>{cs_val}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({cs_pm}/m)</span>"
+
+        if is_bot_duo:
+            header_html = f"""
+            <div class="p-header">
+                <div class="duo-avatar-stack">
+                    <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
+                    <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
+                </div>
+                <div class="p-meta">
+                    <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
+                    <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
+                </div>
+            </div>
+            """
+            spells_runes_strip = ""
+            items_html = ""
+        else:
+            header_html = f"""
+            <div class="p-header">
+                <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <div class="p-meta">
+                    <div class="p-name">{p['riot_id']} {target_badge}</div>
+                    <div class="p-champ">{p['champion']} • KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
+                </div>
+            </div>
+            """
+            spells_html = "".join([
+                f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
+                for s in p.get("spells", []) if s.get("icon")
+            ])
+            rune_info = p.get("rune", {})
+            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" title="{rune_info["name"]}" alt="{rune_info["name"]}"/>' if rune_info.get("icon") else ""
+
+            spells_runes_strip = f"""
+            <div class="spells-runes-strip">
+                {rune_html}
+                <div class="spells-row">{spells_html}</div>
+            </div>
+            """ if (spells_html or rune_html) else ""
+
+            items_html = "".join([
+                f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
+                for it in p.get("items", [])
+            ])
+
+        obj_strip_html = f'<div class="jungle-mini-strip">{badges_html}</div>' if badges_html else ""
+
+        dmg_tot = p.get("damage_to_champions", 0)
+        dmg_phys = p.get("damage_physical", 0)
+        dmg_mag = p.get("damage_magic", 0)
+        dmg_tru = p.get("damage_true", 0)
+
+        dmg_tk = p.get("damage_taken", 0)
+        dmg_mit = p.get("damage_mitigated", 0)
+        dmg_hl = p.get("total_heal", 0)
+        dmg_soaked_tot = dmg_tk + dmg_mit
+
+        vis_val = p.get("vision_score", 0)
+        pinks_val = p.get("detector_wards", 0)
+        camps_stolen_val = p.get("enemy_jungle_monsters", 0)
+
+        lbl_dmg = get_text("dmg_dealt", lang=lang)
+        lbl_phys = get_text("dmg_physical", lang=lang)
+        lbl_mag = get_text("dmg_magic", lang=lang)
+        lbl_true = get_text("dmg_true", lang=lang)
+
+        lbl_soaked = get_text("dmg_soaked", lang=lang)
+        lbl_taken = get_text("damage_taken", lang=lang)
+        lbl_mit = get_text("mitigated", lang=lang)
+        lbl_hl = get_text("healed", lang=lang)
+
+        line_1_dmg = f"""
+        <div class="pill pill-wide" title="{lbl_phys}: {dmg_phys:,} | {lbl_mag}: {dmg_mag:,} | {lbl_true}: {dmg_tru:,}">
+            <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
+            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+        </div>
+        """
+
+        line_2_soaked = f"""
+        <div class="pill pill-wide" title="{lbl_taken}: {dmg_tk:,} | {lbl_mit}: {dmg_mit:,} | {lbl_hl}: {dmg_hl:,}">
+            <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
+            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
+        </div>
+        """
+
+        line_3_gold_cs = f"""
+        <div class="pill pill-wide">
+            <span><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({p['damage_per_gold']} dmg/g)</span></span>
+            <span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>
+        </div>
+        """
+
+        pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b>"
+        vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
+
+        line_4_vision_camps = f"""
+        <div class="pill pill-wide">
+            <span>{vis_combined}</span>
+            <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>
+        </div>
+        """
+
+        footer_bottom = f"""
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
+            <div class="items-flex">{items_html}</div>
+            {spells_runes_strip}
+        </div>
+        """ if (items_html or spells_runes_strip) else ""
+
+        return f"""
+        <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
+            {header_html}
+            <div class="stats-pills">
+                {line_1_dmg}
+                {line_2_soaked}
+                {line_3_gold_cs}
+                {line_4_vision_camps}
+            </div>
+            {footer_bottom}
+            {obj_strip_html}
+        </div>
+        """
+
+    p1_html = p_card(p1, is_t1, is_left=True, badges_html=extra_badges_1,
+                     is_dmg_leader=(dmg_delta > 0), is_gold_leader=(gold_delta_final > 0),
+                     delta_dmg=abs(dmg_delta), delta_gold=abs(gold_delta_final))
+
+    p2_html = p_card(p2, is_t2, is_left=False, badges_html=extra_badges_2,
+                     is_dmg_leader=(dmg_delta < 0), is_gold_leader=(gold_delta_final < 0),
+                     delta_dmg=abs(dmg_delta), delta_gold=abs(gold_delta_final))
+
+    delta_html = ""
+    if gold_d:
+        gold_tags = "".join([
+            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
+            for k, v in gold_d.items()
+        ])
+        xp_tags = "".join([
+            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
+            for k, v in xp_d.items()
+        ]) if xp_d else ""
+
+        solo_deaths_1 = stats_1.get("solo_deaths", 0) if stats_1 else 0
+        solo_deaths_2 = stats_2.get("solo_deaths", 0) if stats_2 else 0
+
+        duel_info_box = ""
+        if not is_bot_duo:
+            other_1 = stats_1.get("other_deaths", 0) if stats_1 else 0
+            other_2 = stats_2.get("other_deaths", 0) if stats_2 else 0
+            duel_info_box = f"""
+            <div class="duel-scores-wrapper">
+                <div class="duel-score-row">
+                    <span class="score-label">{get_text("solo_deaths", lang=lang)}</span>
+                    <div class="score-pill-lg">
+                        <b class="score-blue-lg">{solo_deaths_1}</b>
+                        <span class="score-x-lg">x</span>
+                        <b class="score-red-lg">{solo_deaths_2}</b>
+                    </div>
+                </div>
+                <div class="duel-score-row" style="margin-top: 3px;">
+                    <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
+                    <div class="score-pill-sm">
+                        <b class="score-blue-sm">{other_1}</b>
+                        <span class="score-x-sm">x</span>
+                        <b class="score-red-sm">{other_2}</b>
+                    </div>
+                </div>
+            </div>
+            """
+
+        delta_html = f"""
+        <div class="duel-center">
+            <div class="role-badge-lg">{role_title}</div>
+            
+            <div class="lane-bar-wrapper">
+                {gap_badge_left}
+                <div class="lane-bar-container" title="Distribuição de Ouro (5000 delta = barra cheia)">
+                    <div class="lane-bar-blue" style="width: {p1_share:.1f}%;"></div>
+                    <div class="lane-bar-red" style="width: {p2_share:.1f}%;"></div>
+                </div>
+                {gap_badge_right}
+            </div>
+
+            {duel_info_box}
+
+            <div class="delta-box">
+                <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> {get_text("gold_delta_title", lang=lang)}</div>
+                <div class="delta-flex">{gold_tags}</div>
+                {f'<div class="delta-title" style="margin-top:5px;"><img class="mini-icon" src="{icon_xp}"/> {get_text("xp_delta_title", lang=lang)}</div><div class="delta-flex">{xp_tags}</div>' if xp_tags else ''}
+            </div>
+        </div>
+        """
+    else:
+        delta_html = f"""
+        <div class="duel-center">
+            <div class="role-badge-lg">{role_title}</div>
+            <div class="vs-label">VS</div>
+        </div>
+        """
+
+    return f"""
+    <div class="duel-row {'bot-duo-row' if is_bot_duo else ''}">
+        {p1_html}
+        {delta_html}
+        {p2_html}
+    </div>
+    """
+
+def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "pt_BR") -> str:
+    matchups = data.get("matchups", [])
+    jungle = data.get("jungle_stats", {})
+    team_100 = data.get("team_100", {})
+    team_200 = data.get("team_200", {})
+    dur_s_game = data.get("duration_seconds", 0)
+    if not dur_s_game:
+        dur_str = data.get("duration", "0m 0s")
+        try:
+            m_part = int(dur_str.split("m")[0].strip()) if "m" in dur_str else 0
+            s_part = int(dur_str.split("m")[1].replace("s", "").strip()) if "m" in dur_str and "s" in dur_str else 0
+            dur_s_game = m_part * 60 + s_part
+        except Exception:
+            dur_s_game = 1800
+
+    dur_min_calc = max(dur_s_game / 60.0, 1.0)
+    icon_gold = AssetManager.get_asset_uri("gold_icon")
+    icon_cs = AssetManager.get_asset_uri("cs_icon")
+    icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
+
+    j100 = jungle.get(100, {})
+    j200 = jungle.get(200, {})
+
+    duels_html = []
+    m_by_role = {m["role"]: m for m in matchups}
+
+    # TOP
+    if "TOP" in m_by_role:
+        m = m_by_role["TOP"]
+        duels_html.append(render_duel_row(
+            m["player1"], m["player2"], "TOP LANE",
+            m["p1_stats"], m["p2_stats"],
+            m["gold_delta"], m["xp_delta"],
+            target_puuid=target_puuid, lang=lang
+        ))
+
+    # JUNGLE
+    if "JUNGLE" in m_by_role:
+        m = m_by_role["JUNGLE"]
+        j1_badges = render_jungle_chronological(j100.get('timeline_sequence', []), lang=lang)
+        j2_badges = render_jungle_chronological(j200.get('timeline_sequence', []), lang=lang)
+
+        duels_html.append(render_duel_row(
+            m["player1"], m["player2"], "JUNGLE",
+            m["p1_stats"], m["p2_stats"],
+            m["gold_delta"], m["xp_delta"],
+            extra_badges_1=j1_badges,
+            extra_badges_2=j2_badges,
+            target_puuid=target_puuid, lang=lang
+        ))
+
+    # MIDDLE
+    if "MIDDLE" in m_by_role:
+        m = m_by_role["MIDDLE"]
+        duels_html.append(render_duel_row(
+            m["player1"], m["player2"], "MID LANE",
+            m["p1_stats"], m["p2_stats"],
+            m["gold_delta"], m["xp_delta"],
+            target_puuid=target_puuid, lang=lang
+        ))
+
+    # BOTTOM & UTILITY
+    m_bot = m_by_role.get("BOTTOM")
+    m_sup = m_by_role.get("UTILITY")
+
+    if m_bot:
+        duels_html.append(render_duel_row(
+            m_bot["player1"], m_bot["player2"], "ADC (BOTTOM)",
+            m_bot["p1_stats"], m_bot["p2_stats"],
+            m_bot["gold_delta"], m_bot["xp_delta"],
+            target_puuid=target_puuid, lang=lang
+        ))
+
+    if m_sup:
+        duels_html.append(render_duel_row(
+            m_sup["player1"], m_sup["player2"], "SUPORTE (UTILITY)",
+            m_sup["p1_stats"], m_sup["p2_stats"],
+            m_sup["gold_delta"], m_sup["xp_delta"],
+            target_puuid=target_puuid, lang=lang
+        ))
+
+    # BOT DUO (2v2)
+    if m_bot and m_sup:
+        p1_bot, p2_bot = m_bot["player1"], m_bot["player2"]
+        p1_sup, p2_sup = m_sup["player1"], m_sup["player2"]
+
+        d1_dmg = p1_bot["damage_to_champions"] + p1_sup["damage_to_champions"]
+        d2_dmg = p2_bot["damage_to_champions"] + p2_sup["damage_to_champions"]
+        d1_gold = p1_bot["gold_total"] + p1_sup["gold_total"]
+        d2_gold = p2_bot["gold_total"] + p2_sup["gold_total"]
+        d1_taken = p1_bot["damage_taken"] + p1_sup["damage_taken"]
+        d2_taken = p2_bot["damage_taken"] + p2_sup["damage_taken"]
+        d1_cs = p1_bot["cs"] + p1_sup["cs"]
+        d2_cs = p2_bot["cs"] + p2_sup["cs"]
+        d1_kills = p1_bot["kills"] + p1_sup["kills"]
+        d1_deaths = p1_bot["deaths"] + p1_sup["deaths"]
+        d1_assists = p1_bot["assists"] + p1_sup["assists"]
+        d2_kills = p2_bot["kills"] + p2_bot["kills"]
+        d2_deaths = p2_bot["deaths"] + p2_sup["deaths"]
+        d2_assists = p2_bot["assists"] + p2_sup["assists"]
+
+        ratio_d1 = (d1_kills + d1_assists) / max(d1_deaths, 1)
+        ratio_d2 = (d2_kills + d2_assists) / max(d2_deaths, 1)
+
+        csm_d1 = round(d1_cs / dur_min_calc, 1)
+        csm_d2 = round(d2_cs / dur_min_calc, 1)
+
+        duo_p1 = {
+            "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"],
+            "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"],
+            "kda": f"{d1_kills}/{d1_deaths}/{d1_assists}",
+            "kda_ratio": f"{ratio_d1:.2f}:1" if d1_deaths > 0 else "Perfect",
+            "cs": d1_cs,
+            "cs_per_min": csm_d1,
+            "damage_to_champions": d1_dmg,
+            "damage_physical": p1_bot.get("damage_physical", 0) + p1_sup.get("damage_physical", 0),
+            "damage_magic": p1_bot.get("damage_magic", 0) + p1_sup.get("damage_magic", 0),
+            "damage_true": p1_bot.get("damage_true", 0) + p1_sup.get("damage_true", 0),
+            "damage_per_gold": round(d1_dmg / max(d1_gold, 1), 2),
+            "damage_taken": d1_taken,
+            "damage_mitigated": p1_bot.get("damage_mitigated", 0) + p1_sup.get("damage_mitigated", 0),
+            "total_heal": p1_bot.get("total_heal", 0) + p1_sup.get("total_heal", 0),
+            "vision_score": p1_bot.get("vision_score", 0) + p1_sup.get("vision_score", 0),
+            "detector_wards": p1_bot.get("detector_wards", 0) + p1_sup.get("detector_wards", 0),
+            "enemy_jungle_monsters": p1_bot.get("enemy_jungle_monsters", 0) + p1_sup.get("enemy_jungle_monsters", 0),
+            "gold_total": d1_gold,
+            "puuid": p1_bot["puuid"] if target_puuid in (p1_bot["puuid"], p1_sup["puuid"]) else ""
+        }
+
+        duo_p2 = {
+            "champ1": p2_bot["champion"], "icon1": p2_bot["champion_icon"],
+            "champ2": p2_sup["champion"], "icon2": p2_sup["champion_icon"],
+            "kda": f"{d2_kills}/{d2_deaths}/{d2_assists}",
+            "kda_ratio": f"{ratio_d2:.2f}:1" if d2_deaths > 0 else "Perfect",
+            "cs": d2_cs,
+            "cs_per_min": csm_d2,
+            "damage_to_champions": d2_dmg,
+            "damage_physical": p2_bot.get("damage_physical", 0) + p2_sup.get("damage_physical", 0),
+            "damage_magic": p2_bot.get("damage_magic", 0) + p2_sup.get("damage_magic", 0),
+            "damage_true": p2_bot.get("damage_true", 0) + p2_sup.get("damage_true", 0),
+            "damage_per_gold": round(d2_dmg / max(d2_gold, 1), 2),
+            "damage_taken": d2_taken,
+            "damage_mitigated": p2_bot.get("damage_mitigated", 0) + p2_sup.get("damage_mitigated", 0),
+            "total_heal": p2_bot.get("total_heal", 0) + p2_sup.get("total_heal", 0),
+            "vision_score": p2_bot.get("vision_score", 0) + p2_sup.get("vision_score", 0),
+            "detector_wards": p2_bot.get("detector_wards", 0) + p2_sup.get("detector_wards", 0),
+            "enemy_jungle_monsters": p2_bot.get("enemy_jungle_monsters", 0) + p2_sup.get("enemy_jungle_monsters", 0),
+            "gold_total": d2_gold,
+            "puuid": p2_bot["puuid"] if target_puuid in (p2_bot["puuid"], p2_sup["puuid"]) else ""
+        }
+
+        duo_delta_gold = {}
+        duo_delta_xp = {}
+        for k in m_bot["gold_delta"].keys():
+            duo_delta_gold[k] = m_bot["gold_delta"].get(k, 0) + m_sup["gold_delta"].get(k, 0)
+            duo_delta_xp[k] = m_bot["xp_delta"].get(k, 0) + m_sup["xp_delta"].get(k, 0)
+
+        duels_html.append(render_duel_row(
+            duo_p1, duo_p2, get_text("bot_duo_title", lang=lang),
+            gold_d=duo_delta_gold,
+            xp_d=duo_delta_xp,
+            is_bot_duo=True,
+            target_puuid=target_puuid,
+            lang=lang
+        ))
+
+    # TEAM COMBINED (5v5 TOTAL)
+    t1_players = team_100.get("players", [])
+    t2_players = team_200.get("players", [])
+    raw_game_mode = str(data.get("game_mode", "")).upper()
+    is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
+
+    if t1_players and t2_players and not is_arena:
+        t1_dmg = sum(p.get("damage_to_champions", 0) for p in t1_players)
+        t2_dmg = sum(p.get("damage_to_champions", 0) for p in t2_players)
+        t1_gold = sum(p.get("gold_total", 0) for p in t1_players)
+        t2_gold = sum(p.get("gold_total", 0) for p in t2_players)
+        t1_taken = sum(p.get("damage_taken", 0) for p in t1_players)
+        t2_taken = sum(p.get("damage_taken", 0) for p in t2_players)
+        t1_mit = sum(p.get("damage_mitigated", 0) for p in t1_players)
+        t2_mit = sum(p.get("damage_mitigated", 0) for p in t2_players)
+        t1_hl = sum(p.get("total_heal", 0) for p in t1_players)
+        t2_hl = sum(p.get("total_heal", 0) for p in t2_players)
+
+        t1_phys = sum(p.get("damage_physical", 0) for p in t1_players)
+        t2_phys = sum(p.get("damage_physical", 0) for p in t2_players)
+        t1_mag = sum(p.get("damage_magic", 0) for p in t1_players)
+        t2_mag = sum(p.get("damage_magic", 0) for p in t2_players)
+        t1_tru = sum(p.get("damage_true", 0) for p in t1_players)
+        t2_tru = sum(p.get("damage_true", 0) for p in t2_players)
+
+        t1_cs = sum(p.get("cs", 0) for p in t1_players)
+        t2_cs = sum(p.get("cs", 0) for p in t2_players)
+        t1_kills = sum(p.get("kills", 0) for p in t1_players)
+        t1_deaths = sum(p.get("deaths", 0) for p in t1_players)
+        t1_assists = sum(p.get("assists", 0) for p in t1_players)
+        t2_kills = sum(p.get("kills", 0) for p in t2_players)
+        t2_deaths = sum(p.get("deaths", 0) for p in t2_players)
+        t2_assists = sum(p.get("assists", 0) for p in t2_players)
+
+        t1_vis = sum(p.get("vision_score", 0) for p in t1_players)
+        t2_vis = sum(p.get("vision_score", 0) for p in t2_players)
+        t1_pinks = sum(p.get("detector_wards", 0) for p in t1_players)
+        t2_pinks = sum(p.get("detector_wards", 0) for p in t2_players)
+        t1_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t1_players)
+        t2_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t2_players)
+
+        ratio_t1 = (t1_kills + t1_assists) / max(t1_deaths, 1)
+        ratio_t2 = (t2_kills + t2_assists) / max(t2_deaths, 1)
+
+        csm_t1 = round(t1_cs / dur_min_calc, 1)
+        csm_t2 = round(t2_cs / dur_min_calc, 1)
+
+        t1_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t1_players])
+        t2_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t2_players])
+
+        team_delta_gold = {}
+        for m in matchups:
+            for k, v in m.get("gold_delta", {}).items():
+                team_delta_gold[k] = team_delta_gold.get(k, 0) + v
+
+        team_gold_tags = "".join([
+            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
+            for k, v in team_delta_gold.items()
+        ]) if team_delta_gold else ""
+
+        delta_gold_section = f"""
+        <div class="delta-box" style="margin-top:6px;">
+            <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> {get_text("gold_delta_title", lang=lang)}</div>
+            <div class="delta-flex">{team_gold_tags}</div>
+        </div>
+        """ if team_gold_tags else ""
+
+        t1_dmg_delta_tag = f'<span class="lead-delta">+{t1_dmg - t2_dmg:,}</span>' if t1_dmg > t2_dmg else ""
+        t2_dmg_delta_tag = f'<span class="lead-delta">+{t2_dmg - t1_dmg:,}</span>' if t2_dmg > t1_dmg else ""
+        t1_gold_delta_tag = f'<span class="lead-delta">+{t1_gold - t2_gold:,}</span>' if t1_gold > t2_gold else ""
+        t2_gold_delta_tag = f'<span class="lead-delta">+{t2_gold - t1_gold:,}</span>' if t2_gold > t1_gold else ""
+
+        pink_badge_t1 = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t1_pinks}</b>"
+        pink_badge_t2 = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t2_pinks}</b>"
+        t1_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t1_vis}</b> ({pink_badge_t1})"
+        t2_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t2_vis}</b> ({pink_badge_t2})"
+
+        lbl_dmg = get_text("dmg_dealt", lang=lang)
+        lbl_phys = get_text("dmg_physical", lang=lang)
+        lbl_mag = get_text("dmg_magic", lang=lang)
+        lbl_true = get_text("dmg_true", lang=lang)
+
+        lbl_soaked = get_text("dmg_soaked", lang=lang)
+        lbl_taken = get_text("damage_taken", lang=lang)
+        lbl_mit = get_text("mitigated", lang=lang)
+        lbl_hl = get_text("healed", lang=lang)
+
+        duels_html.append(f"""
+        <div class="duel-row team-combined-row">
+            <div class="player-card border-blue">
+                <div class="p-header">
+                    <div class="team-avatar-stack">{t1_icons_html}</div>
+                    <div class="p-meta">
+                        <div class="p-name">{get_text("blue_team", lang=lang)}</div>
+                        <div class="p-champ">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> <span class="kda-ratio">({ratio_t1:.2f}:1)</span></div>
+                    </div>
+                </div>
+                <div class="stats-pills">
+                    <div class="pill pill-wide" title="{lbl_phys}: {t1_phys:,} | {lbl_mag}: {t1_mag:,} | {lbl_true}: {t1_tru:,}">
+                        <span>{lbl_dmg}: <b>{t1_dmg:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide" title="{lbl_taken}: {t1_taken:,} | {lbl_mit}: {t1_mit:,} | {lbl_hl}: {t1_hl:,}">
+                        <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b> {t1_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t1_dmg / max(t1_gold, 1), 2)} dmg/g)</span></span>
+                        <span><img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t1}/m)</span></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span>{t1_vis_combined}</span>
+                        <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{t1_camps}</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="duel-center">
+                <div class="role-badge-lg" style="background:#3730a3; color:#c7d2fe;">{get_text("team_combined_title", lang=lang)}</div>
+                <div class="lane-bar-wrapper">
+                    <div class="lane-bar-container" title="Distribuição de Ouro da Equipe (15000 delta = barra cheia)">
+                        <div class="lane-bar-blue" style="width: {calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
+                        <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
+                    </div>
+                </div>
+                {delta_gold_section}
+            </div>
+
+            <div class="player-card border-red">
+                <div class="p-header" style="justify-content: flex-end;">
+                    <div class="p-meta" style="text-align: right;">
+                        <div class="p-name">{get_text("red_team", lang=lang)}</div>
+                        <div class="p-champ">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> <span class="kda-ratio">({ratio_t2:.2f}:1)</span></div>
+                    </div>
+                    <div class="team-avatar-stack">{t2_icons_html}</div>
+                </div>
+                <div class="stats-pills">
+                    <div class="pill pill-wide" title="{lbl_phys}: {t2_phys:,} | {lbl_mag}: {t2_mag:,} | {lbl_true}: {t2_tru:,}">
+                        <span>{lbl_dmg}: <b>{t2_dmg:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide" title="{lbl_taken}: {t2_taken:,} | {lbl_mit}: {t2_mit:,} | {lbl_hl}: {t2_hl:,}">
+                        <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
+                        <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> {t2_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t2_dmg / max(t2_gold, 1), 2)} dmg/g)</span></span>
+                        <span><img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span>{t2_vis_combined}</span>
+                        <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{t2_camps}</b></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """)
+
+    return "".join(duels_html)
