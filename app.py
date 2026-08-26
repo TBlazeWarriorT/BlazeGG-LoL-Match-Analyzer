@@ -71,6 +71,7 @@ def get_cached_matches_list(lang: str = "pt_BR"):
                 matches.append({
                     "match_id": mid,
                     "game_mode": info.get("gameMode", "CLASSIC"),
+                    "queue_id": info.get("queueId", 0),
                     "duration": f"{dur_s // 60}m {dur_s % 60}s",
                     "creation_ms": creation_ms,
                     "relative_time": format_relative_time(creation_ms, lang=lang),
@@ -82,19 +83,25 @@ def get_cached_matches_list(lang: str = "pt_BR"):
     matches.sort(key=lambda x: x.get("creation_ms", 0), reverse=True)
     return matches
 
-def clean_game_mode(mode: str) -> str:
+def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US") -> str:
     m = str(mode).upper()
-    if m == "CLASSIC":
-        return "Summoner's Rift"
-    elif m == "ARAM":
-        return "ARAM"
-    elif m == "CHERRY":
-        return "Arena"
-    elif m == "URF":
-        return "URF"
-    return m.capitalize()
+    mode_name = "Summoner's Rift" if m == "CLASSIC" else ("ARAM" if m == "ARAM" else ("Arena" if m == "CHERRY" else ("URF" if m == "URF" else m.capitalize())))
+    queue_map = {
+        420: "queue_ranked_solo",
+        440: "queue_ranked_flex",
+        400: "queue_normal_draft",
+        430: "queue_normal_blind",
+        450: "queue_aram",
+        1700: "queue_arena",
+        900: "queue_urf",
+        1010: "queue_urf",
+        1900: "queue_urf"
+    }
+    q_key = queue_map.get(queue_id, "")
+    q_name = get_text(q_key, lang=lang) if q_key else ""
+    return f"{mode_name} ({q_name})" if q_name else mode_name
 
-def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="pt_BR"):
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0):
     win_class = "card-win" if win else "card-loss"
     win_txt = get_text("win", lang=lang) if win else get_text("loss", lang=lang)
     badge_class = "badge-win" if win else "badge-loss"
@@ -116,7 +123,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     <a href="{search_link}" class="summoner-link" title="Buscar partidas">({riot_id})</a>
                     <span class="m-badge {badge_class}">{win_txt}</span>
                 </div>
-                <div class="m-sub">{clean_game_mode(mode)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
+                <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
             </div>
         </div>
         <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
@@ -168,7 +175,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 render_match_card(
                     m["match_id"], m["champion"], m["champion_icon"],
                     f"{search_name}#{search_tag}", m["kda"], m["win"],
-                    m["duration"], m["game_mode"], m["puuid"], rel_time=m.get("relative_time", ""), is_cached=False, lang=lang
+                    m["duration"], m["game_mode"], m["puuid"], rel_time=m.get("relative_time", ""), is_cached=False, lang=lang, queue_id=m.get("queue_id", 0)
                 )
                 for m in search_results
             ]
@@ -203,7 +210,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     m["match_id"], p.get("champion", ""), p.get("icon", ""),
                     f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
                     p.get("win", False), m["duration"], m["game_mode"],
-                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang
+                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0)
                 )
             )
         c_title = get_text("cached_matches_title", lang=lang, count=len(cached_list))

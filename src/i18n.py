@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any
+from typing import Dict, Any
 
 LANGUAGES = {
     "pt_BR": {
@@ -67,7 +67,31 @@ LANGUAGES = {
         "dragon_elemental": "Dragão Elemental",
         "grub": "Vastilarva",
         "herald": "Arauto do Vale",
-        "baron": "Barão de Na'Shor"
+        "baron": "Barão de Na'Shor",
+        "team_combined_title": "CONFRONTO GLOBAL DE EQUIPES (5v5 TOTAL)",
+        "team_combined_sub": "Estatísticas Acumuladas da Equipe",
+        "match_awards_title": "🏆 Pódios e Destaques da Partida (Match Awards)",
+        "award_jungle_title": "👑 King of the Jungle",
+        "award_jungle_desc": "Mais Objetivos Neutros Abatidos",
+        "award_mayhem_title": "💥 King of Mayhem",
+        "award_mayhem_desc": "Top Causadores de Dano",
+        "award_greed_title": "💰 King of Greed",
+        "award_greed_desc": "Mais Ricos da Partida",
+        "award_might_title": "🛡️ King of Might",
+        "award_might_desc": "Mais Dano Absorvido e Mitigado",
+        "vision_score": "Visão",
+        "control_wards": "Pinks",
+        "turret_damage": "Dano a Torres",
+        "heal_shield": "Cura Realizada",
+        "self_mitigated": "Dano Mitigado",
+        "queue_ranked_solo": "Ranqueada Solo/Duo",
+        "queue_ranked_flex": "Ranqueada Flex",
+        "queue_normal_draft": "Normal com Escolha",
+        "queue_normal_blind": "Normal às Cegas",
+        "queue_aram": "ARAM",
+        "queue_arena": "Arena",
+        "queue_urf": "URF",
+        "queue_custom": "Personalizada"
     },
     "en_US": {
         "app_title": "Blaze GG - LoL Analytics",
@@ -135,7 +159,31 @@ LANGUAGES = {
         "dragon_elemental": "Elemental Drake",
         "grub": "Voidgrub",
         "herald": "Rift Herald",
-        "baron": "Baron Nashor"
+        "baron": "Baron Nashor",
+        "team_combined_title": "TEAM TOTAL COMBINED (5v5 MATCHUP)",
+        "team_combined_sub": "Full Team Aggregated Stats",
+        "match_awards_title": "🏆 Match Awards & Podium",
+        "award_jungle_title": "👑 King of the Jungle",
+        "award_jungle_desc": "Most Neutral Objectives Slain",
+        "award_mayhem_title": "💥 King of Mayhem",
+        "award_mayhem_desc": "Top Damage Dealers",
+        "award_greed_title": "💰 King of Greed",
+        "award_greed_desc": "Top Gold Earners",
+        "award_might_title": "🛡️ King of Might",
+        "award_might_desc": "Most Damage Taken & Mitigated",
+        "vision_score": "Vision",
+        "control_wards": "Pinks",
+        "turret_damage": "Turret Damage",
+        "heal_shield": "Total Healing",
+        "self_mitigated": "Damage Mitigated",
+        "queue_ranked_solo": "Ranked Solo/Duo",
+        "queue_ranked_flex": "Ranked Flex",
+        "queue_normal_draft": "Normal Draft",
+        "queue_normal_blind": "Normal Blind",
+        "queue_aram": "ARAM",
+        "queue_arena": "Arena",
+        "queue_urf": "URF",
+        "queue_custom": "Custom"
     }
 }
 

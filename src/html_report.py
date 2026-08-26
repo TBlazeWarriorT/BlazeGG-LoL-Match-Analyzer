@@ -99,6 +99,19 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     </div>
                 </div>
                 """
+            spells_html = "".join([
+                f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
+                for s in p.get("spells", []) if s.get("icon")
+            ])
+            rune_info = p.get("rune", {})
+            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" title="{rune_info["name"]}" alt="{rune_info["name"]}"/>' if rune_info.get("icon") else ""
+
+            spells_runes_strip = f"""
+            <div class="spells-runes-strip">
+                {rune_html}
+                <div class="spells-col">{spells_html}</div>
+            </div>
+            """ if (spells_html or rune_html) else ""
 
             items_html = "".join([
                 f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
@@ -106,6 +119,12 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             ])
 
             obj_strip_html = f'<div class="jungle-mini-strip">{badges_html}</div>' if badges_html else ""
+
+            vis_val = p.get("vision_score", 0)
+            pinks_val = p.get("detector_wards", 0)
+            vis_txt = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pinks_val} 👁️)"
+            mitigated_val = p.get("damage_mitigated", 0)
+            turret_dmg_val = p.get("damage_to_turrets", 0)
 
             return f"""
             <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
@@ -122,8 +141,13 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{p['damage_per_gold']}</b></div>
                     <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{p['damage_taken']:,}</b></div>
                     <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag}</div>
+                    <div class="pill">{vis_txt}</div>
+                    <div class="pill">{get_text('self_mitigated', lang=lang)}: <b>{mitigated_val:,}</b></div>
                 </div>
-                <div class="items-flex">{items_html}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
+                    <div class="items-flex">{items_html}</div>
+                    {spells_runes_strip}
+                </div>
                 {obj_strip_html}
             </div>
             """
@@ -328,7 +352,209 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             is_bot_duo=True
         ))
 
+    # TEAM COMBINED (5v5 TOTAL)
+    t1_players = team_100.get("players", [])
+    t2_players = team_200.get("players", [])
+    if t1_players and t2_players:
+        t1_dmg = sum(p.get("damage_to_champions", 0) for p in t1_players)
+        t2_dmg = sum(p.get("damage_to_champions", 0) for p in t2_players)
+        t1_gold = sum(p.get("gold_total", 0) for p in t1_players)
+        t2_gold = sum(p.get("gold_total", 0) for p in t2_players)
+        t1_taken = sum(p.get("damage_taken", 0) for p in t1_players)
+        t2_taken = sum(p.get("damage_taken", 0) for p in t2_players)
+        t1_cs = sum(p.get("cs", 0) for p in t1_players)
+        t2_cs = sum(p.get("cs", 0) for p in t2_players)
+        t1_kills = sum(p.get("kills", 0) for p in t1_players)
+        t1_deaths = sum(p.get("deaths", 0) for p in t1_players)
+        t1_assists = sum(p.get("assists", 0) for p in t1_players)
+        t2_kills = sum(p.get("kills", 0) for p in t2_players)
+        t2_deaths = sum(p.get("deaths", 0) for p in t2_players)
+        t2_assists = sum(p.get("assists", 0) for p in t2_players)
+
+        ratio_t1 = (t1_kills + t1_assists) / max(t1_deaths, 1)
+        ratio_t2 = (t2_kills + t2_assists) / max(t2_deaths, 1)
+
+        t1_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t1_players])
+        t2_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t2_players])
+
+        team_p1 = {
+            "champ1": "Blue Team (5v5)", "icon1": t1_players[0]["champion_icon"] if t1_players else "",
+            "champ2": "", "icon2": "",
+            "kda": f"{t1_kills}/{t1_deaths}/{t1_assists}",
+            "kda_ratio": f"{ratio_t1:.2f}:1",
+            "cs": t1_cs,
+            "damage_to_champions": t1_dmg,
+            "damage_per_gold": round(t1_dmg / max(t1_gold, 1), 2),
+            "damage_taken": t1_taken,
+            "gold_total": t1_gold,
+            "puuid": target_puuid if target_puuid in [p.get("puuid") for p in t1_players] else ""
+        }
+        team_p2 = {
+            "champ1": "Red Team (5v5)", "icon1": t2_players[0]["champion_icon"] if t2_players else "",
+            "champ2": "", "icon2": "",
+            "kda": f"{t2_kills}/{t2_deaths}/{t2_assists}",
+            "kda_ratio": f"{ratio_t2:.2f}:1",
+            "cs": t2_cs,
+            "damage_to_champions": t2_dmg,
+            "damage_per_gold": round(t2_dmg / max(t2_gold, 1), 2),
+            "damage_taken": t2_taken,
+            "gold_total": t2_gold,
+            "puuid": target_puuid if target_puuid in [p.get("puuid") for p in t2_players] else ""
+        }
+
+        duels_html.append(f"""
+        <div class="duel-row team-combined-row">
+            <div class="player-card border-blue">
+                <div class="p-header">
+                    <div class="team-avatar-stack">{t1_icons_html}</div>
+                    <div class="p-meta">
+                        <div class="p-name">{get_text("blue_team", lang=lang)}</div>
+                        <div class="p-champ">{get_text("team_combined_sub", lang=lang)}</div>
+                    </div>
+                </div>
+                <div class="p-kda">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> ({ratio_t1:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b></div>
+                <div class="stats-pills">
+                    <div class="pill">{get_text("damage", lang=lang)}: <b>{t1_dmg:,}</b></div>
+                    <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{round(t1_dmg / max(t1_gold, 1), 2)}</b></div>
+                    <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{t1_taken:,}</b></div>
+                    <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b></div>
+                </div>
+            </div>
+
+            <div class="duel-center">
+                <div class="role-badge-lg" style="background:#3730a3; color:#c7d2fe;">{get_text("team_combined_title", lang=lang)}</div>
+                <div class="lane-bar-wrapper">
+                    <div class="lane-bar-container">
+                        <div class="lane-bar-blue" style="width: {calculate_gold_bar_share(t1_gold - t2_gold):.1f}%;"></div>
+                        <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold):.1f}%;"></div>
+                    </div>
+                </div>
+                <div style="font-size:0.8rem; color:#cbd5e1; font-weight:700;">
+                    {get_text("gold", lang=lang)}: <b class="{'pos' if t1_gold >= t2_gold else 'neg'}">{'+' if t1_gold >= t2_gold else ''}{t1_gold - t2_gold:,}</b>
+                </div>
+            </div>
+
+            <div class="player-card border-red">
+                <div class="p-header" style="justify-content: flex-end;">
+                    <div class="p-meta" style="text-align: right;">
+                        <div class="p-name">{get_text("red_team", lang=lang)}</div>
+                        <div class="p-champ">{get_text("team_combined_sub", lang=lang)}</div>
+                    </div>
+                    <div class="team-avatar-stack">{t2_icons_html}</div>
+                </div>
+                <div class="p-kda" style="justify-content: flex-end;">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> ({ratio_t2:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b></div>
+                <div class="stats-pills">
+                    <div class="pill">{get_text("damage", lang=lang)}: <b>{t2_dmg:,}</b></div>
+                    <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{round(t2_dmg / max(t2_gold, 1), 2)}</b></div>
+                    <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{t2_taken:,}</b></div>
+                    <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b></div>
+                </div>
+            </div>
+        </div>
+        """)
+
     all_duels_rendered = "".join(duels_html)
+
+    # PÓDIOS DA PARTIDA (MATCH AWARDS)
+    all_players = t1_players + t2_players
+    rank_classes = ["rank-gold", "rank-silver", "rank-bronze"]
+    rank_medals = ["🥇", "🥈", "🥉"]
+
+    # 1. Mayhem (Damage)
+    top_damage = sorted(all_players, key=lambda x: x.get("damage_to_champions", 0), reverse=True)[:3]
+    mayhem_items = "".join([
+        f"""
+        <div class="award-item {rank_classes[idx]}">
+            <div class="award-champ-info">
+                <span>{rank_medals[idx]}</span>
+                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+            </div>
+            <span class="award-val">{p.get('damage_to_champions', 0):,} DMG</span>
+        </div>
+        """ for idx, p in enumerate(top_damage)
+    ])
+
+    # 2. Greed (Gold)
+    top_gold = sorted(all_players, key=lambda x: x.get("gold_total", 0), reverse=True)[:3]
+    greed_items = "".join([
+        f"""
+        <div class="award-item {rank_classes[idx]}">
+            <div class="award-champ-info">
+                <span>{rank_medals[idx]}</span>
+                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+            </div>
+            <span class="award-val">{p.get('gold_total', 0):,} <img class="mini-icon" src="{icon_gold}"/></span>
+        </div>
+        """ for idx, p in enumerate(top_gold)
+    ])
+
+    # 3. Might (Damage Taken + Mitigated)
+    top_might = sorted(all_players, key=lambda x: x.get("damage_taken", 0) + x.get("damage_mitigated", 0), reverse=True)[:3]
+    might_items = "".join([
+        f"""
+        <div class="award-item {rank_classes[idx]}">
+            <div class="award-champ-info">
+                <span>{rank_medals[idx]}</span>
+                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+            </div>
+            <span class="award-val">{(p.get('damage_taken', 0) + p.get('damage_mitigated', 0)):,}</span>
+        </div>
+        """ for idx, p in enumerate(top_might)
+    ])
+
+    # 4. Jungle (Smite Master / Neutral Objectives)
+    jungle_obj_counts = {}
+    for ev in data.get("key_events", []):
+        if ev.get("type") == "objective" and ev.get("killer_champ"):
+            k_name = ev.get("killer_name", "")
+            k_champ = ev.get("killer_champ", "")
+            key = (k_name, k_champ)
+            jungle_obj_counts[key] = jungle_obj_counts.get(key, 0) + 1
+
+    top_jungle_sorted = sorted(jungle_obj_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+    jungle_items_list = []
+    for idx, ((k_name, k_champ), count) in enumerate(top_jungle_sorted):
+        # Encontrar avatar
+        found_p = next((p for p in all_players if p.get("champion") == k_champ), None)
+        icon_src = found_p.get("champion_icon", "") if found_p else ""
+        jungle_items_list.append(f"""
+        <div class="award-item {rank_classes[idx]}">
+            <div class="award-champ-info">
+                <span>{rank_medals[idx]}</span>
+                <img class="award-avatar" src="{icon_src}" alt="{k_champ}"/>
+                <span class="award-name">{k_name} ({k_champ})</span>
+            </div>
+            <span class="award-val">{count} obj{'s' if count > 1 else ''}</span>
+        </div>
+        """)
+    jungle_items = "".join(jungle_items_list) if jungle_items_list else f"<div style='color:var(--text-muted); font-size:0.82rem; font-style:italic;'>{get_text('no_data', lang=lang)}</div>"
+
+    awards_html = f"""
+    <div class="card">
+        <h3>{get_text('match_awards_title', lang=lang)}</h3>
+        <div class="awards-grid">
+            <div class="award-card">
+                <div class="award-header">{get_text('award_jungle_title', lang=lang)}</div>
+                <div class="award-list">{jungle_items}</div>
+            </div>
+            <div class="award-card">
+                <div class="award-header">{get_text('award_mayhem_title', lang=lang)}</div>
+                <div class="award-list">{mayhem_items}</div>
+            </div>
+            <div class="award-card">
+                <div class="award-header">{get_text('award_greed_title', lang=lang)}</div>
+                <div class="award-list">{greed_items}</div>
+            </div>
+            <div class="award-card">
+                <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
+                <div class="award-list">{might_items}</div>
+            </div>
+        </div>
+    </div>
+    """
 
     # Linha do tempo
     events_list_items = []
@@ -379,21 +605,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
     events_html = "".join(events_list_items)
 
-    # Identificar jogador alvo (Host) para Favicon e Título da Aba
-    all_players = team_100.get("players", []) + team_200.get("players", [])
-    target_player = None
-    if target_puuid:
-        for p in all_players:
-            if p.get("puuid") == target_puuid:
-                target_player = p
-                break
-    if not target_player and all_players:
-        target_player = all_players[0]
-
-    favicon_url = target_player.get("champion_icon", "") if target_player else ""
-    target_nick = target_player.get("riot_id", "") if target_player else ""
-    target_kda = target_player.get("kda", "") if target_player else ""
-
     def clean_mode_name(mode_str: str) -> str:
         m = str(mode_str).upper()
         if m == "CLASSIC":
@@ -407,6 +618,36 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         return m.capitalize()
 
     match_mode = clean_mode_name(data.get('game_mode', 'CLASSIC'))
+
+    # Queue name lookup
+    queue_map = {
+        420: "queue_ranked_solo",
+        440: "queue_ranked_flex",
+        400: "queue_normal_draft",
+        430: "queue_normal_blind",
+        450: "queue_aram",
+        1700: "queue_arena",
+        900: "queue_urf",
+        1010: "queue_urf",
+        1900: "queue_urf"
+    }
+    q_key = queue_map.get(data.get("queue_id", 0), "")
+    queue_name = get_text(q_key, lang=lang) if q_key else ""
+    full_mode_display = f"{match_mode} ({queue_name})" if queue_name else match_mode
+    # Identificar jogador alvo (Host) para Favicon e Título da Aba
+    all_players = t1_players + t2_players
+    target_player = None
+    if target_puuid:
+        for p in all_players:
+            if p.get("puuid") == target_puuid:
+                target_player = p
+                break
+    if not target_player and all_players:
+        target_player = all_players[0]
+
+    favicon_url = target_player.get("champion_icon", "") if target_player else ""
+    target_nick = target_player.get("riot_id", "") if target_player else ""
+    target_kda = target_player.get("kda", "") if target_player else ""
     match_id_str = data.get('match_id', '')
 
     tab_title_parts = []
@@ -577,6 +818,112 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             border-radius: 4px;
             border: 1px solid #334155;
             background: #0f172a;
+        }}
+        .spells-runes-strip {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #0a0e1a;
+            padding: 3px 6px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+        }}
+        .spells-col {{
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }}
+        .spell-icon {{
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }}
+        .rune-icon {{
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #0f172a;
+            border: 1px solid #334155;
+        }}
+        .team-combined-row {{
+            background: linear-gradient(180deg, #1e1b4b 0%, #0d1322 100%);
+            border: 2px solid #3730a3;
+            margin-top: 18px;
+        }}
+        .team-avatar-stack {{
+            display: flex;
+            align-items: center;
+            gap: -6px;
+        }}
+        .team-champ-mini {{
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid #334155;
+            margin-right: -6px;
+        }}
+        .awards-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+            margin-top: 14px;
+        }}
+        .award-card {{
+            background: #0d1322;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }}
+        .award-header {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+            color: #f59e0b;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 8px;
+        }}
+        .award-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }}
+        .award-item {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #151d30;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+        }}
+        .rank-gold {{ border-left-color: #fbbf24; background: rgba(251, 191, 36, 0.08); }}
+        .rank-silver {{ border-left-color: #94a3b8; background: rgba(148, 163, 184, 0.08); }}
+        .rank-bronze {{ border-left-color: #d97706; background: rgba(217, 119, 6, 0.08); }}
+        .award-champ-info {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .award-avatar {{
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid #334155;
+        }}
+        .award-name {{
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }}
+        .award-val {{
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--accent);
         }}
         
         .jungle-mini-strip {{
@@ -938,7 +1285,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     <span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_kda}</span>
                 </div>
                 <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem;">
-                    <span style="color:#94a3b8; font-family:monospace;">{data.get('match_id')}</span> • <b>{match_mode}</b> • {get_text('duration', lang=lang)}: <b>{data.get('duration')}</b>
+                    <span style="color:#94a3b8; font-family:monospace;">{data.get('match_id')}</span> • <b>{full_mode_display}</b> • {get_text('duration', lang=lang)}: <b>{data.get('duration')}</b>
                 </div>
             </div>
         </div>
@@ -952,6 +1299,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         <div>
             {all_duels_rendered}
         </div>
+
+        <!-- Pódios da Partida -->
+        {awards_html}
 
         <!-- Momentos Chave -->
         <div class="card">

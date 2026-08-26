@@ -103,6 +103,21 @@ class MatchAnalysis:
         dur_m = max(self.info.get("gameDuration", 0) / 60.0, 1.0)
         cs_per_min = round(cs / dur_m, 1)
 
+        # Spells
+        s1_id = p.get("summoner1Id", 0)
+        s2_id = p.get("summoner2Id", 0)
+        s1_info = self.ddragon.get_spell_info(s1_id)
+        s2_info = self.ddragon.get_spell_info(s2_id)
+
+        # Keystone Rune
+        perk_id = 0
+        perks_styles = p.get("perks", {}).get("styles", [])
+        if perks_styles and len(perks_styles) > 0:
+            selections = perks_styles[0].get("selections", [])
+            if selections and len(selections) > 0:
+                perk_id = selections[0].get("perk", 0)
+        rune_info = self.ddragon.get_rune_info(perk_id) if perk_id else {"name": "", "icon": ""}
+
         return {
             "participantId": p.get("participantId"),
             "puuid": p.get("puuid"),
@@ -121,11 +136,18 @@ class MatchAnalysis:
             "cs_per_min": cs_per_min,
             "gold_total": gold,
             "damage_to_champions": total_dmg,
+            "damage_physical": p.get("physicalDamageDealtToChampions", 0),
+            "damage_magic": p.get("magicDamageDealtToChampions", 0),
+            "damage_true": p.get("trueDamageDealtToChampions", 0),
+            "damage_to_turrets": p.get("damageDealtToTurrets", 0),
             "damage_taken": p.get("totalDamageTaken", 0),
             "damage_mitigated": p.get("damageSelfMitigated", 0),
             "total_heal": p.get("totalHeal", 0),
             "damage_per_gold": round(total_dmg / max(gold, 1), 2),
             "vision_score": p.get("visionScore", 0),
+            "detector_wards": p.get("detectorWardsPlaced", 0),
+            "spells": [s1_info, s2_info],
+            "rune": rune_info,
             "items": items,
             "win": p.get("win", False)
         }
@@ -145,6 +167,7 @@ class MatchAnalysis:
         analysis_dict = {
             "match_id": self.match.get("metadata", {}).get("matchId"),
             "game_mode": self.info.get("gameMode"),
+            "queue_id": self.info.get("queueId", 0),
             "duration": f"{minutes}m {seconds}s",
             "target_puuid": self.target_puuid,
             "team_100": {

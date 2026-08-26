@@ -13,6 +13,8 @@ class DataDragon:
         self._items: Dict[str, str] = {}
         self._champions: Dict[str, str] = {}
         self._champions_by_id: Dict[str, str] = {}
+        self._spells: Dict[str, Dict[str, str]] = {}
+        self._runes: Dict[int, Dict[str, str]] = {}
         self._load_dictionaries()
 
     def _get_latest_version(self) -> str:
@@ -64,6 +66,59 @@ class DataDragon:
                 self._champions[key] = name
                 self._champions_by_id[champ_id.lower()] = name
 
+        spells_cache = DDRAGON_CACHE_DIR / f"spells_{self.version}_{self.language}.json"
+        cached_spells = load_json(spells_cache)
+        if not cached_spells:
+            try:
+                url = f"{BASE_CDN_URL}/{self.version}/data/{self.language}/summoner.json"
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    cached_spells = resp.json()
+                    save_json(spells_cache, cached_spells)
+            except Exception:
+                cached_spells = {}
+        if cached_spells and "data" in cached_spells:
+            for s_id, details in cached_spells["data"].items():
+                s_key = str(details.get("key"))
+                self._spells[s_key] = {
+                    "name": details.get("name", s_id),
+                    "icon": f"{BASE_CDN_URL}/{self.version}/img/spell/{details.get('image', {}).get('full', '')}"
+                }
+
+        runes_cache = DDRAGON_CACHE_DIR / f"runes_{self.version}_{self.language}.json"
+        cached_runes = load_json(runes_cache)
+        if not cached_runes:
+            try:
+                url = f"{BASE_CDN_URL}/{self.version}/data/{self.language}/runesReforged.json"
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    cached_runes = resp.json()
+                    save_json(runes_cache, cached_runes)
+            except Exception:
+                cached_runes = []
+        if cached_runes and isinstance(cached_runes, list):
+            for tree in cached_runes:
+                for slot in tree.get("slots", []):
+                    for rune in slot.get("runes", []):
+                        r_id = rune.get("id")
+                        icon_path = rune.get("icon", "")
+                        self._runes[r_id] = {
+                            "name": rune.get("name", ""),
+                            "icon": f"https://ddragon.leagueoflegends.com/cdn/img/{icon_path}"
+                        }
+
+    def get_spell_info(self, spell_id: int) -> Dict[str, str]:
+        s = self._spells.get(str(spell_id))
+        if s:
+            return s
+        return {"name": f"Spell {spell_id}", "icon": ""}
+
+    def get_rune_info(self, rune_id: int) -> Dict[str, str]:
+        r = self._runes.get(rune_id)
+        if r:
+            return r
+        return {"name": f"Rune {rune_id}", "icon": ""}
+
     def get_item_name(self, item_id: int) -> str:
         if not item_id or item_id == 0:
             return "Vazio"
@@ -81,7 +136,6 @@ class DataDragon:
     def get_champion_icon_url(self, champ_name: str) -> str:
         if not champ_name:
             return ""
-        # Caso especial Riot DDragon (ex: FiddleSticks -> Fiddlesticks)
         clean_name = champ_name.replace(" ", "").replace("'", "")
         if clean_name.lower() == "fiddlesticks":
             clean_name = "FiddleSticks"
