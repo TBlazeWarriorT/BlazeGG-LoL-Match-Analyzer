@@ -102,16 +102,55 @@ input[type="text"], input[type="password"] {
 .card-loss { border-left-color: #ef4444; }
 .m-left { display: flex; align-items: center; gap: 14px; }
 .champ-avatar-lg {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    border: 2px solid var(--card-border);
-}	.m-champ-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }	.m-sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }
+    border: 2px solid #38bdf8;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+    flex-shrink: 0;
+}
+.h2h-avatar-duo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.h2h-vs-badge {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+.champ-avatar-opp {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid #475569;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    filter: grayscale(15%);
+}
+.champ-avatar-opp:hover {
+    opacity: 1;
+    filter: grayscale(0%);
+    transform: scale(1.15);
+    border-color: #f87171;
+}
+
+.m-champ-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.m-sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }
+
+.m-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
 .m-teams-strip {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 6px;
+    gap: 6px;
 }
 .m-team-group {
     display: flex;
@@ -125,15 +164,16 @@ input[type="text"], input[type="password"] {
 .m-team-blue { border-color: rgba(59, 130, 246, 0.3); }
 .m-team-red { border-color: rgba(239, 68, 68, 0.3); }
 .m-mini-champ {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     border: 1px solid #334155;
     background: #0f172a;
     transition: transform 0.15s ease;
+    display: block;
 }
 .m-mini-champ:hover {
-    transform: scale(1.25);
+    transform: scale(1.3);
     z-index: 2;
     border-color: var(--accent);
 }
@@ -143,6 +183,7 @@ input[type="text"], input[type="password"] {
     font-weight: 800;
     text-transform: uppercase;
 }
+
 .m-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; }
 
 .badge-win { background: #166534; color: #86efac; }

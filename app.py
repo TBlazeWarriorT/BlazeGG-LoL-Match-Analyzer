@@ -56,9 +56,12 @@ def get_cached_matches_list(lang: str = "pt_BR"):
                 dur_s = info.get("gameDuration", 0)
                 creation_ms = info.get("gameCreation", 0)
                 target_puuid = meta.get("target_puuid", "")
-                
+                parts = []
                 t1_parts = []
                 t2_parts = []
+
+
+
                 for p in info.get("participants", []):
                     raw_champ = p.get("championName", "")
                     part_dict = {
@@ -69,13 +72,15 @@ def get_cached_matches_list(lang: str = "pt_BR"):
                         "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
                         "win": p.get("win", False),
                         "puuid": p.get("puuid"),
-                        "team_id": p.get("teamId", 100)
+                        "team_id": p.get("teamId", 100),
+                        "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN")
                     }
                     parts.append(part_dict)
                     if p.get("teamId", 100) == 100:
                         t1_parts.append(part_dict)
                     else:
                         t2_parts.append(part_dict)
+
 
                 matches.append({
                     "match_id": mid,
@@ -125,6 +130,41 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
     g_name, t_line = parts[0], parts[1]
     search_link = f"/search?game_name={g_name}&tag_line={t_line}&lang={lang}" if t_line else "#"
 
+    # Find lane opponent only in Summoner's Rift (CLASSIC)
+    m_upper = str(mode).upper()
+    is_classic = (m_upper == "CLASSIC" or queue_id in (420, 440, 400, 430))
+    opp_champ = None
+    target_part = None
+
+    if is_classic:
+        all_parts = (team_100 or []) + (team_200 or [])
+        for p in all_parts:
+            if p.get("puuid") == puuid:
+                target_part = p
+                break
+
+        if target_part:
+            t_role = target_part.get("role")
+            t_team = target_part.get("team_id")
+            opp_team = team_200 if t_team == 100 else team_100
+            for opp in (opp_team or []):
+                if opp.get("puuid") != target_part.get("puuid") and opp.get("role") == t_role and t_role not in ("UNKNOWN", "", None):
+                    opp_champ = opp
+                    break
+
+    avatar_block = f'<img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})"/>'
+    if opp_champ:
+        opp_riot = f"{opp_champ['name']}#{opp_champ['tag']}"
+        opp_title = f"Oponente Direto: {opp_champ['champion']} ({opp_riot})" if lang == "pt_BR" else f"Direct Opponent: {opp_champ['champion']} ({opp_riot})"
+        avatar_block = f"""
+        <div class="h2h-avatar-duo">
+            <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})"/>
+            <span class="h2h-vs-badge">VS</span>
+            <img class="champ-avatar-opp" src="{opp_champ['icon']}" alt="{opp_champ['champion']}" title="{opp_title}"/>
+        </div>
+        """
+
+
     teams_html = ""
     if team_100 and team_200:
         t1_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}"/>' for p in team_100])
@@ -140,7 +180,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
     return f"""
     <div class="match-item {win_class}">
         <div class="m-left">
-            <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}"/>
+            {avatar_block}
             <div>
                 <div class="m-champ-name">
                     {champ_name} 
@@ -148,12 +188,16 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     <span class="m-badge {badge_class}">{win_txt}</span>
                 </div>
                 <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
-                {teams_html}
             </div>
         </div>
-        <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
+        <div class="m-right">
+            {teams_html}
+            <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
+        </div>
     </div>
     """
+
+
 
 
 def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="pt_BR"):
@@ -422,7 +466,9 @@ class AppHandler(BaseHTTPRequestHandler):
                                 "icon": dd.get_champion_icon_url(raw_champ),
                                 "kda": f"{part.get('kills')}/{part.get('deaths')}/{part.get('assists')}",
                                 "win": part.get("win", False),
-                                "puuid": part.get("puuid")
+                                "puuid": part.get("puuid"),
+                                "team_id": part.get("teamId", 100),
+                                "role": part.get("teamPosition") or part.get("individualPosition", "UNKNOWN")
                             }
                             if part.get("puuid") == puuid:
                                 target_p = part
@@ -430,6 +476,8 @@ class AppHandler(BaseHTTPRequestHandler):
                                 t1_parts.append(p_info)
                             else:
                                 t2_parts.append(p_info)
+
+
 
                         if not target_p and info.get("participants"):
                             target_p = info["participants"][0]
