@@ -146,6 +146,7 @@ class MatchAnalysis:
             "damage_per_gold": round(total_dmg / max(gold, 1), 2),
             "vision_score": p.get("visionScore", 0),
             "detector_wards": p.get("detectorWardsPlaced", 0),
+            "enemy_jungle_monsters": p.get("totalEnemyJungleMinionsKilled", 0) or p.get("challenges", {}).get("enemyJungleMonsterKills", 0),
             "spells": [s1_info, s2_info],
             "rune": rune_info,
             "items": items,
@@ -413,6 +414,8 @@ class MatchAnalysis:
                     events_log.append({
                         "type": "objective",
                         "time": t_str,
+                        "monster_type": m_type,
+                        "monster_sub_type": m_sub,
                         "desc": desc,
                         "asset_key": asset_key,
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw),

@@ -7,8 +7,8 @@ from .i18n import get_text
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
 
-def calculate_gold_bar_share(delta: int) -> float:
-    fraction = delta / 5000.0
+def calculate_gold_bar_share(delta: int, max_delta: float = 5000.0) -> float:
+    fraction = delta / float(max_delta)
     val = 50.0 + (fraction * 50.0)
     return max(4.0, min(96.0, val))
 
@@ -33,6 +33,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     icon_gold = AssetManager.get_asset_uri("gold_icon")
     icon_xp = AssetManager.get_asset_uri("xp_icon")
     icon_cs = AssetManager.get_asset_uri("cs_icon")
+    icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
 
     t100_win = team_100.get("win", False)
     t200_win = team_200.get("win", False)
@@ -71,11 +72,13 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         dmg_delta = p1.get("damage_to_champions", 0) - p2.get("damage_to_champions", 0)
         gold_delta_final = p1.get("gold_total", 0) - p2.get("gold_total", 0)
 
-        p1_share = calculate_gold_bar_share(gold_delta_final)
+        bar_threshold = 8000.0 if is_bot_duo else 5000.0
+        p1_share = calculate_gold_bar_share(gold_delta_final, max_delta=bar_threshold)
         p2_share = 100.0 - p1_share
 
-        gap_badge_left = '<span class="gap-seal gap-left">GAP! 🔥</span>' if gold_delta_final >= 2000 else ""
-        gap_badge_right = '<span class="gap-seal gap-right">GAP! 🔥</span>' if gold_delta_final <= -2000 else ""
+        gap_limit = 3500 if is_bot_duo else 2000
+        gap_badge_left = '<span class="gap-seal gap-left">GAP! 🔥</span>' if gold_delta_final >= gap_limit else ""
+        gap_badge_right = '<span class="gap-seal gap-right">GAP! 🔥</span>' if gold_delta_final <= -gap_limit else ""
 
         def p_card(p, is_target, is_left=True, badges_html="", is_dmg_leader=False, is_gold_leader=False, delta_dmg=0, delta_gold=0):
             align_class = "align-left" if is_left else "align-right"
@@ -92,60 +95,25 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             cs_pm = p.get("cs_per_min", 0)
             cs_display = f"<b>{cs_val}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({cs_pm}/m)</span>"
 
+            icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
+
             if is_bot_duo:
-                return f"""
-                <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
-                    <div class="p-header">
-                        <div class="duo-avatar-stack">
-                            <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
-                            <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
-                        </div>
-                        <div class="p-meta">
-                            <div class="p-name">{p['champ1']} &amp; {p['champ2']}</div>
-                            <div class="p-champ">{get_text("bot_duo_sub", lang=lang)}</div>
-                        </div>
+                header_html = f"""
+                <div class="p-header">
+                    <div class="duo-avatar-stack">
+                        <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
+                        <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
                     </div>
-                    <div class="p-kda">KDA: <b>{p['kda']}</b> {kda_ratio_tag} | <img class="mini-icon" src="{icon_cs}"/> {cs_display}</div>
-                    <div class="stats-pills">
-                        <div class="pill">{get_text("damage", lang=lang)}: <b>{p['damage_to_champions']:,}</b> {dmg_delta_tag}</div>
-                        <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{p['damage_per_gold']}</b></div>
-                        <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{p['damage_taken']:,}</b></div>
-                        <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag}</div>
+                    <div class="p-meta">
+                        <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
+                        <div class="p-champ">{get_text("bot_duo_sub", lang=lang)}</div>
                     </div>
                 </div>
                 """
-            icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
-
-            spells_html = "".join([
-                f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
-                for s in p.get("spells", []) if s.get("icon")
-            ])
-            rune_info = p.get("rune", {})
-            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" title="{rune_info["name"]}" alt="{rune_info["name"]}"/>' if rune_info.get("icon") else ""
-
-            spells_runes_strip = f"""
-            <div class="spells-runes-strip">
-                {rune_html}
-                <div class="spells-row">{spells_html}</div>
-            </div>
-            """ if (spells_html or rune_html) else ""
-
-            items_html = "".join([
-                f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
-                for it in p.get("items", [])
-            ])
-
-            obj_strip_html = f'<div class="jungle-mini-strip">{badges_html}</div>' if badges_html else ""
-
-            vis_val = p.get("vision_score", 0)
-            pinks_val = p.get("detector_wards", 0)
-            pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b></span>"
-            vis_txt = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
-            mitigated_val = p.get("damage_mitigated", 0)
-            turret_dmg_val = p.get("damage_to_turrets", 0)
-
-            return f"""
-            <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
+                spells_runes_strip = ""
+                items_html = ""
+            else:
+                header_html = f"""
                 <div class="p-header">
                     <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
                     <div class="p-meta">
@@ -153,19 +121,104 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                         <div class="p-champ">{p['champion']}</div>
                     </div>
                 </div>
-                <div class="p-kda">KDA: <b>{p['kda']}</b> {kda_ratio_tag} | <img class="mini-icon" src="{icon_cs}"/> {cs_display}</div>
+                """
+                spells_html = "".join([
+                    f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
+                    for s in p.get("spells", []) if s.get("icon")
+                ])
+                rune_info = p.get("rune", {})
+                rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" title="{rune_info["name"]}" alt="{rune_info["name"]}"/>' if rune_info.get("icon") else ""
+
+                spells_runes_strip = f"""
+                <div class="spells-runes-strip">
+                    {rune_html}
+                    <div class="spells-row">{spells_html}</div>
+                </div>
+                """ if (spells_html or rune_html) else ""
+
+                items_html = "".join([
+                    f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
+                    for it in p.get("items", [])
+                ])
+
+            obj_strip_html = f'<div class="jungle-mini-strip">{badges_html}</div>' if badges_html else ""
+
+            # Breakdown de dano causado
+            dmg_tot = p.get("damage_to_champions", 0)
+            dmg_phys = p.get("damage_physical", 0)
+            dmg_mag = p.get("damage_magic", 0)
+            dmg_tru = p.get("damage_true", 0)
+
+            # Breakdown de dano sofrido, mitigado e curado
+            dmg_tk = p.get("damage_taken", 0)
+            dmg_mit = p.get("damage_mitigated", 0)
+            dmg_hl = p.get("total_heal", 0)
+            dmg_soaked_tot = dmg_tk + dmg_mit
+
+            vis_val = p.get("vision_score", 0)
+            pinks_val = p.get("detector_wards", 0)
+            camps_stolen_val = p.get("enemy_jungle_monsters", 0)
+
+            lbl_dmg = get_text("dmg_dealt", lang=lang)
+            lbl_phys = get_text("dmg_physical", lang=lang)
+            lbl_mag = get_text("dmg_magic", lang=lang)
+            lbl_true = get_text("dmg_true", lang=lang)
+
+            lbl_soaked = get_text("dmg_soaked", lang=lang)
+            lbl_taken = get_text("damage_taken", lang=lang)
+            lbl_mit = get_text("mitigated", lang=lang)
+            lbl_hl = get_text("healed", lang=lang)
+
+            # 4 linhas padronizadas
+            line_1_dmg = f"""
+            <div class="pill pill-wide" title="{lbl_phys}: {dmg_phys:,} | {lbl_mag}: {dmg_mag:,} | {lbl_true}: {dmg_tru:,}">
+                <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
+                <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+            </div>
+            """
+
+            line_2_soaked = f"""
+            <div class="pill pill-wide" title="{lbl_taken}: {dmg_tk:,} | {lbl_mit}: {dmg_mit:,} | {lbl_hl}: {dmg_hl:,}">
+                <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
+                <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_taken}: <b class="dmg-tk">{dmg_tk:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{dmg_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{dmg_hl:,}</b></span>
+            </div>
+            """
+
+            line_3_gold_cs = f"""
+            <div class="pill pill-wide">
+                <span><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">(dmg/g: <b>{p['damage_per_gold']}</b>)</span></span>
+                <span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>
+            </div>
+            """
+
+            pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b></span>"
+            vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
+
+            line_4_vision_camps = f"""
+            <div class="pill pill-wide">
+                <span>{vis_combined}</span>
+                <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>
+            </div>
+            """
+
+            footer_bottom = f"""
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
+                <div class="items-flex">{items_html}</div>
+                {spells_runes_strip}
+            </div>
+            """ if (items_html or spells_runes_strip) else ""
+
+            return f"""
+            <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">
+                {header_html}
+                <div class="p-kda">{get_text('champion', lang=lang) if is_bot_duo else p['champion']} - KDA: <b>{p['kda']}</b> {kda_ratio_tag}</div>
                 <div class="stats-pills">
-                    <div class="pill">{get_text("damage", lang=lang)}: <b>{p['damage_to_champions']:,}</b> {dmg_delta_tag}</div>
-                    <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{p['damage_per_gold']}</b></div>
-                    <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{p['damage_taken']:,}</b></div>
-                    <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag}</div>
-                    <div class="pill">{vis_txt}</div>
-                    <div class="pill">{get_text('self_mitigated', lang=lang)}: <b>{mitigated_val:,}</b></div>
+                    {line_1_dmg}
+                    {line_2_soaked}
+                    {line_3_gold_cs}
+                    {line_4_vision_camps}
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
-                    <div class="items-flex">{items_html}</div>
-                    {spells_runes_strip}
-                </div>
+                {footer_bottom}
                 {obj_strip_html}
             </div>
             """
@@ -343,8 +396,16 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             "cs": d1_cs,
             "cs_per_min": csm_d1,
             "damage_to_champions": d1_dmg,
+            "damage_physical": p1_bot.get("damage_physical", 0) + p1_sup.get("damage_physical", 0),
+            "damage_magic": p1_bot.get("damage_magic", 0) + p1_sup.get("damage_magic", 0),
+            "damage_true": p1_bot.get("damage_true", 0) + p1_sup.get("damage_true", 0),
             "damage_per_gold": round(d1_dmg / max(d1_gold, 1), 2),
             "damage_taken": d1_taken,
+            "damage_mitigated": p1_bot.get("damage_mitigated", 0) + p1_sup.get("damage_mitigated", 0),
+            "total_heal": p1_bot.get("total_heal", 0) + p1_sup.get("total_heal", 0),
+            "vision_score": p1_bot.get("vision_score", 0) + p1_sup.get("vision_score", 0),
+            "detector_wards": p1_bot.get("detector_wards", 0) + p1_sup.get("detector_wards", 0),
+            "enemy_jungle_monsters": p1_bot.get("enemy_jungle_monsters", 0) + p1_sup.get("enemy_jungle_monsters", 0),
             "gold_total": d1_gold,
             "puuid": p1_bot["puuid"] if target_puuid in (p1_bot["puuid"], p1_sup["puuid"]) else ""
         }
@@ -357,8 +418,16 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             "cs": d2_cs,
             "cs_per_min": csm_d2,
             "damage_to_champions": d2_dmg,
+            "damage_physical": p2_bot.get("damage_physical", 0) + p2_sup.get("damage_physical", 0),
+            "damage_magic": p2_bot.get("damage_magic", 0) + p2_sup.get("damage_magic", 0),
+            "damage_true": p2_bot.get("damage_true", 0) + p2_sup.get("damage_true", 0),
             "damage_per_gold": round(d2_dmg / max(d2_gold, 1), 2),
             "damage_taken": d2_taken,
+            "damage_mitigated": p2_bot.get("damage_mitigated", 0) + p2_sup.get("damage_mitigated", 0),
+            "total_heal": p2_bot.get("total_heal", 0) + p2_sup.get("total_heal", 0),
+            "vision_score": p2_bot.get("vision_score", 0) + p2_sup.get("vision_score", 0),
+            "detector_wards": p2_bot.get("detector_wards", 0) + p2_sup.get("detector_wards", 0),
+            "enemy_jungle_monsters": p2_bot.get("enemy_jungle_monsters", 0) + p2_sup.get("enemy_jungle_monsters", 0),
             "gold_total": d2_gold,
             "puuid": p2_bot["puuid"] if target_puuid in (p2_bot["puuid"], p2_sup["puuid"]) else ""
         }
@@ -404,6 +473,58 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         t1_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t1_players])
         t2_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t2_players])
 
+        # Somar deltas de ouro ao longo do jogo de todos os confrontos
+        team_delta_gold = {}
+        for m in matchups:
+            for k, v in m.get("gold_delta", {}).items():
+                team_delta_gold[k] = team_delta_gold.get(k, 0) + v
+
+        team_gold_tags = "".join([
+            f'<span class="delta-tag">{k}: <b class="{"pos" if v>=0 else "neg"}">{"+" if v>=0 else ""}{v:,}</b></span>'
+            for k, v in team_delta_gold.items()
+        ]) if team_delta_gold else ""
+
+        delta_gold_section = f"""
+        <div class="delta-box" style="margin-top:6px;">
+            <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> {get_text("gold_delta_title", lang=lang)}</div>
+            <div class="delta-flex">{team_gold_tags}</div>
+        </div>
+        """ if team_gold_tags else ""
+
+        t1_phys = sum(p.get("damage_physical", 0) for p in t1_players)
+        t1_mag = sum(p.get("damage_magic", 0) for p in t1_players)
+        t1_tru = sum(p.get("damage_true", 0) for p in t1_players)
+        t1_mit = sum(p.get("damage_mitigated", 0) for p in t1_players)
+        t1_hl = sum(p.get("total_heal", 0) for p in t1_players)
+        t1_vis = sum(p.get("vision_score", 0) for p in t1_players)
+        t1_pinks = sum(p.get("detector_wards", 0) for p in t1_players)
+        t1_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t1_players)
+
+        t2_phys = sum(p.get("damage_physical", 0) for p in t2_players)
+        t2_mag = sum(p.get("damage_magic", 0) for p in t2_players)
+        t2_tru = sum(p.get("damage_true", 0) for p in t2_players)
+        t2_mit = sum(p.get("damage_mitigated", 0) for p in t2_players)
+        t2_hl = sum(p.get("total_heal", 0) for p in t2_players)
+        t2_vis = sum(p.get("vision_score", 0) for p in t2_players)
+        t2_pinks = sum(p.get("detector_wards", 0) for p in t2_players)
+        t2_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t2_players)
+
+        lbl_dmg = get_text("dmg_dealt", lang=lang)
+        lbl_phys = get_text("dmg_physical", lang=lang)
+        lbl_mag = get_text("dmg_magic", lang=lang)
+        lbl_true = get_text("dmg_true", lang=lang)
+        lbl_soaked = get_text("dmg_soaked", lang=lang)
+        lbl_taken = get_text("damage_taken", lang=lang)
+        lbl_mit = get_text("mitigated", lang=lang)
+        lbl_hl = get_text("healed", lang=lang)
+
+        # Pills Blue Team 5v5
+        t1_pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t1_pinks}</b></span>"
+        t1_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t1_vis}</b> ({t1_pink_badge})"
+
+        t2_pink_badge = f"<span style='display:inline-flex; align-items:center; gap:2px;'><img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t2_pinks}</b></span>"
+        t2_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t2_vis}</b> ({t2_pink_badge})"
+
         duels_html.append(f"""
         <div class="duel-row team-combined-row">
             <div class="player-card border-blue">
@@ -414,26 +535,39 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                         <div class="p-champ">{get_text("team_combined_sub", lang=lang)}</div>
                     </div>
                 </div>
-                <div class="p-kda">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> ({ratio_t1:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t1}/m)</span></div>
+                <div class="p-kda">{get_text("blue_team", lang=lang)} - KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> <span class="kda-ratio">({ratio_t1:.2f}:1)</span></div>
                 <div class="stats-pills">
-                    <div class="pill">{get_text("damage", lang=lang)}: <b>{t1_dmg:,}</b></div>
-                    <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{round(t1_dmg / max(t1_gold, 1), 2)}</b></div>
-                    <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{t1_taken:,}</b></div>
-                    <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b></div>
+                    <div class="pill pill-wide" title="{lbl_phys}: {t1_phys:,} | {lbl_mag}: {t1_mag:,} | {lbl_true}: {t1_tru:,}">
+                        <span>{lbl_dmg}: <b>{t1_dmg:,}</b></span>
+                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide" title="{lbl_taken}: {t1_taken:,} | {lbl_mit}: {t1_mit:,} | {lbl_hl}: {t1_hl:,}">
+                        <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
+                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b> <span style="color:var(--text-muted); font-size:0.75rem;">(dmg/g: <b>{round(t1_dmg / max(t1_gold, 1), 2)}</b>)</span></span>
+                        <span><img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t1}/m)</span></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span>{t1_vis_combined}</span>
+                        <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{t1_camps}</b></span>
+                    </div>
                 </div>
             </div>
 
             <div class="duel-center">
                 <div class="role-badge-lg" style="background:#3730a3; color:#c7d2fe;">{get_text("team_combined_title", lang=lang)}</div>
                 <div class="lane-bar-wrapper">
-                    <div class="lane-bar-container">
-                        <div class="lane-bar-blue" style="width: {calculate_gold_bar_share(t1_gold - t2_gold):.1f}%;"></div>
-                        <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold):.1f}%;"></div>
+                    <div class="lane-bar-container" title="Distribuição de Ouro da Equipe (15000 delta = barra cheia)">
+                        <div class="lane-bar-blue" style="width: {calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
+                        <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
                     </div>
                 </div>
                 <div style="font-size:0.8rem; color:#cbd5e1; font-weight:700;">
                     {get_text("gold", lang=lang)}: <b class="{'pos' if t1_gold >= t2_gold else 'neg'}">{'+' if t1_gold >= t2_gold else ''}{t1_gold - t2_gold:,}</b>
                 </div>
+                {delta_gold_section}
             </div>
 
             <div class="player-card border-red">
@@ -444,12 +578,24 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     </div>
                     <div class="team-avatar-stack">{t2_icons_html}</div>
                 </div>
-                <div class="p-kda" style="justify-content: flex-end;">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> ({ratio_t2:.2f}:1) | <img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></div>
+                <div class="p-kda" style="justify-content: flex-end;">{get_text("red_team", lang=lang)} - KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> <span class="kda-ratio">({ratio_t2:.2f}:1)</span></div>
                 <div class="stats-pills">
-                    <div class="pill">{get_text("damage", lang=lang)}: <b>{t2_dmg:,}</b></div>
-                    <div class="pill">{get_text("damage_per_gold", lang=lang)}: <b>{round(t2_dmg / max(t2_gold, 1), 2)}</b></div>
-                    <div class="pill">{get_text("damage_taken", lang=lang)}: <b>{t2_taken:,}</b></div>
-                    <div class="pill"><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b></div>
+                    <div class="pill pill-wide" title="{lbl_phys}: {t2_phys:,} | {lbl_mag}: {t2_mag:,} | {lbl_true}: {t2_tru:,}">
+                        <span>{lbl_dmg}: <b>{t2_dmg:,}</b></span>
+                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span style="color:#475569;">|</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span style="color:#475569;">|</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide" title="{lbl_taken}: {t2_taken:,} | {lbl_mit}: {t2_mit:,} | {lbl_hl}: {t2_hl:,}">
+                        <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
+                        <span class="dmg-breakdown-sub"><span style="color:#475569;">|</span> {lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span style="color:#475569;">|</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span style="color:#475569;">|</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> <span style="color:var(--text-muted); font-size:0.75rem;">(dmg/g: <b>{round(t2_dmg / max(t2_gold, 1), 2)}</b>)</span></span>
+                        <span><img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></span>
+                    </div>
+                    <div class="pill pill-wide">
+                        <span>{t2_vis_combined}</span>
+                        <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{t2_camps}</b></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -615,18 +761,23 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
     # Linha do tempo
     events_list_items = []
-    for ev in data.get("key_events", []):
+    for idx, ev in enumerate(data.get("key_events", [])):
         t = ev.get("time", "00:00")
         ev_type = ev.get("type", "kill")
+        extra_class = "timeline-hidden" if idx >= 20 else ""
         
         if ev_type == "objective":
             icon_uri = AssetManager.get_asset_uri(ev.get("asset_key", ""))
             slain_txt = get_text("slain_by", lang=lang)
+            m_type = ev.get("monster_type", "")
+            m_sub = ev.get("monster_sub_type", "")
+            from .event_engine import clean_monster_name
+            obj_desc = clean_monster_name(m_type, m_sub, lang=lang) if m_type else ev.get("desc", "")
             events_list_items.append(f"""
-            <li class="event-item event-obj">
+            <li class="event-item event-obj {extra_class}">
                 <span class="event-time">{t}</span>
                 <img class="event-avatar" src="{icon_uri}"/>
-                <span class="event-desc"><b>{ev['desc']}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
+                <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)
         else:
@@ -645,8 +796,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             ast_label = get_text("assists_plural", lang=lang) if c_ast > 1 else get_text("assists", lang=lang)
             assists_txt = f" (+{c_ast} {ast_label})" if c_ast > 0 else f" <span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
 
+            extra_class = "timeline-hidden" if idx >= 20 else ""
             events_list_items.append(f"""
-            <li class="event-item event-kill {streak_class}">
+            <li class="event-item event-kill {streak_class} {extra_class}">
                 <span class="event-time">{t}</span>
                 <div class="event-kill-duel">
                     <img class="event-avatar" src="{ev['killer_icon']}" title="{ev['killer_champ']}"/>
@@ -659,6 +811,17 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                 {streak_badge}
             </li>
             """)
+
+    total_events_count = len(events_list_items)
+    remaining_events = total_events_count - 20
+    timeline_toggle_btn = ""
+    if remaining_events > 0:
+        btn_text = get_text("show_more_events", lang=lang, count=remaining_events)
+        timeline_toggle_btn = f"""
+        <div style="text-align:center; margin-top:14px;">
+            <button id="toggleTimelineBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.85rem; padding:8px 18px; border-radius:8px; cursor:pointer;" onclick="toggleTimeline()">{btn_text}</button>
+        </div>
+        """
 
     events_html = "".join(events_list_items)
 
@@ -795,6 +958,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         .bot-duo-row {{
             background: linear-gradient(180deg, #131c31 0%, #0d1322 100%);
             border: 1px solid #2a3a5e;
+            margin-top: 22px;
         }}
         @media (max-width: 1100px) {{
             .duel-row {{ grid-template-columns: 1fr; }}
@@ -841,7 +1005,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             margin-left: 6px;
         }}
         .p-kda {{ font-size: 0.88rem; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }}
-        .kda-ratio {{ color: var(--accent); font-weight: 700; font-size: 0.82rem; }}
+        .kda-ratio {{ color: var(--text-muted); font-weight: 600; font-size: 0.80rem; }}
         .lead-delta {{
             color: #4ade80;
             font-size: 0.75rem;
@@ -867,6 +1031,24 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             gap: 4px;
         }}
         .pill b {{ color: #f3f4f6; }}
+        .pill-wide {{
+            grid-column: 1 / -1;
+            justify-content: space-between;
+            font-size: 0.78rem;
+        }}
+        .dmg-breakdown-sub {{
+            font-size: 0.72rem;
+            color: #64748b;
+        }}
+        .dmg-phys {{ color: #f87171 !important; }}
+        .dmg-mag {{ color: #60a5fa !important; }}
+        .dmg-true {{ color: #f8fafc !important; }}
+        .dmg-tk {{ color: #ef4444 !important; }}
+        .dmg-mit {{ color: #f1f5f9 !important; }}
+        .dmg-hl {{ color: #4ade80 !important; }}
+        .timeline-hidden {{
+            display: none !important;
+        }}
         .mini-icon {{ width: 14px; height: 14px; vertical-align: middle; }}
         .items-flex {{ display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }}
         .item-icon {{
@@ -943,13 +1125,14 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             font-weight: 800;
             font-size: 1rem;
             color: #f59e0b;
+            margin-bottom: 6px;
         }}
         .award-desc {{
             font-size: 0.75rem;
             color: var(--text-muted);
             border-bottom: 1px solid #1e293b;
             padding-bottom: 8px;
-            margin-top: -4px;
+            line-height: 1.4;
         }}
         .award-list {{
             display: flex;
@@ -1444,6 +1627,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             <ul class="events-list">
                 {events_html}
             </ul>
+            {timeline_toggle_btn}
         </div>
 
         <!-- Resumo Bruto / LLM Prompt Box -->
@@ -1461,6 +1645,27 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     </div>
 
     <script>
+        var timelineExpanded = false;
+        function toggleTimeline() {{
+            var hiddenItems = document.querySelectorAll(".events-list .timeline-hidden, .events-list .timeline-visible-expanded");
+            var btn = document.getElementById("toggleTimelineBtn");
+            if (!timelineExpanded) {{
+                hiddenItems.forEach(function(el) {{
+                    el.classList.remove("timeline-hidden");
+                    el.classList.add("timeline-visible-expanded");
+                }});
+                timelineExpanded = true;
+                if (btn) btn.innerText = "{get_text('show_less_events', lang=lang)}";
+            }} else {{
+                hiddenItems.forEach(function(el) {{
+                    el.classList.add("timeline-hidden");
+                    el.classList.remove("timeline-visible-expanded");
+                }});
+                timelineExpanded = false;
+                if (btn) btn.innerText = "{get_text('show_more_events', lang=lang, count=remaining_events)}";
+            }}
+        }}
+
         function autoResizeTextarea() {{
             var ta = document.getElementById("rawSummaryText");
             if (ta) {{
