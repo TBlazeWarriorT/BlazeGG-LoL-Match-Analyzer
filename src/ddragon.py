@@ -59,12 +59,16 @@ class DataDragon:
                     save_json(champs_cache, cached_champs)
             except Exception:
                 cached_champs = {}
+        self._champ_images: Dict[str, str] = {}
         if cached_champs and "data" in cached_champs:
             for champ_id, details in cached_champs["data"].items():
                 key = str(details.get("key"))
                 name = details.get("name", champ_id)
+                img_full = details.get("image", {}).get("full", f"{champ_id}.png")
                 self._champions[key] = name
                 self._champions_by_id[champ_id.lower()] = name
+                self._champ_images[champ_id.lower()] = img_full
+                self._champ_images[name.lower().replace(" ", "").replace("'", "")] = img_full
 
         spells_cache = DDRAGON_CACHE_DIR / f"spells_{self.version}_{self.language}.json"
         cached_spells = load_json(spells_cache)
@@ -136,12 +140,16 @@ class DataDragon:
     def get_champion_icon_url(self, champ_name: str) -> str:
         if not champ_name:
             return ""
-        clean_name = champ_name.replace(" ", "").replace("'", "")
-        if clean_name.lower() == "fiddlesticks":
-            clean_name = "FiddleSticks"
-        return f"{BASE_CDN_URL}/{self.version}/img/champion/{clean_name}.png"
+        lookup_key = champ_name.replace(" ", "").replace("'", "").lower()
+        img_file = self._champ_images.get(lookup_key)
+        if not img_file:
+            # Fallback
+            clean_name = champ_name.replace(" ", "").replace("'", "")
+            img_file = f"{clean_name}.png"
+        return f"{BASE_CDN_URL}/{self.version}/img/champion/{img_file}"
 
     def get_item_icon_url(self, item_id: int) -> str:
         if not item_id or item_id == 0:
             return ""
         return f"{BASE_CDN_URL}/{self.version}/img/item/{item_id}.png"
+
