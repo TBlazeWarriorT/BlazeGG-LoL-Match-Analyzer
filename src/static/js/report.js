@@ -229,6 +229,39 @@ function initCustomTooltips() {
 }
 window.addEventListener("DOMContentLoaded", initCustomTooltips);
 
+function swapPageContent(targetUrl, pushToHistory) {
+    fetch(targetUrl)
+        .then(function(res) { return res.text(); })
+        .then(function(htmlText) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(htmlText, "text/html");
+
+            document.title = doc.title;
+            document.documentElement.lang = doc.documentElement.lang;
+
+            var currentContainer = document.querySelector(".container");
+            var newContainer = doc.querySelector(".container");
+            if (currentContainer && newContainer) {
+                currentContainer.innerHTML = newContainer.innerHTML;
+            }
+
+            var currentPicker = document.querySelector(".lang-picker");
+            var newPicker = doc.querySelector(".lang-picker");
+            if (currentPicker && newPicker) {
+                currentPicker.innerHTML = newPicker.innerHTML;
+            }
+
+            if (pushToHistory) {
+                window.history.pushState({ url: targetUrl }, "", targetUrl);
+            }
+
+            if (typeof autoResizeTextarea === "function") autoResizeTextarea();
+        })
+        .catch(function() {
+            window.location.href = targetUrl;
+        });
+}
+
 // ⚡ Seamless In-Place Language Switching (Zero reload, zero scroll jump)
 document.addEventListener("click", function(e) {
     var langLink = e.target.closest(".lang-btn");
@@ -238,40 +271,14 @@ document.addEventListener("click", function(e) {
     var targetUrl = langLink.getAttribute("href");
     if (!targetUrl) return;
 
-    fetch(targetUrl)
-        .then(function(res) { return res.text(); })
-        .then(function(htmlText) {
-            var parser = new DOMParser();
-            var doc = parser.parseFromString(htmlText, "text/html");
-
-            // Swap document title & lang
-            document.title = doc.title;
-            document.documentElement.lang = doc.documentElement.lang;
-
-            // Swap the main contents in place
-            var currentContainer = document.querySelector(".container");
-            var newContainer = doc.querySelector(".container");
-            if (currentContainer && newContainer) {
-                currentContainer.innerHTML = newContainer.innerHTML;
-            }
-
-            // Swap lang picker active classes
-            var currentPicker = document.querySelector(".lang-picker");
-            var newPicker = doc.querySelector(".lang-picker");
-            if (currentPicker && newPicker) {
-                currentPicker.innerHTML = newPicker.innerHTML;
-            }
-
-            // Update browser URL seamlessly (keeping forward/back buttons working)
-            window.history.pushState({}, "", targetUrl);
-
-            // Re-bind any DOM-dependent helpers
-            if (typeof autoResizeTextarea === "function") autoResizeTextarea();
-        })
-        .catch(function() {
-            window.location.href = targetUrl;
-        });
+    swapPageContent(targetUrl, true);
 });
+
+// Handle browser back/forward buttons seamlessly
+window.addEventListener("popstate", function() {
+    swapPageContent(window.location.href, false);
+});
+
 
 
 
