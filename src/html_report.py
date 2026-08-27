@@ -127,8 +127,11 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     <div class="container">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
             <a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:8px; border:1px solid var(--card-border); transition:background 0.2s;" onmouseover="this.style.background='#1f293d'" onmouseout="this.style.background='#111827'">{get_text('back_to_hub', lang=lang)}</a>
-            <span style="color:#94a3b8; font-weight:800; font-size:1.05rem; letter-spacing:0.5px;">🔥 <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span></span>
+            <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none;">
+                <span class="small-logo-title">🔥 <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span></span>
+            </a>
         </div>
+
 
         <div class="header" style="display:flex; align-items:center; gap:16px;">
             {header_avatar_html}
