@@ -338,12 +338,32 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         </div>
         """
     else:
+        exec_1 = stats_1.get("executions", 0) if stats_1 else 0
+        exec_2 = stats_2.get("executions", 0) if stats_2 else 0
+        aram_exec_html = ""
+        if exec_1 > 0 or exec_2 > 0:
+            aram_exec_html = f"""
+            <div class="duel-scores-wrapper" style="margin: 0;">
+                <div class="duel-score-row">
+                    <span class="score-label" style="color:#94a3b8;">💀 {get_text("executions", lang=lang)}</span>
+                    <div class="score-pill-sm" style="background:#1e293b; border-color:#334155;">
+                        <b class="score-blue-sm" style="color:#cbd5e1;">{exec_1}</b>
+                        <span class="score-x-sm">x</span>
+                        <b class="score-red-sm" style="color:#cbd5e1;">{exec_2}</b>
+                    </div>
+                </div>
+            </div>
+            """
+
+        badge_html = f'<div class="role-badge-lg" style="background:#1e293b; color:#94a3b8; border: 1px solid #334155;">{role_title}</div>' if role_title else ''
         delta_html = f"""
-        <div class="duel-center">
-            <div class="role-badge-lg">{role_title}</div>
-            <div class="vs-label">VS</div>
+        <div class="duel-center" style="{'justify-content:center;' if not badge_html else ''}">
+            {badge_html}
+            {aram_exec_html}
         </div>
         """
+
+
 
     return f"""
     <div class="duel-row {'bot-duo-row' if is_bot_duo else ''}">
@@ -378,66 +398,93 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
 
     duels_html = []
     m_by_role = {m["role"]: m for m in matchups}
+    raw_game_mode = str(data.get("game_mode", "")).upper()
+    is_aram = "ARAM" in raw_game_mode or data.get("queue_id") == 450
+    is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
 
-    # TOP
-    if "TOP" in m_by_role:
-        m = m_by_role["TOP"]
-        duels_html.append(render_duel_row(
-            m["player1"], m["player2"], "TOP LANE",
-            m["p1_stats"], m["p2_stats"],
-            m["gold_delta"], m["xp_delta"],
-            target_puuid=target_puuid, lang=lang
-        ))
+    # If ARAM: Pair players sorted by damage (Slot #1, Slot #2...) with full stats but no fake lane deltas
+    if is_aram:
+        t1_sorted = sorted(team_100.get("players", []), key=lambda x: x.get("damage_to_champions", 0), reverse=True)
+        t2_sorted = sorted(team_200.get("players", []), key=lambda x: x.get("damage_to_champions", 0), reverse=True)
+        
+        for idx in range(max(len(t1_sorted), len(t2_sorted))):
+            p1 = t1_sorted[idx] if idx < len(t1_sorted) else {}
+            p2 = t2_sorted[idx] if idx < len(t2_sorted) else {}
+            
+            p1_execs = p1.get("executions", 0)
+            p2_execs = p2.get("executions", 0)
+            aram_stats_1 = {"executions": p1_execs} if p1_execs > 0 else {}
+            aram_stats_2 = {"executions": p2_execs} if p2_execs > 0 else {}
 
-    # JUNGLE
-    if "JUNGLE" in m_by_role:
-        m = m_by_role["JUNGLE"]
-        j1_badges = render_jungle_chronological(j100.get('timeline_sequence', []), lang=lang)
-        j2_badges = render_jungle_chronological(j200.get('timeline_sequence', []), lang=lang)
+            duels_html.append(render_duel_row(
+                p1, p2, "",
+                stats_1=aram_stats_1, stats_2=aram_stats_2,
+                gold_d={}, xp_d={},
+                target_puuid=target_puuid, lang=lang
+            ))
 
-        duels_html.append(render_duel_row(
-            m["player1"], m["player2"], "JUNGLE",
-            m["p1_stats"], m["p2_stats"],
-            m["gold_delta"], m["xp_delta"],
-            extra_badges_1=j1_badges,
-            extra_badges_2=j2_badges,
-            target_puuid=target_puuid, lang=lang
-        ))
 
-    # MIDDLE
-    if "MIDDLE" in m_by_role:
-        m = m_by_role["MIDDLE"]
-        duels_html.append(render_duel_row(
-            m["player1"], m["player2"], "MID LANE",
-            m["p1_stats"], m["p2_stats"],
-            m["gold_delta"], m["xp_delta"],
-            target_puuid=target_puuid, lang=lang
-        ))
+    elif not is_arena:
+        # TOP
+        if "TOP" in m_by_role:
+            m = m_by_role["TOP"]
+            duels_html.append(render_duel_row(
+                m["player1"], m["player2"], "TOP LANE",
+                m["p1_stats"], m["p2_stats"],
+                m["gold_delta"], m["xp_delta"],
+                target_puuid=target_puuid, lang=lang
+            ))
 
-    # BOTTOM & UTILITY
-    m_bot = m_by_role.get("BOTTOM")
-    m_sup = m_by_role.get("UTILITY")
+        # JUNGLE
+        if "JUNGLE" in m_by_role:
+            m = m_by_role["JUNGLE"]
+            j1_badges = render_jungle_chronological(j100.get('timeline_sequence', []), lang=lang)
+            j2_badges = render_jungle_chronological(j200.get('timeline_sequence', []), lang=lang)
 
-    if m_bot:
-        duels_html.append(render_duel_row(
-            m_bot["player1"], m_bot["player2"], "ADC (BOTTOM)",
-            m_bot["p1_stats"], m_bot["p2_stats"],
-            m_bot["gold_delta"], m_bot["xp_delta"],
-            target_puuid=target_puuid, lang=lang
-        ))
+            duels_html.append(render_duel_row(
+                m["player1"], m["player2"], "JUNGLE",
+                m["p1_stats"], m["p2_stats"],
+                m["gold_delta"], m["xp_delta"],
+                extra_badges_1=j1_badges,
+                extra_badges_2=j2_badges,
+                target_puuid=target_puuid, lang=lang
+            ))
 
-    if m_sup:
-        duels_html.append(render_duel_row(
-            m_sup["player1"], m_sup["player2"], "SUPORTE (UTILITY)",
-            m_sup["p1_stats"], m_sup["p2_stats"],
-            m_sup["gold_delta"], m_sup["xp_delta"],
-            target_puuid=target_puuid, lang=lang
-        ))
+        # MIDDLE
+        if "MIDDLE" in m_by_role:
+            m = m_by_role["MIDDLE"]
+            duels_html.append(render_duel_row(
+                m["player1"], m["player2"], "MID LANE",
+                m["p1_stats"], m["p2_stats"],
+                m["gold_delta"], m["xp_delta"],
+                target_puuid=target_puuid, lang=lang
+            ))
 
-    # BOT DUO (2v2)
-    if m_bot and m_sup:
-        p1_bot, p2_bot = m_bot["player1"], m_bot["player2"]
-        p1_sup, p2_sup = m_sup["player1"], m_sup["player2"]
+        # BOTTOM & UTILITY
+        m_bot = m_by_role.get("BOTTOM")
+        m_sup = m_by_role.get("UTILITY")
+
+        if m_bot:
+            duels_html.append(render_duel_row(
+                m_bot["player1"], m_bot["player2"], "ADC (BOTTOM)",
+                m_bot["p1_stats"], m_bot["p2_stats"],
+                m_bot["gold_delta"], m_bot["xp_delta"],
+                target_puuid=target_puuid, lang=lang
+            ))
+
+        if m_sup:
+            duels_html.append(render_duel_row(
+                m_sup["player1"], m_sup["player2"], "SUPORTE (UTILITY)",
+                m_sup["p1_stats"], m_sup["p2_stats"],
+                m_sup["gold_delta"], m_sup["xp_delta"],
+                target_puuid=target_puuid, lang=lang
+            ))
+
+        # BOT DUO (2v2)
+        if m_bot and m_sup:
+            p1_bot, p2_bot = m_bot["player1"], m_bot["player2"]
+            p1_sup, p2_sup = m_sup["player1"], m_sup["player2"]
+
 
         d1_dmg = p1_bot["damage_to_champions"] + p1_sup["damage_to_champions"]
         d2_dmg = p2_bot["damage_to_champions"] + p2_sup["damage_to_champions"]
