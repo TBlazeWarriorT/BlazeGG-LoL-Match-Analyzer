@@ -6,7 +6,7 @@ Instead of broad macro summaries, it focuses on lane matchups, damage breakdowns
 
 ---
 
-## Features
+## Our Unique Features
 
 - **Lane Deaths vs. External Deaths**  
   Separates deaths conceded directly to lane opponent(s) (1v1 or 2v2 bot) from deaths caused by roaming, ganks, or teamfights.
