@@ -764,9 +764,9 @@ def run_app():
 
         url = f"http://127.0.0.1:{PORT}"
         print(f"\n==================================================")
-        print(f"  🔥 Blaze GG Hub rodando em: {url}")
-        print(f"  ⚡ Auto-Reloader ATIVADO (qualquer mudança atualiza no F5!)")
-        print(f"  Pressione Ctrl+C para encerrar.")
+        print(f"  🔥 Blaze GG Hub running at: {url}")
+        print(f"  ⚡ Auto-Reloader ENABLED (code changes reload on refresh)")
+        print(f"  Press Ctrl+C to stop.")
         print(f"==================================================\n")
         webbrowser.open(url)
 
@@ -791,14 +791,14 @@ def run_app():
                                 last_mtimes[str(f)] = mtime
                                 changed = True
                     if changed:
-                        print("\n[⚡ Auto-Reloader] Mudança detectada! Recarregando servidor em background...")
+                        print("\n[⚡ Auto-Reloader] Change detected! Reloading server in background...")
                         proc.terminate()
                         proc.wait()
                         break
             except KeyboardInterrupt:
                 proc.terminate()
                 proc.wait()
-                print("\nServidor finalizado.")
+                print("\nServer stopped.")
                 break
         return
 
