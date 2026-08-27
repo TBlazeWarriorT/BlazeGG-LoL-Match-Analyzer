@@ -280,7 +280,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 """
             duel_info_box = f"""
             <div class="duel-scores-wrapper">
-                <div class="duel-score-row">
+                <div class="duel-score-row" title="{'Mortes causadas pelo(s) oponente(s) de lane' if lang == 'pt_BR' else 'Deaths to enemy laner(s)'}">
                     <span class="score-label">{get_text("solo_deaths", lang=lang)}</span>
                     <div class="score-pill-lg">
                         <b class="score-blue-lg">{solo_deaths_1}</b>
@@ -288,7 +288,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                         <b class="score-red-lg">{solo_deaths_2}</b>
                     </div>
                 </div>
-                <div class="duel-score-row" style="margin-top: 3px;">
+                <div class="duel-score-row" style="margin-top: 3px;" title="{'Mortes causadas por inimigos de outras rotas' if lang == 'pt_BR' else 'Deaths to enemies from other lanes'}">
                     <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
                     <div class="score-pill-sm">
                         <b class="score-blue-sm">{other_1}</b>
@@ -320,7 +320,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 """
             duel_info_box = f"""
             <div class="duel-scores-wrapper">
-                <div class="duel-score-row">
+                <div class="duel-score-row" title="{'Mortes causadas pelo(s) oponente(s) de lane' if lang == 'pt_BR' else 'Deaths to enemy laner(s)'}">
                     <span class="score-label">{get_text("lane_deaths", lang=lang)}</span>
                     <div class="score-pill-lg">
                         <b class="score-blue-lg">{lane_d1}</b>
@@ -328,7 +328,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                         <b class="score-red-lg">{lane_d2}</b>
                     </div>
                 </div>
-                <div class="duel-score-row" style="margin-top: 3px;">
+                <div class="duel-score-row" style="margin-top: 3px;" title="{'Mortes causadas por inimigos de outras rotas' if lang == 'pt_BR' else 'Deaths to enemies from other lanes'}">
                     <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
                     <div class="score-pill-sm">
                         <b class="score-blue-sm">{other_d1}</b>
@@ -339,6 +339,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 {exec_html}
             </div>
             """
+
 
 
 
