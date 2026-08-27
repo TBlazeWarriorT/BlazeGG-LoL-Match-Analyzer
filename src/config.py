@@ -12,6 +12,14 @@ RIOT_KEY_EXPIRES_AT = os.getenv("RIOT_KEY_EXPIRES_AT", "") # Timestamp unix em s
 DEFAULT_ROUTING = os.getenv("DEFAULT_ROUTING", "americas")
 DEFAULT_REGION = os.getenv("DEFAULT_REGION", "br1")
 
+def get_api_key() -> str:
+    global RIOT_API_KEY
+    return os.getenv("RIOT_API_KEY") or RIOT_API_KEY or ""
+
+def get_key_expires_at() -> str:
+    global RIOT_KEY_EXPIRES_AT
+    return os.getenv("RIOT_KEY_EXPIRES_AT") or RIOT_KEY_EXPIRES_AT or ""
+
 def parse_expiry_str(text: str) -> int:
     import re
     if not text:

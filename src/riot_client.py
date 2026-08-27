@@ -1,7 +1,7 @@
 import requests
 import time
 from typing import Optional, List, Dict, Any
-from .config import RIOT_API_KEY, RIOT_KEY_EXPIRES_AT, DEFAULT_ROUTING, DEFAULT_REGION
+from .config import get_api_key, get_key_expires_at, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
 
 class RiotAPIError(Exception):
@@ -9,7 +9,7 @@ class RiotAPIError(Exception):
 
 class RiotClient:
     def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION):
-        self.api_key = api_key or RIOT_API_KEY
+        self.api_key = api_key or get_api_key()
         self.routing = routing
         self.region = region
         self._check_key_validity()
@@ -17,11 +17,12 @@ class RiotClient:
 
     def _check_key_validity(self):
         if not self.api_key:
-            raise RiotAPIError("RIOT_API_KEY não configurada. Defina no arquivo .env")
-        if RIOT_KEY_EXPIRES_AT and str(RIOT_KEY_EXPIRES_AT).isdigit():
-            exp_ts = int(RIOT_KEY_EXPIRES_AT)
+            raise RiotAPIError("RIOT_API_KEY não configurada. Defina no arquivo .env ou configure na tela inicial.")
+        exp_val = get_key_expires_at()
+        if exp_val and str(exp_val).isdigit():
+            exp_ts = int(exp_val)
             if time.time() >= exp_ts:
-                raise RiotAPIError("Sua chave de desenvolvimento da Riot EXPIROU! Gere uma nova em developer.riotgames.com e atualize seu .env.")
+                raise RiotAPIError("Sua chave de desenvolvimento da Riot EXPIROU! Gere uma nova em developer.riotgames.com e atualize na tela inicial.")
 
     def _request(self, url: str) -> Any:
         self._check_key_validity()

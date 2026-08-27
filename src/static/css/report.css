@@ -924,11 +924,48 @@ body {
     font-size: 0.65rem;
     padding: 1px 5px;
     border-radius: 3px;
-    margin-left: 4px;
+    margin-left: 6px;
+    display: inline-block;
+    vertical-align: middle;
+}
+.event-assisters-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+    background: #090d16;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid #1e293b;
+}
+.event-assist-label {
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.event-assister-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #475569;
+    vertical-align: middle;
+    transition: transform 0.15s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.event-assister-avatar:hover {
+    transform: scale(1.25);
+    border-color: var(--accent);
+    z-index: 2;
 }
 .event-kill {
     background: #151d30;
     border-left-color: #3b82f6;
+}
+.event-execution {
+    background: #101726;
+    border-left-color: #64748b !important;
 }
 .event-obj-void {
     background: linear-gradient(90deg, rgba(168, 85, 247, 0.16) 0%, #151d30 100%) !important;

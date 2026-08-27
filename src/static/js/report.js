@@ -118,16 +118,19 @@ function switchCacheTab(tabIndex) {
     });
 }
 
-function toggleTimeline() {
+function syncTimelineState() {
+    var isExpanded = sessionStorage.getItem("blaze_timeline_expanded") === "true";
+    timelineExpanded = isExpanded;
     var hiddenItems = document.querySelectorAll(".events-list .timeline-hidden, .events-list .timeline-visible-expanded");
     var btn = document.getElementById("toggleTimelineBtn");
     var topBtn = document.getElementById("toggleTimelineTopBtn");
-    if (!timelineExpanded) {
+    if (!btn && !topBtn) return;
+
+    if (timelineExpanded) {
         hiddenItems.forEach(function(el) {
             el.classList.remove("timeline-hidden");
             el.classList.add("timeline-visible-expanded");
         });
-        timelineExpanded = true;
         var lessTxt = window.REPORT_I18N ? window.REPORT_I18N.show_less : "Mostrar menos";
         if (btn) btn.innerText = lessTxt;
         if (topBtn) topBtn.innerText = lessTxt;
@@ -136,12 +139,19 @@ function toggleTimeline() {
             el.classList.add("timeline-hidden");
             el.classList.remove("timeline-visible-expanded");
         });
-        timelineExpanded = false;
         var moreTxt = window.REPORT_I18N ? window.REPORT_I18N.show_more : "Mostrar mais eventos";
         if (btn) btn.innerText = moreTxt;
         if (topBtn) topBtn.innerText = moreTxt;
     }
 }
+
+function toggleTimeline() {
+    var newState = !timelineExpanded;
+    sessionStorage.setItem("blaze_timeline_expanded", String(newState));
+    syncTimelineState();
+}
+
+window.addEventListener("DOMContentLoaded", syncTimelineState);
 
 function autoResizeTextarea() {
     var ta = document.getElementById("rawSummaryText");
@@ -266,6 +276,7 @@ function swapPageContent(targetUrl, pushToHistory) {
             }
 
             if (typeof autoResizeTextarea === "function") autoResizeTextarea();
+            if (typeof syncTimelineState === "function") syncTimelineState();
         })
         .catch(function() {
             window.location.href = targetUrl;

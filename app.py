@@ -5,7 +5,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, RIOT_API_KEY, save_api_key
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
@@ -208,8 +208,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     def_name = search_name or last_sess.get("game_name", "Noob Master 46")
     def_tag = search_tag or last_sess.get("tag_line", "CWB")
     
-    curr_key = os.getenv("RIOT_API_KEY") or RIOT_API_KEY or ""
-    exp_val = os.getenv("RIOT_KEY_EXPIRES_AT") or ""
+    curr_key = get_api_key()
+    exp_val = get_key_expires_at()
     key_configured = bool(curr_key)
     
     import time

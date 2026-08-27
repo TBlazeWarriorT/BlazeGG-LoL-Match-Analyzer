@@ -494,21 +494,34 @@ class MatchAnalysis:
                         streak_type = "double"
 
                     is_solo = len(assisters) == 0
+                    is_execution = (killer == 0)
                     k_raw = k_p.get("championName", "")
                     v_raw = v_p.get("championName", "")
+
+                    assisters_data = []
+                    for aid in assisters:
+                        a_p = self._get_part_dict(aid)
+                        a_raw = a_p.get("championName", "")
+                        assisters_data.append({
+                            "champ": self.ddragon.get_clean_champion_name(a_raw),
+                            "icon": self.ddragon.get_champion_icon_url(a_raw),
+                            "name": a_p.get("riotIdGameName", "")
+                        })
+
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
                         "time": t_str,
-                        "killer_champ": self.ddragon.get_clean_champion_name(k_raw),
-                        "killer_icon": self.ddragon.get_champion_icon_url(k_raw),
-                        "killer_name": k_p.get("riotIdGameName", ""),
+                        "is_execution": is_execution,
+                        "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if not is_execution else "",
+                        "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
+                        "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
                         "is_solo": is_solo,
                         "assists_count": len(assisters),
-                        "assisters": [self.ddragon.get_clean_champion_name(self._get_part_dict(aid).get("championName", "")) for aid in assisters]
+                        "assisters": assisters_data
                     })
 
                 elif ev_type == "ELITE_MONSTER_KILL":

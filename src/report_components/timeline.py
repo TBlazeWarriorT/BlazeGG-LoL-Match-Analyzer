@@ -52,23 +52,51 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
             elim_txt = get_text("eliminated", lang=lang)
             c_ast = ev.get('assists_count', 0)
-            ast_label = get_text("assists_plural", lang=lang) if c_ast > 1 else get_text("assists", lang=lang)
-            assists_txt = f" (+{c_ast} {ast_label})" if c_ast > 0 else f" <span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
+            is_exec = ev.get("is_execution", False)
 
-            events_list_items.append(f"""
-            <li class="event-item event-kill {streak_class} {extra_class}">
-                <span class="event-time">{t}</span>
-                <div class="event-kill-duel">
-                    <img class="event-avatar" src="{ev['killer_icon']}" title="{ev['killer_champ']}"/>
-                    <span class="event-arrow">⚔️</span>
-                    <img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/>
-                </div>
-                <span class="event-desc">
-                    <b>{ev['killer_champ']}</b> ({ev['killer_name']}) {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}){assists_txt}
-                </span>
-                {streak_badge}
-            </li>
-            """)
+            assists_html = ""
+            if c_ast > 0:
+                assister_icons = "".join([
+                    f'<img class="event-assister-avatar" src="{a["icon"]}" title="{a["champ"]} ({a["name"]})" alt="{a["champ"]}"/>'
+                    for a in ev.get("assisters", [])
+                ])
+                ast_label = get_text("assists_plural", lang=lang) if c_ast > 1 else get_text("assists", lang=lang)
+                assists_html = f'<span class="event-assisters-group" title="{c_ast} {ast_label}"><span class="event-assist-label">Assist:</span>{assister_icons}</span>'
+            elif not is_exec:
+                assists_html = f"<span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
+
+            if is_exec:
+                exec_text = "foi executado(a)" if lang == "pt_BR" else "was executed"
+                events_list_items.append(f"""
+                <li class="event-item event-kill event-execution {extra_class}">
+                    <span class="event-time">{t}</span>
+                    <div class="event-kill-duel">
+                        <img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/>
+                        <span class="event-arrow">💀</span>
+                    </div>
+                    <span class="event-desc">
+                        <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {exec_text}
+                    </span>
+                </li>
+                """)
+            else:
+                killer_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
+                desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html}"
+
+                events_list_items.append(f"""
+                <li class="event-item event-kill {streak_class} {extra_class}">
+                    <span class="event-time">{t}</span>
+                    <div class="event-kill-duel">
+                        <img class="event-avatar" src="{ev['killer_icon']}" title="{ev['killer_champ']}"/>
+                        <span class="event-arrow">⚔️</span>
+                        <img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/>
+                    </div>
+                    <span class="event-desc">
+                        {desc_html}
+                    </span>
+                    {streak_badge}
+                </li>
+                """)
 
     total_events_count = len(events_list_items)
     remaining_events = total_events_count - 20
