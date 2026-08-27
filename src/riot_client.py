@@ -48,12 +48,13 @@ class RiotClient:
             raise RiotAPIError(f"Jogador {game_name}#{tag_line} não encontrado.")
         return data["puuid"]
 
-    def get_recent_matches(self, puuid: str, count: int = 5, queue: Optional[int] = None) -> List[str]:
-        url = f"https://{self.routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count={count}"
+    def get_recent_matches(self, puuid: str, count: int = 8, start: int = 0, queue: Optional[int] = None) -> List[str]:
+        url = f"https://{self.routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start={start}&count={count}"
         if queue:
             url += f"&queue={queue}"
         matches = self._request(url)
         return matches or []
+
 
     def get_match_detail(self, match_id: str, target_puuid: str = "") -> Dict[str, Any]:
         cached = get_cached_match(match_id)

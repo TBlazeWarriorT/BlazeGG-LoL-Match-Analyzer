@@ -46,7 +46,46 @@ function confirmSearchSummoner(name, tag, lang) {
     window.location.href = "/search?game_name=" + name + "&tag_line=" + tag + "&lang=" + lang;
 }
 
+var tabExpandedState = {};
+
+function toggleTabMatches(tabIndex, totalCount) {
+    var pane = document.getElementById("cache-tab-" + tabIndex);
+    var btn = document.getElementById("expand-btn-" + tabIndex);
+    if (!pane || !btn) return;
+
+    var isExpanded = !!tabExpandedState[tabIndex];
+    var hiddenMatches = pane.querySelectorAll(".match-item");
+    var isPt = document.documentElement.lang.includes("pt") || (window.REPORT_I18N && window.REPORT_I18N.lang === "pt_BR");
+
+    if (!isExpanded) {
+        hiddenMatches.forEach(function(el) {
+            el.classList.remove("match-hidden");
+        });
+        tabExpandedState[tabIndex] = true;
+        var lessTxt = isPt ? "▲ Mostrar menos" : "▲ Show less";
+        btn.querySelector("span").innerText = lessTxt;
+    } else {
+        hiddenMatches.forEach(function(el, idx) {
+            if (idx >= 8) {
+                el.classList.add("match-hidden");
+            }
+        });
+        tabExpandedState[tabIndex] = false;
+        var rem = totalCount - 8;
+        var moreTxt = isPt ? "▼ Mostrar mais (" + rem + " restantes)" : "▼ Show more (" + rem + " remaining)";
+        btn.querySelector("span").innerText = moreTxt;
+
+        // Smoothly scroll back to the top of the tab container so context is kept
+        var tabContainer = document.querySelector(".cache-tabs-nav");
+        if (tabContainer) {
+            tabContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }
+
+}
+
 function switchCacheTab(tabIndex) {
+
 
 
     var buttons = document.querySelectorAll(".cache-tab-btn");

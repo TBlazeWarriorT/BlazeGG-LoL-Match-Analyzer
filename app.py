@@ -293,6 +293,51 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             pane_active_cls = "active" if is_active else ""
             tab_id = f"cache-tab-{idx}"
 
+            # Format cards: first 8 visible, remaining with .match-hidden
+            formatted_cards = []
+            for c_idx, card_str in enumerate(cards_list):
+                if c_idx >= 8:
+                    card_str = card_str.replace('class="match-item ', 'class="match-item match-hidden ', 1)
+                formatted_cards.append(card_str)
+
+            # Actions bar (Show more / Show less and Load More from Riot API)
+            actions_html = ""
+            expand_btn = ""
+            if len(cards_list) > 8:
+                rem_count = len(cards_list) - 8
+                lbl_show_more = get_text("show_more_matches", lang=lang, count=rem_count)
+                expand_btn = f"""
+                <button type="button" class="btn-tab-action" id="expand-btn-{idx}" onclick="toggleTabMatches({idx}, {len(cards_list)})">
+                    <span>▼ {lbl_show_more}</span>
+                </button>
+                """
+
+            # Parse game_name and tag_line for load more
+            load_more_btn = ""
+            if "#" in s_label:
+                parts = s_label.split("#")
+                g_n, t_l = parts[0], parts[1]
+                lbl_load_more = get_text("btn_load_more", lang=lang)
+                load_more_btn = f"""
+                <form action="/load_more" method="GET" style="margin:0; display:inline;">
+                    <input type="hidden" name="game_name" value="{g_n}"/>
+                    <input type="hidden" name="tag_line" value="{t_l}"/>
+                    <input type="hidden" name="start" value="{len(cards_list)}"/>
+                    <input type="hidden" name="lang" value="{lang}"/>
+                    <button type="submit" class="btn-tab-action btn-tab-load-more" onclick="this.innerText='{get_text('loading_more_btn', lang=lang)}';">
+                        <span>⬇️ {lbl_load_more}</span>
+                    </button>
+                </form>
+                """
+
+            if expand_btn or load_more_btn:
+                actions_html = f"""
+                <div class="tab-actions-bar">
+                    {expand_btn}
+                    {load_more_btn}
+                </div>
+                """
+
             tab_buttons.append(f"""
             <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})">
                 <span>{s_label}</span>
@@ -307,9 +352,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
             tab_panes.append(f"""
             <div id="{tab_id}" class="cache-tab-content {pane_active_cls}">
-                {"".join(cards_list)}
+                {"".join(formatted_cards)}
+                {actions_html}
             </div>
             """)
+
 
         c_title = get_text("cached_matches_title", lang=lang, count=len(cached_list))
         cached_html = f"""
@@ -538,6 +585,34 @@ class AppHandler(BaseHTTPRequestHandler):
 
                 self._send_html(render_home_html(search_results=results, search_name=name, search_tag=tag, lang=lang))
 
+            except RiotAPIError as e:
+                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))
+            except Exception as e:
+                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang))
+
+        elif path == "/load_more":
+            name = qs.get("game_name", [""])[0].strip()
+            tag = qs.get("tag_line", [""])[0].strip()
+            start_str = qs.get("start", ["0"])[0].strip()
+            start_offset = int(start_str) if start_str.isdigit() else 0
+            if not name or not tag:
+                self._redirect(f"/?lang={lang}")
+                return
+
+            try:
+                client = RiotClient()
+                puuid = client.get_puuid(name, tag)
+                save_session(name, tag, puuid)
+                match_ids = client.get_recent_matches(puuid, count=8, start=start_offset)
+                
+                dd = get_ddragon(lang)
+                for mid in match_ids:
+                    try:
+                        client.get_match_detail(mid, target_puuid=puuid)
+                    except Exception:
+                        continue
+
+                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang))
 
             except RiotAPIError as e:
                 self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))
@@ -545,6 +620,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang))
 
         elif path == "/analyze":
+
             match_id = qs.get("match_id", [""])[0].strip()
             puuid = qs.get("puuid", [""])[0].strip()
             if not match_id:

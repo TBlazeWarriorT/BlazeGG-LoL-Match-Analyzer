@@ -304,7 +304,60 @@ input[type="text"], input[type="password"] {
     margin-top: 14px;
 }
 
+.match-item {
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin 0.3s ease, padding 0.3s ease;
+    max-height: 200px;
+    opacity: 1;
+    overflow: hidden;
+}
+
+.match-item.match-hidden {
+    display: none !important;
+}
+
+.tab-actions-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px dashed #1e293b;
+    flex-wrap: wrap;
+}
+
+.btn-tab-action {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 7px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-tab-action:hover {
+    background: #1e293b;
+    color: #fff;
+    border-color: #64748b;
+}
+.btn-tab-load-more {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+.btn-tab-load-more:hover {
+    background: #2563eb;
+    color: #fff;
+    border-color: #60a5fa;
+}
+
 .btn-cached { background: #334155; }
+
 .btn-cached:hover { background: #475569; }
 .error-banner {
     background: #991b1b;
