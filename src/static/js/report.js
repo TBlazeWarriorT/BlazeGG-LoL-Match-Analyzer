@@ -100,6 +100,14 @@ function switchCacheTab(tabIndex) {
         if (i === tabIndex) {
             content.classList.add("active");
             content.classList.remove("tab-anim-slide-in");
+
+            // Dynamically set index --i on all visible match cards
+            var visibleMatches = content.querySelectorAll(".match-item:not(.match-hidden)");
+            visibleMatches.forEach(function(item, idx) {
+                item.style.setProperty("--i", idx);
+            });
+            content.style.setProperty("--total-items", visibleMatches.length);
+
             // Trigger animation reflow on explicit user tab switch
             void content.offsetWidth;
             content.classList.add("tab-anim-slide-in");

@@ -308,9 +308,15 @@ input[type="text"], input[type="password"] {
     background: rgba(239, 68, 68, 0.15);
 }
 
-@keyframes tabSlideHorizontal {
-    from { opacity: 0; transform: translateX(12px); }
-    to { opacity: 1; transform: translateX(0); }
+@keyframes tabItemSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .cache-tab-content {
@@ -322,8 +328,16 @@ input[type="text"], input[type="password"] {
     gap: 10px;
     margin-top: 14px;
 }
-.cache-tab-content.tab-anim-slide-in {
-    animation: tabSlideHorizontal 0.22s cubic-bezier(0.2, 0, 0, 1) forwards;
+
+/* Dynamic staggered row-by-row horizontal slide cascade */
+.cache-tab-content.tab-anim-slide-in > .match-item:not(.match-hidden) {
+    animation: tabItemSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 0.028s);
+}
+
+.cache-tab-content.tab-anim-slide-in > .tab-actions-bar {
+    animation: tabItemSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--total-items, 8) * 0.028s);
 }
 
 
