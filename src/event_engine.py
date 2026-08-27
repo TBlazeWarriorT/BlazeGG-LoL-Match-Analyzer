@@ -163,8 +163,12 @@ class MatchAnalysis:
             "spells": [s1_info, s2_info],
             "rune": rune_info,
             "items": items,
+            "subteam_id": p.get("playerSubteamId", 0),
+            "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
             "win": p.get("win", False)
         }
+
+
 
 
     def generate_full_analysis(self) -> Dict[str, Any]:

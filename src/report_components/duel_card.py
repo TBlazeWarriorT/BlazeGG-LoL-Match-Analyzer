@@ -5,9 +5,11 @@ from .utils import calculate_gold_bar_share
 from .jungle_strip import render_jungle_chronological
 
 def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None, xp_d=None, 
-                    is_bot_duo=False, extra_badges_1="", extra_badges_2="", target_puuid="", lang="pt_BR") -> str:
+                    is_bot_duo=False, extra_badges_1="", extra_badges_2="", target_puuid="", lang="pt_BR",
+                    is_aram=False, is_arena=False) -> str:
     is_t1 = p1.get("puuid") == target_puuid
     is_t2 = p2.get("puuid") == target_puuid
+
 
     dmg_delta = p1.get("damage_to_champions", 0) - p2.get("damage_to_champions", 0)
     gold_delta_final = p1.get("gold_total", 0) - p2.get("gold_total", 0)
@@ -39,7 +41,22 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         cs_pm = p.get("cs_per_min", 0)
         cs_display = f"<b>{cs_val}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({cs_pm}/m)</span>"
 
-        if is_bot_duo:
+        if p.get("is_team_combined"):
+            icons_render = p.get("team_icons_html", "")
+            header_html = f"""
+            <div class="p-header">
+                <div class="duo-avatar-stack">
+                    {icons_render}
+                </div>
+                <div class="p-meta">
+                    <div class="p-name">{p.get('summoner_name', '')} {target_badge}</div>
+                    <div class="p-champ">{p.get('champion', '')} • KDA: <b>{p.get('kda', '')}</b> {kda_ratio_tag}</div>
+                </div>
+            </div>
+            """
+            spells_runes_strip = ""
+            items_html = ""
+        elif is_bot_duo:
             lvl1 = p.get("lvl1", "")
             lvl2 = p.get("lvl2", "")
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl1} &amp; {lvl2}</span>" if lvl1 and lvl2 else ""
@@ -58,6 +75,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             """
             spells_runes_strip = ""
             items_html = ""
+
         else:
             lvl_val = p.get("champ_level", 1)
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl_val}</span>" if lvl_val else ""
@@ -150,12 +168,16 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b>"
         vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
 
+        # Hide jungle stolen in ARAM/Arena
+        camps_item = f"<span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>" if (not is_aram and not is_arena) else ""
+
         line_4_vision_camps = f"""
         <div class="pill pill-wide">
             <span>{vis_combined}</span>
-            <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>
+            {camps_item}
         </div>
-        """
+        """ if (not is_arena or camps_stolen_val > 0) else ""
+
 
         footer_bottom = f"""
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
@@ -355,13 +377,47 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             </div>
             """
 
-        badge_html = f'<div class="role-badge-lg" style="background:#1e293b; color:#94a3b8; border: 1px solid #334155;">{role_title}</div>' if role_title else ''
-        delta_html = f"""
-        <div class="duel-center" style="{'justify-content:center;' if not badge_html else ''}">
-            {badge_html}
-            {aram_exec_html}
-        </div>
-        """
+        # In Arena Team Combined: Show Damage Distribution Bar & Kill Ratio
+        if is_arena and is_bot_duo:
+            d1 = p1.get("damage_to_champions", 0)
+            d2 = p2.get("damage_to_champions", 0)
+            tot_d = max(d1 + d2, 1)
+            pct1 = (d1 / tot_d) * 100.0
+            pct2 = (d2 / tot_d) * 100.0
+            
+            d_diff = d1 - d2
+            if d_diff > 0:
+                lead_txt = f"<b style='color:#60a5fa;'>+{d_diff:,} ({pct1:.1f}%)</b>"
+            elif d_diff < 0:
+                lead_txt = f"<b style='color:#f87171;'>+{abs(d_diff):,} ({pct2:.1f}%)</b>"
+            else:
+                lead_txt = "<b style='color:#94a3b8;'>50% / 50%</b>"
+
+            bar_tt = f"Proporção de Dano: {pct1:.1f}% ({d1:,}) vs {pct2:.1f}% ({d2:,})" if lang == "pt_BR" else f"Damage Share: {pct1:.1f}% ({d1:,}) vs {pct2:.1f}% ({d2:,})"
+            
+            delta_html = f"""
+            <div class="duel-center" style="justify-content:center; gap:6px;">
+                <div class="role-badge-lg" style="background:#1e293b; color:#a5b4fc; border: 1px solid #4338ca;">{role_title}</div>
+                <div class="lane-bar-wrapper" style="margin-top:4px;">
+                    <div class="dmg-bar-container" title="{bar_tt}">
+                        <div class="dmg-bar-blue" style="width: {pct1:.1f}%;"></div>
+                        <div class="dmg-bar-red" style="width: {pct2:.1f}%;"></div>
+                    </div>
+                </div>
+                <div style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-align:center;">
+                    ⚔️ {lead_txt}
+                </div>
+            </div>
+            """
+        else:
+            badge_html = f'<div class="role-badge-lg" style="background:#1e293b; color:#94a3b8; border: 1px solid #334155;">{role_title}</div>' if role_title else ''
+            delta_html = f"""
+            <div class="duel-center" style="{'justify-content:center;' if not badge_html else ''}">
+                {badge_html}
+                {aram_exec_html}
+            </div>
+            """
+
 
 
 
@@ -420,14 +476,132 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                 p1, p2, "",
                 stats_1=aram_stats_1, stats_2=aram_stats_2,
                 gold_d={}, xp_d={},
-                target_puuid=target_puuid, lang=lang
+                target_puuid=target_puuid, lang=lang,
+                is_aram=True
             ))
 
 
-    elif not is_arena:
+
+    elif is_arena:
+        # Group players by subteam (placement)
+        all_arena_players = team_100.get("players", []) + team_200.get("players", [])
+        subteams = {}
+        for p in all_arena_players:
+            place = p.get("placement") or p.get("subteam_id", 0)
+            subteams.setdefault(place, []).append(p)
+        
+        sorted_subteams = sorted(subteams.items(), key=lambda x: x[0] if isinstance(x[0], int) and x[0] > 0 else 99)
+        
+        # Pair 2 teams per frame: (1st vs 2nd), (3rd vs 4th), etc.
+        for i in range(0, len(sorted_subteams), 2):
+            team_a_place, team_a_players = sorted_subteams[i]
+            team_b_place, team_b_players = sorted_subteams[i+1] if i+1 < len(sorted_subteams) else (None, [])
+            
+            label_a = f"🏆 #{team_a_place} Lugar" if lang == "pt_BR" else f"🏆 #{team_a_place} Place"
+            label_b = f"🏆 #{team_b_place} Lugar" if lang == "pt_BR" else f"🏆 #{team_b_place} Place"
+            
+            frame_header = f"""
+            <div class="arena-matchup-header">
+                <span class="arena-team-badge arena-team-a">{label_a}</span>
+                <span style="color:#64748b; font-weight:800; font-size:0.75rem;">VS</span>
+                <span class="arena-team-badge arena-team-b">{label_b}</span>
+            </div>
+            """ if team_b_place else f"""
+            <div class="arena-matchup-header">
+                <span class="arena-team-badge arena-team-a">{label_a}</span>
+            </div>
+            """
+
+            team_pair_rows = []
+            max_p = max(len(team_a_players), len(team_b_players))
+            for p_idx in range(max_p):
+                pa = team_a_players[p_idx] if p_idx < len(team_a_players) else {}
+                pb = team_b_players[p_idx] if p_idx < len(team_b_players) else {}
+                
+                team_pair_rows.append(render_duel_row(
+                    pa, pb, "",
+                    gold_d={}, xp_d={},
+                    target_puuid=target_puuid, lang=lang,
+                    is_arena=True
+                ))
+
+            # Team Consolidated Summary Card (e.g. 3v3 or 2v2 Total)
+            if team_a_players and team_b_players:
+                def make_arena_team_combined(t_players, place_num):
+                    t_dmg = sum(p.get("damage_to_champions", 0) for p in t_players)
+                    t_gold = sum(p.get("gold_total", 0) for p in t_players)
+                    t_taken = sum(p.get("damage_taken", 0) for p in t_players)
+                    t_mit = sum(p.get("damage_mitigated", 0) for p in t_players)
+                    t_hl = sum(p.get("total_heal", 0) for p in t_players)
+                    t_phys = sum(p.get("damage_physical", 0) for p in t_players)
+                    t_mag = sum(p.get("damage_magic", 0) for p in t_players)
+                    t_tru = sum(p.get("damage_true", 0) for p in t_players)
+                    t_cs = sum(p.get("cs", 0) for p in t_players)
+                    t_kills = sum(p.get("kills", 0) for p in t_players)
+                    t_deaths = sum(p.get("deaths", 0) for p in t_players)
+                    t_assists = sum(p.get("assists", 0) for p in t_players)
+                    t_vis = sum(p.get("vision_score", 0) for p in t_players)
+                    t_pinks = sum(p.get("detector_wards", 0) for p in t_players)
+                    
+                    ratio = (t_kills + t_assists) / max(t_deaths, 1)
+                    csm = round(t_cs / dur_min_calc, 1)
+                    icons_html = "".join([f'<img class="team-champ-mini" src="{p.get("champion_icon", "")}" title="{p.get("champion", "")}"/>' for p in t_players])
+
+                    return {
+                        "summoner_name": f"Time #{place_num}" if lang == "pt_BR" else f"Team #{place_num}",
+                        "champion": f"{len(t_players)} Jogadores" if lang == "pt_BR" else f"{len(t_players)} Players",
+                        "champion_icon": "",
+                        "champ_level": "",
+                        "is_team_combined": True,
+                        "team_icons_html": icons_html,
+                        "kda": f"{t_kills}/{t_deaths}/{t_assists}",
+                        "kda_ratio": f"{ratio:.2f}:1" if t_deaths > 0 else "Perfect",
+                        "cs": t_cs,
+                        "cs_per_min": csm,
+                        "gold_total": t_gold,
+                        "damage_to_champions": t_dmg,
+                        "damage_physical": t_phys,
+                        "damage_magic": t_mag,
+                        "damage_true": t_tru,
+                        "damage_per_gold": round(t_dmg / max(t_gold, 1), 2),
+                        "damage_taken": t_taken,
+                        "damage_mitigated": t_mit,
+                        "total_heal": t_hl,
+                        "vision_score": t_vis,
+                        "detector_wards": t_pinks,
+                        "enemy_jungle_monsters": 0,
+                        "spells": [],
+                        "rune": {},
+                        "items": [],
+                        "puuid": any(p.get("puuid") == target_puuid for p in t_players) and target_puuid or ""
+                    }
+
+                comb_a = make_arena_team_combined(team_a_players, team_a_place)
+                comb_b = make_arena_team_combined(team_b_players, team_b_place)
+                
+                comb_title = f"TOTAL DO EMBATE ({len(team_a_players)}v{len(team_b_players)})" if lang == "pt_BR" else f"MATCHUP TOTAL ({len(team_a_players)}v{len(team_b_players)})"
+                team_pair_rows.append(render_duel_row(
+                    comb_a, comb_b, comb_title,
+                    gold_d={}, xp_d={},
+                    is_bot_duo=True,
+                    target_puuid=target_puuid, lang=lang,
+                    is_arena=True
+                ))
+
+            duels_html.append(f"""
+            <div class="arena-matchup-frame">
+                {frame_header}
+                {"".join(team_pair_rows)}
+            </div>
+            """)
+
+
+
+    else:
         # TOP
         if "TOP" in m_by_role:
             m = m_by_role["TOP"]
+
             duels_html.append(render_duel_row(
                 m["player1"], m["player2"], "TOP LANE",
                 m["p1_stats"], m["p2_stats"],
@@ -460,12 +634,13 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                 target_puuid=target_puuid, lang=lang
             ))
 
-        # BOTTOM & UTILITY
+        # BOTTOM & UTILITY (Grouped in one unified Bot Lane container)
         m_bot = m_by_role.get("BOTTOM")
         m_sup = m_by_role.get("UTILITY")
 
+        bot_group_cards = []
         if m_bot:
-            duels_html.append(render_duel_row(
+            bot_group_cards.append(render_duel_row(
                 m_bot["player1"], m_bot["player2"], "ADC (BOTTOM)",
                 m_bot["p1_stats"], m_bot["p2_stats"],
                 m_bot["gold_delta"], m_bot["xp_delta"],
@@ -473,7 +648,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             ))
 
         if m_sup:
-            duels_html.append(render_duel_row(
+            bot_group_cards.append(render_duel_row(
                 m_sup["player1"], m_sup["player2"], "SUPORTE (UTILITY)",
                 m_sup["p1_stats"], m_sup["p2_stats"],
                 m_sup["gold_delta"], m_sup["xp_delta"],
@@ -485,110 +660,124 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             p1_bot, p2_bot = m_bot["player1"], m_bot["player2"]
             p1_sup, p2_sup = m_sup["player1"], m_sup["player2"]
 
+            d1_dmg = p1_bot["damage_to_champions"] + p1_sup["damage_to_champions"]
+            d2_dmg = p2_bot["damage_to_champions"] + p2_sup["damage_to_champions"]
+            d1_gold = p1_bot["gold_total"] + p1_sup["gold_total"]
+            d2_gold = p2_bot["gold_total"] + p2_sup["gold_total"]
+            d1_taken = p1_bot["damage_taken"] + p1_sup["damage_taken"]
+            d2_taken = p2_bot["damage_taken"] + p2_sup["damage_taken"]
+            d1_cs = p1_bot["cs"] + p1_sup["cs"]
+            d2_cs = p2_bot["cs"] + p2_sup["cs"]
+            d1_kills = p1_bot["kills"] + p1_sup["kills"]
+            d1_deaths = p1_bot["deaths"] + p1_sup["deaths"]
+            d1_assists = p1_bot["assists"] + p1_sup["assists"]
+            d2_kills = p2_bot["kills"] + p2_bot["kills"]
+            d2_deaths = p2_bot["deaths"] + p2_sup["deaths"]
+            d2_assists = p2_bot["assists"] + p2_sup["assists"]
 
-        d1_dmg = p1_bot["damage_to_champions"] + p1_sup["damage_to_champions"]
-        d2_dmg = p2_bot["damage_to_champions"] + p2_sup["damage_to_champions"]
-        d1_gold = p1_bot["gold_total"] + p1_sup["gold_total"]
-        d2_gold = p2_bot["gold_total"] + p2_sup["gold_total"]
-        d1_taken = p1_bot["damage_taken"] + p1_sup["damage_taken"]
-        d2_taken = p2_bot["damage_taken"] + p2_sup["damage_taken"]
-        d1_cs = p1_bot["cs"] + p1_sup["cs"]
-        d2_cs = p2_bot["cs"] + p2_sup["cs"]
-        d1_kills = p1_bot["kills"] + p1_sup["kills"]
-        d1_deaths = p1_bot["deaths"] + p1_sup["deaths"]
-        d1_assists = p1_bot["assists"] + p1_sup["assists"]
-        d2_kills = p2_bot["kills"] + p2_bot["kills"]
-        d2_deaths = p2_bot["deaths"] + p2_sup["deaths"]
-        d2_assists = p2_bot["assists"] + p2_sup["assists"]
+            ratio_d1 = (d1_kills + d1_assists) / max(d1_deaths, 1)
+            ratio_d2 = (d2_kills + d2_assists) / max(d2_deaths, 1)
 
-        ratio_d1 = (d1_kills + d1_assists) / max(d1_deaths, 1)
-        ratio_d2 = (d2_kills + d2_assists) / max(d2_deaths, 1)
+            csm_d1 = round(d1_cs / dur_min_calc, 1)
+            csm_d2 = round(d2_cs / dur_min_calc, 1)
 
-        csm_d1 = round(d1_cs / dur_min_calc, 1)
-        csm_d2 = round(d2_cs / dur_min_calc, 1)
+            duo_p1 = {
+                "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"], "lvl1": p1_bot.get("champ_level", 1),
+                "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"], "lvl2": p1_sup.get("champ_level", 1),
+                "kda": f"{d1_kills}/{d1_deaths}/{d1_assists}",
+                "kda_ratio": f"{ratio_d1:.2f}:1" if d1_deaths > 0 else "Perfect",
+                "cs": d1_cs,
+                "cs_per_min": csm_d1,
+                "damage_to_champions": d1_dmg,
+                "damage_physical": p1_bot.get("damage_physical", 0) + p1_sup.get("damage_physical", 0),
+                "damage_magic": p1_bot.get("damage_magic", 0) + p1_sup.get("damage_magic", 0),
+                "damage_true": p1_bot.get("damage_true", 0) + p1_sup.get("damage_true", 0),
+                "damage_per_gold": round(d1_dmg / max(d1_gold, 1), 2),
+                "damage_taken": d1_taken,
+                "damage_mitigated": p1_bot.get("damage_mitigated", 0) + p1_sup.get("damage_mitigated", 0),
+                "total_heal": p1_bot.get("total_heal", 0) + p1_sup.get("total_heal", 0),
+                "vision_score": p1_bot.get("vision_score", 0) + p1_sup.get("vision_score", 0),
+                "detector_wards": p1_bot.get("detector_wards", 0) + p1_sup.get("detector_wards", 0),
+                "enemy_jungle_monsters": p1_bot.get("enemy_jungle_monsters", 0) + p1_sup.get("enemy_jungle_monsters", 0),
+                "gold_total": d1_gold,
+                "puuid": p1_bot["puuid"] if target_puuid in (p1_bot["puuid"], p1_sup["puuid"]) else ""
+            }
 
-        duo_p1 = {
-            "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"], "lvl1": p1_bot.get("champ_level", 1),
-            "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"], "lvl2": p1_sup.get("champ_level", 1),
-            "kda": f"{d1_kills}/{d1_deaths}/{d1_assists}",
-            "kda_ratio": f"{ratio_d1:.2f}:1" if d1_deaths > 0 else "Perfect",
-            "cs": d1_cs,
-            "cs_per_min": csm_d1,
-            "damage_to_champions": d1_dmg,
-            "damage_physical": p1_bot.get("damage_physical", 0) + p1_sup.get("damage_physical", 0),
-            "damage_magic": p1_bot.get("damage_magic", 0) + p1_sup.get("damage_magic", 0),
-            "damage_true": p1_bot.get("damage_true", 0) + p1_sup.get("damage_true", 0),
-            "damage_per_gold": round(d1_dmg / max(d1_gold, 1), 2),
-            "damage_taken": d1_taken,
-            "damage_mitigated": p1_bot.get("damage_mitigated", 0) + p1_sup.get("damage_mitigated", 0),
-            "total_heal": p1_bot.get("total_heal", 0) + p1_sup.get("total_heal", 0),
-            "vision_score": p1_bot.get("vision_score", 0) + p1_sup.get("vision_score", 0),
-            "detector_wards": p1_bot.get("detector_wards", 0) + p1_sup.get("detector_wards", 0),
-            "enemy_jungle_monsters": p1_bot.get("enemy_jungle_monsters", 0) + p1_sup.get("enemy_jungle_monsters", 0),
-            "gold_total": d1_gold,
-            "puuid": p1_bot["puuid"] if target_puuid in (p1_bot["puuid"], p1_sup["puuid"]) else ""
-        }
+            duo_p2 = {
+                "champ1": p2_bot["champion"], "icon1": p2_bot["champion_icon"], "lvl1": p2_bot.get("champ_level", 1),
+                "champ2": p2_sup["champion"], "icon2": p2_sup["champion_icon"], "lvl2": p2_sup.get("champ_level", 1),
+                "kda": f"{d2_kills}/{d2_deaths}/{d2_assists}",
+                "kda_ratio": f"{ratio_d2:.2f}:1" if d2_deaths > 0 else "Perfect",
+                "cs": d2_cs,
+                "cs_per_min": csm_d2,
+                "damage_to_champions": d2_dmg,
+                "damage_physical": p2_bot.get("damage_physical", 0) + p2_sup.get("damage_physical", 0),
+                "damage_magic": p2_bot.get("damage_magic", 0) + p2_sup.get("damage_magic", 0),
+                "damage_true": p2_bot.get("damage_true", 0) + p2_sup.get("damage_true", 0),
+                "damage_per_gold": round(d2_dmg / max(d2_gold, 1), 2),
+                "damage_taken": d2_taken,
+                "damage_mitigated": p2_bot.get("damage_mitigated", 0) + p2_sup.get("damage_mitigated", 0),
+                "total_heal": p2_bot.get("total_heal", 0) + p2_sup.get("total_heal", 0),
+                "vision_score": p2_bot.get("vision_score", 0) + p2_sup.get("vision_score", 0),
+                "detector_wards": p2_bot.get("detector_wards", 0) + p2_sup.get("detector_wards", 0),
+                "enemy_jungle_monsters": p2_bot.get("enemy_jungle_monsters", 0) + p2_sup.get("enemy_jungle_monsters", 0),
+                "gold_total": d2_gold,
+                "puuid": p2_bot["puuid"] if target_puuid in (p2_bot["puuid"], p2_sup["puuid"]) else ""
+            }
 
-        duo_p2 = {
-            "champ1": p2_bot["champion"], "icon1": p2_bot["champion_icon"], "lvl1": p2_bot.get("champ_level", 1),
-            "champ2": p2_sup["champion"], "icon2": p2_sup["champion_icon"], "lvl2": p2_sup.get("champ_level", 1),
-            "kda": f"{d2_kills}/{d2_deaths}/{d2_assists}",
-            "kda_ratio": f"{ratio_d2:.2f}:1" if d2_deaths > 0 else "Perfect",
+            duo_delta_gold = {}
+            duo_delta_xp = {}
 
-            "cs": d2_cs,
-            "cs_per_min": csm_d2,
-            "damage_to_champions": d2_dmg,
-            "damage_physical": p2_bot.get("damage_physical", 0) + p2_sup.get("damage_physical", 0),
-            "damage_magic": p2_bot.get("damage_magic", 0) + p2_sup.get("damage_magic", 0),
-            "damage_true": p2_bot.get("damage_true", 0) + p2_sup.get("damage_true", 0),
-            "damage_per_gold": round(d2_dmg / max(d2_gold, 1), 2),
-            "damage_taken": d2_taken,
-            "damage_mitigated": p2_bot.get("damage_mitigated", 0) + p2_sup.get("damage_mitigated", 0),
-            "total_heal": p2_bot.get("total_heal", 0) + p2_sup.get("total_heal", 0),
-            "vision_score": p2_bot.get("vision_score", 0) + p2_sup.get("vision_score", 0),
-            "detector_wards": p2_bot.get("detector_wards", 0) + p2_sup.get("detector_wards", 0),
-            "enemy_jungle_monsters": p2_bot.get("enemy_jungle_monsters", 0) + p2_sup.get("enemy_jungle_monsters", 0),
-            "gold_total": d2_gold,
-            "puuid": p2_bot["puuid"] if target_puuid in (p2_bot["puuid"], p2_sup["puuid"]) else ""
-        }
+            def combine_deltas(d_bot, d_sup):
+                combined = {}
+                # Sort keys chronologically (5m, 10m, 15m, 20m)
+                all_keys = sorted(
+                    list(set(list(d_bot.keys()) + list(d_sup.keys()))),
+                    key=lambda x: int(x.replace("m", "")) if x.replace("m", "").isdigit() else 999
+                )
+                for k in all_keys:
+                    v_bot = d_bot.get(k, 0)
+                    v_sup = d_sup.get(k, 0)
+                    if isinstance(v_bot, dict) or isinstance(v_sup, dict):
+                        diff_bot = v_bot.get("diff", 0) if isinstance(v_bot, dict) else int(v_bot)
+                        diff_sup = v_sup.get("diff", 0) if isinstance(v_sup, dict) else int(v_sup)
+                        p1_bot = v_bot.get("p1_val", 0) if isinstance(v_bot, dict) else 0
+                        p1_sup = v_sup.get("p1_val", 0) if isinstance(v_sup, dict) else 0
+                        p2_bot = v_bot.get("p2_val", 0) if isinstance(v_bot, dict) else 0
+                        p2_sup = v_sup.get("p2_val", 0) if isinstance(v_sup, dict) else 0
+                        combined[k] = {
+                            "diff": diff_bot + diff_sup,
+                            "p1_val": p1_bot + p1_sup,
+                            "p2_val": p2_bot + p2_sup
+                        }
+                    else:
+                        combined[k] = int(v_bot) + int(v_sup)
+                return combined
 
-        duo_delta_gold = {}
-        duo_delta_xp = {}
+            duo_delta_gold = combine_deltas(m_bot.get("gold_delta", {}), m_sup.get("gold_delta", {}))
+            duo_delta_xp = combine_deltas(m_bot.get("xp_delta", {}), m_sup.get("xp_delta", {}))
 
-        def combine_deltas(d_bot, d_sup):
-            combined = {}
-            for k in set(list(d_bot.keys()) + list(d_sup.keys())):
-                v_bot = d_bot.get(k, 0)
-                v_sup = d_sup.get(k, 0)
-                if isinstance(v_bot, dict) or isinstance(v_sup, dict):
-                    diff_bot = v_bot.get("diff", 0) if isinstance(v_bot, dict) else int(v_bot)
-                    diff_sup = v_sup.get("diff", 0) if isinstance(v_sup, dict) else int(v_sup)
-                    p1_bot = v_bot.get("p1_val", 0) if isinstance(v_bot, dict) else 0
-                    p1_sup = v_sup.get("p1_val", 0) if isinstance(v_sup, dict) else 0
-                    p2_bot = v_bot.get("p2_val", 0) if isinstance(v_bot, dict) else 0
-                    p2_sup = v_sup.get("p2_val", 0) if isinstance(v_sup, dict) else 0
-                    combined[k] = {
-                        "diff": diff_bot + diff_sup,
-                        "p1_val": p1_bot + p1_sup,
-                        "p2_val": p2_bot + p2_sup
-                    }
-                else:
-                    combined[k] = int(v_bot) + int(v_sup)
-            return combined
+            bot_group_cards.append(render_duel_row(
+                duo_p1, duo_p2, get_text("bot_duo_title", lang=lang),
+                gold_d=duo_delta_gold,
+                xp_d=duo_delta_xp,
+                stats_1=m_bot.get("bot_duo_stats", {}),
+                stats_2={},
+                is_bot_duo=True,
+                target_puuid=target_puuid,
+                lang=lang
+            ))
 
-        duo_delta_gold = combine_deltas(m_bot.get("gold_delta", {}), m_sup.get("gold_delta", {}))
-        duo_delta_xp = combine_deltas(m_bot.get("xp_delta", {}), m_sup.get("xp_delta", {}))
+        if bot_group_cards:
+            bot_frame_title = "🏹 ROTA INFERIOR (BOT LANE & DUO)" if lang == "pt_BR" else "🏹 BOTTOM LANE & DUO"
+            duels_html.append(f"""
+            <div class="bot-lane-group">
+                <div class="bot-lane-group-title">{bot_frame_title}</div>
+                {"".join(bot_group_cards)}
+            </div>
+            """)
 
-        duels_html.append(render_duel_row(
-            duo_p1, duo_p2, get_text("bot_duo_title", lang=lang),
-            gold_d=duo_delta_gold,
-            xp_d=duo_delta_xp,
-            stats_1=m_bot.get("bot_duo_stats", {}),
-            stats_2={},
-            is_bot_duo=True,
-            target_puuid=target_puuid,
-            lang=lang
-        ))
+
 
 
 
@@ -645,17 +834,27 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         t1_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t1_players])
         t2_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t2_players])
 
-        team_delta_gold = {}
+        raw_team_gold = {}
         for m in matchups:
             for k, v in m.get("gold_delta", {}).items():
-                if k not in team_delta_gold:
-                    team_delta_gold[k] = {"diff": 0, "p1_val": 0, "p2_val": 0}
+                if k not in raw_team_gold:
+                    raw_team_gold[k] = {"diff": 0, "p1_val": 0, "p2_val": 0}
                 if isinstance(v, dict):
-                    team_delta_gold[k]["diff"] += v.get("diff", 0)
-                    team_delta_gold[k]["p1_val"] += v.get("p1_val", 0)
-                    team_delta_gold[k]["p2_val"] += v.get("p2_val", 0)
+                    raw_team_gold[k]["diff"] += v.get("diff", 0)
+                    raw_team_gold[k]["p1_val"] += v.get("p1_val", 0)
+                    raw_team_gold[k]["p2_val"] += v.get("p2_val", 0)
                 else:
-                    team_delta_gold[k]["diff"] += int(v)
+                    raw_team_gold[k]["diff"] += int(v)
+
+        # Sort team deltas chronologically (5m, 10m, 15m, 20m)
+        team_delta_gold = {
+            k: raw_team_gold[k]
+            for k in sorted(
+                raw_team_gold.keys(),
+                key=lambda x: int(x.replace("m", "")) if x.replace("m", "").isdigit() else 999
+            )
+        }
+
 
         def format_team_badge(time_label: str, item: Any) -> str:
             diff = item.get("diff", 0) if isinstance(item, dict) else int(item)
