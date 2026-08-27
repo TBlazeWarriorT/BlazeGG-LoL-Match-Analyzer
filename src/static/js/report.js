@@ -2,16 +2,52 @@ var timelineExpanded = false;
 
 function promptSearchSummoner(name, tag) {
     if (!name || !tag) return;
-    var msg = (window.REPORT_I18N && window.REPORT_I18N.lang === 'pt_BR' || document.documentElement.lang.includes('pt')) 
-        ? "Deseja buscar as partidas de " + name + "#" + tag + "?"
-        : "Do you want to search matches for " + name + "#" + tag + "?";
-    if (confirm(msg)) {
-        var lang = (document.documentElement.lang.includes('pt')) ? 'pt_BR' : 'en_US';
-        window.location.href = "/search?game_name=" + encodeURIComponent(name) + "&tag_line=" + encodeURIComponent(tag) + "&lang=" + lang;
+    
+    var existingModal = document.getElementById("searchPromptModal");
+    if (existingModal) existingModal.remove();
+
+    var isPt = document.documentElement.lang.includes("pt") || (window.REPORT_I18N && window.REPORT_I18N.lang === "pt_BR");
+    var titleText = isPt ? "🔍 Buscar Invocador" : "🔍 Search Summoner";
+    var bodyText = isPt 
+        ? "Deseja buscar as partidas recentes de <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?" 
+        : "Do you want to search recent matches for <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?";
+    var confirmText = isPt ? "Buscar Partidas ➔" : "Search Matches ➔";
+    var cancelText = isPt ? "Cancelar" : "Cancel";
+    var lang = isPt ? "pt_BR" : "en_US";
+
+    var modalHtml = '<div id="searchPromptModal" class="modal-backdrop">' +
+        '<div class="modal-card">' +
+            '<div class="modal-title">' + titleText + '</div>' +
+            '<div class="modal-body">' + bodyText + '</div>' +
+            '<div class="modal-actions">' +
+                '<button type="button" class="modal-btn modal-btn-cancel" onclick="closeSearchPromptModal()">' + cancelText + '</button>' +
+                '<button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSearchSummoner(\'' + encodeURIComponent(name) + '\', \'' + encodeURIComponent(tag) + '\', \'' + lang + '\')">' + confirmText + '</button>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+    setTimeout(function() {
+        var m = document.getElementById("searchPromptModal");
+        if (m) m.classList.add("active");
+    }, 10);
+}
+
+function closeSearchPromptModal() {
+    var m = document.getElementById("searchPromptModal");
+    if (m) {
+        m.classList.remove("active");
+        setTimeout(function() { m.remove(); }, 200);
     }
 }
 
+function confirmSearchSummoner(name, tag, lang) {
+    closeSearchPromptModal();
+    window.location.href = "/search?game_name=" + name + "&tag_line=" + tag + "&lang=" + lang;
+}
+
 function switchCacheTab(tabIndex) {
+
 
     var buttons = document.querySelectorAll(".cache-tab-btn");
     var contents = document.querySelectorAll(".cache-tab-content");

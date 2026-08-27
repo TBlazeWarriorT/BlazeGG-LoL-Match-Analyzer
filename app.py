@@ -380,11 +380,14 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     <div class="container">
         <div class="header">
             <div>
-                <h1 class="logo-title" style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px; margin:0;">🔥 Blaze GG</h1>
+                <a href="/?lang={lang}" style="text-decoration:none;" title="Voltar ao início">
+                    <h1 class="logo-title" style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-block; cursor:pointer;">🔥 Blaze GG</h1>
+                </a>
                 <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">{get_text('app_sub', lang=lang)}</div>
             </div>
             <div>{key_status_badge}</div>
         </div>
+
 
         {error_html}
 
