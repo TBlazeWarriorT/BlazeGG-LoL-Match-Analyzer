@@ -238,28 +238,6 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         expiry_msg = get_text("key_status_none", lang=lang)
         key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_missing", lang=lang)}</span>'
 
-    search_html = ""
-    if search_results is not None:
-        if not search_results:
-            search_html = f'<div class="no-data">{get_text("no_data", lang=lang)}</div>'
-        else:
-            cards = [
-                render_match_card(
-                    m["match_id"], m["champion"], m["champion_icon"],
-                    f"{search_name}#{search_tag}", m["kda"], m["win"],
-                    m["duration"], m["game_mode"], m["puuid"], rel_time=m.get("relative_time", ""), is_cached=False, lang=lang, queue_id=m.get("queue_id", 0),
-                    team_100=m.get("team_100"), team_200=m.get("team_200")
-                )
-                for m in search_results
-            ]
-            s_title = get_text("live_matches_title", lang=lang, name=search_name, tag=search_tag)
-            search_html = f"""
-            <div class="section-card">
-                <h3>{s_title}</h3>
-                <div class="matches-grid">{"".join(cards)}</div>
-            </div>
-            """
-
     cached_html = ""
     if cached_list:
         # Group cached matches by target summoner
@@ -297,11 +275,14 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         tab_panes = []
         sorted_groups = sorted(summoner_groups.items(), key=lambda x: len(x[1]), reverse=True)
         
-        # Decide initial active tab (prefer session summoner or highest match count)
+        # Decide initial active tab (prefer search summoner, then session summoner, then highest count)
+        searched_label = f"{search_name}#{search_tag}" if (search_name and search_tag) else ""
         sess_label = f"{last_sess.get('game_name', '')}#{last_sess.get('tag_line', '')}"
+        target_focus = searched_label or sess_label
+
         active_tab_idx = 0
         for idx, (label, _) in enumerate(sorted_groups):
-            if label.lower() == sess_label.lower():
+            if label.lower() == target_focus.lower():
                 active_tab_idx = idx
                 break
 
@@ -323,7 +304,6 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </form>
             </div>
             """)
-
 
             tab_panes.append(f"""
             <div id="{tab_id}" class="cache-tab-content {pane_active_cls}">
@@ -350,6 +330,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             </div>
         </div>
         """
+
 
 
     error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
@@ -416,10 +397,9 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             </div>
         </div>
 
-
-        {search_html}
-
         {cached_html}
+
+
 
         <!-- CONFIGURAR API KEY -->
         <div class="section-card">
