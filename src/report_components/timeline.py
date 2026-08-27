@@ -12,12 +12,21 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         
         if ev_type == "objective":
             icon_uri = AssetManager.get_asset_uri(ev.get("asset_key", ""))
-            slain_txt = get_text("slain_by", lang=lang)
             m_type = ev.get("monster_type", "")
             m_sub = ev.get("monster_sub_type", "")
             obj_desc = clean_monster_name(m_type, m_sub, lang=lang) if m_type else ev.get("desc", "")
+            
+            # Feminine objectives in PT-BR: Vastilarva
+            is_fem = ("HORDE" in m_type.upper() or "GRUB" in m_type.upper())
+            slain_key = "slain_by_f" if is_fem else "slain_by"
+            slain_txt = get_text(slain_key, lang=lang)
+
+            # Distinguish Void trio (grubs, herald, baron) from Dragon
+            is_void = any(w in m_type.upper() for w in ["HORDE", "GRUB", "HERALD", "BARON"])
+            obj_theme_class = "event-obj-void" if is_void else "event-obj-dragon"
+
             events_list_items.append(f"""
-            <li class="event-item event-obj {extra_class}">
+            <li class="event-item event-obj {obj_theme_class} {extra_class}">
                 <span class="event-time">{t}</span>
                 <img class="event-avatar" src="{icon_uri}"/>
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>

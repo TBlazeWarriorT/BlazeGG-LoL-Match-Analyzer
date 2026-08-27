@@ -883,6 +883,8 @@ body {
     align-items: center;
     gap: 12px;
     border-left: 3px solid transparent;
+    border: 1px solid #1e293b;
+    border-left-width: 3px;
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
 }
 .event-item:hover {
@@ -925,17 +927,23 @@ body {
     margin-left: 4px;
 }
 .event-kill {
-    background: #0d1322;
+    background: #151d30;
     border-left-color: #3b82f6;
 }
-.event-obj {
-    background: #141b2b;
-    border-left-color: #eab308;
+.event-obj-void {
+    background: linear-gradient(90deg, rgba(168, 85, 247, 0.16) 0%, #151d30 100%) !important;
+    border-left-color: #a855f7 !important;
+    border-color: rgba(168, 85, 247, 0.3) !important;
+}
+.event-obj-dragon {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, #151d30 100%) !important;
+    border-left-color: #f59e0b !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
 }
 .event-multi {
-    background: linear-gradient(90deg, rgba(234, 179, 8, 0.15) 0%, #0d1322 100%);
-    border-left-color: #eab308;
-    border: 1px solid rgba(234, 179, 8, 0.3);
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.22) 0%, #151d30 100%);
+    border-left-color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
 }
 .event-penta {
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, #0d1322 100%);
