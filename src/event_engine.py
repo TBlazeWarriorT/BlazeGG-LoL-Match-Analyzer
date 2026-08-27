@@ -165,8 +165,11 @@ class MatchAnalysis:
             "items": items,
             "subteam_id": p.get("playerSubteamId", 0),
             "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
+            "penta_kills": p.get("pentaKills", 0),
+            "quadra_kills": p.get("quadraKills", 0),
             "win": p.get("win", False)
         }
+
 
 
 

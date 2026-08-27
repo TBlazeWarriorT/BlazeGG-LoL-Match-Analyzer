@@ -16,12 +16,15 @@ def render_multikills_section(multikills_data: List[Dict[str, Any]], lang: str =
         start_time = mk.get("start_time", "00:00")
         victims = mk.get("victims", [])
 
+        extra_card_class = ""
         if streak_type == "penta":
             card_border = "border: 1px solid rgba(239, 68, 68, 0.7); box-shadow: 0 0 14px rgba(239, 68, 68, 0.25);"
             badge_bg = "background: linear-gradient(90deg, #ef4444, #dc2626); color: #fff;"
+            extra_card_class = "multikill-penta-glow"
         elif streak_type == "quadra":
             card_border = "border: 1px solid rgba(192, 38, 211, 0.6); box-shadow: 0 0 12px rgba(192, 38, 211, 0.2);"
             badge_bg = "background: linear-gradient(90deg, #c026d3, #db2777); color: #fff;"
+            extra_card_class = "multikill-quadra-glow"
         elif streak_type == "triple":
             card_border = "border: 1px solid rgba(234, 88, 12, 0.5);"
             badge_bg = "background: linear-gradient(90deg, #ea580c, #f59e0b); color: #fff;"
@@ -29,14 +32,16 @@ def render_multikills_section(multikills_data: List[Dict[str, Any]], lang: str =
             card_border = "border: 1px solid #1f293d;"
             badge_bg = "background: #1e293b; color: #94a3b8;"
 
+
         victims_html = "".join([
             f'<img class="multikill-victim-icon" src="{v.get("icon", "")}" title="{v.get("champ", "")} ({v.get("name", "")})"/>'
             for v in victims
         ])
 
         mk_cards.append(f"""
-        <div class="multikill-card" style="{card_border}">
+        <div class="multikill-card {extra_card_class}" style="{card_border}">
             <div style="display:flex; justify-content:space-between; align-items:center;">
+
                 <span class="multikill-badge" style="{badge_bg}">{title}! {badge_icon}</span>
                 <span class="multikill-time">⏱️ {start_time}</span>
             </div>

@@ -609,7 +609,6 @@ body {
     transition: width 0.3s ease;
 }
 .gap-seal {
-
     position: absolute;
     top: -16px;
     font-size: 0.68rem;
@@ -625,6 +624,103 @@ body {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.08); }
 }
+
+/* --- FRUFRUS DE ELITE: PENTAKILL & QUADRAKILL ANIMADOS --- */
+@keyframes penta-border-glow {
+    0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.4), inset 0 0 8px rgba(245, 158, 11, 0.3); border-color: #fbbf24; }
+    50% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.7), inset 0 0 16px rgba(220, 38, 38, 0.5); border-color: #f87171; }
+    100% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.4), inset 0 0 8px rgba(245, 158, 11, 0.3); border-color: #fbbf24; }
+}
+
+@keyframes quadra-border-glow {
+    0% { box-shadow: 0 0 10px rgba(192, 38, 211, 0.4); border-color: #c026d3; }
+    50% { box-shadow: 0 0 20px rgba(219, 39, 119, 0.7); border-color: #f43f5e; }
+    100% { box-shadow: 0 0 10px rgba(192, 38, 211, 0.4); border-color: #c026d3; }
+}
+
+@keyframes flame-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.event-penta {
+    animation: penta-border-glow 2.5s infinite ease-in-out;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%) !important;
+    border-left: 4px solid #fbbf24 !important;
+}
+
+.badge-penta {
+    background: linear-gradient(270deg, #f59e0b, #ef4444, #f59e0b) !important;
+    background-size: 200% 200% !important;
+    animation: flame-shimmer 2s ease infinite !important;
+    font-weight: 900 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
+.badge-multikill-card {
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.badge-penta-glow {
+    background: linear-gradient(270deg, #f59e0b, #ef4444, #f59e0b);
+    background-size: 200% 200%;
+    animation: flame-shimmer 2s ease infinite, pulse 1.5s infinite;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+}
+
+.badge-quadra-glow {
+    background: linear-gradient(270deg, #c026d3, #ec4899, #c026d3);
+    background-size: 200% 200%;
+    animation: flame-shimmer 2s ease infinite;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(192, 38, 211, 0.5);
+}
+
+.penta-avatar-glow {
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.7), 0 0 4px rgba(239, 68, 68, 0.6) !important;
+    border-color: #fbbf24 !important;
+}
+
+.quadra-avatar-glow {
+    box-shadow: 0 0 10px rgba(192, 38, 211, 0.7) !important;
+    border-color: #c026d3 !important;
+}
+
+/* Event Quadra in Timeline - Consistent Violet Theme */
+.event-quadra {
+    animation: quadra-border-glow 2.5s infinite ease-in-out;
+    background: linear-gradient(90deg, rgba(192, 38, 211, 0.15) 0%, rgba(219, 39, 119, 0.15) 100%) !important;
+    border-left: 4px solid #c026d3 !important;
+}
+
+/* Multikill Highlights Cards (Penta & Quadra) Animated */
+.multikill-penta-glow {
+    animation: penta-border-glow 2.5s infinite ease-in-out;
+    border-left: 4px solid #fbbf24 !important;
+}
+.multikill-quadra-glow {
+    animation: quadra-border-glow 2.5s infinite ease-in-out;
+    border-left: 4px solid #c026d3 !important;
+}
+
+/* Micro-interação suave de hover nos cards de jogador */
+.player-card {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.player-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+
 
 /* Placar Unificado com Solo Kills Grande e Mortes p/ Ganks */
 .duel-scores-wrapper {

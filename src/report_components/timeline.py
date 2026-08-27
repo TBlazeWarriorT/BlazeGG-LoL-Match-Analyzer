@@ -31,8 +31,9 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 streak_class = "event-penta"
                 streak_badge = '<span class="multi-badge badge-penta">PENTAKILL! 👑</span>'
             elif streak == "quadra":
-                streak_class = "event-penta"
-                streak_badge = '<span class="multi-badge badge-penta" style="background:linear-gradient(90deg, #c026d3, #db2777);">QUADRA KILL! 🔥</span>'
+                streak_class = "event-quadra"
+                streak_badge = '<span class="multi-badge badge-penta" style="background:linear-gradient(90deg, #c026d3, #db2777); box-shadow: 0 0 10px rgba(192, 38, 211, 0.5);">QUADRA KILL! 🔥</span>'
+
             elif streak == "triple":
                 streak_class = "event-multi"
                 streak_badge = '<span class="multi-badge badge-multi" style="background:linear-gradient(90deg, #ea580c, #f59e0b);">TRIPLE KILL! ⚔️</span>'

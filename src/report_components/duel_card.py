@@ -79,15 +79,20 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         else:
             lvl_val = p.get("champ_level", 1)
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl_val}</span>" if lvl_val else ""
+            
+            penta_tag = '<span class="badge-multikill-card badge-penta-glow">👑 PENTAKILL</span>' if p.get("penta_kills", 0) > 0 else ""
+            quadra_tag = '<span class="badge-multikill-card badge-quadra-glow">🔥 QUADRAKILL</span>' if (p.get("quadra_kills", 0) > 0 and not penta_tag) else ""
+            
             header_html = f"""
             <div class="p-header">
-                <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <img class="champ-icon {'penta-avatar-glow' if penta_tag else ('quadra-avatar-glow' if quadra_tag else '')}" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <div class="p-meta">
-                    <div class="p-name">{p['riot_id']} {target_badge}</div>
+                    <div class="p-name">{p['riot_id']} {target_badge} {penta_tag} {quadra_tag}</div>
                     <div class="p-champ">{p['champion']} • KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
                 </div>
             </div>
             """
+
 
             spells_html = "".join([
                 f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
@@ -399,16 +404,17 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             <div class="duel-center" style="justify-content:center; gap:6px;">
                 <div class="role-badge-lg" style="background:#1e293b; color:#a5b4fc; border: 1px solid #4338ca;">{role_title}</div>
                 <div class="lane-bar-wrapper" style="margin-top:4px;">
-                    <div class="dmg-bar-container" title="{bar_tt}">
+                    <div class="dmg-bar-container" title="{bar_tt}" style="cursor:help;">
                         <div class="dmg-bar-blue" style="width: {pct1:.1f}%;"></div>
                         <div class="dmg-bar-red" style="width: {pct2:.1f}%;"></div>
                     </div>
                 </div>
-                <div style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-align:center;">
+                <div style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-align:center; cursor:help;" title="{bar_tt}">
                     ⚔️ {lead_txt}
                 </div>
             </div>
             """
+
         else:
             badge_html = f'<div class="role-badge-lg" style="background:#1e293b; color:#94a3b8; border: 1px solid #334155;">{role_title}</div>' if role_title else ''
             delta_html = f"""
