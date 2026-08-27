@@ -120,14 +120,19 @@ class MatchAnalysis:
         s1_info = self.ddragon.get_spell_info(s1_id)
         s2_info = self.ddragon.get_spell_info(s2_id)
 
-        # Keystone Rune
+        # Keystone Rune & Secondary Tree
         perk_id = 0
+        sub_style_id = 0
         perks_styles = p.get("perks", {}).get("styles", [])
         if perks_styles and len(perks_styles) > 0:
             selections = perks_styles[0].get("selections", [])
             if selections and len(selections) > 0:
                 perk_id = selections[0].get("perk", 0)
+        if perks_styles and len(perks_styles) > 1:
+            sub_style_id = perks_styles[1].get("style", 0)
+
         rune_info = self.ddragon.get_rune_info(perk_id) if perk_id else {"name": "", "icon": ""}
+        sub_rune_info = self.ddragon.get_rune_style_info(sub_style_id) if sub_style_id else {"name": "", "icon": ""}
 
         # Executions count from timeline
         exec_count = 0
@@ -158,21 +163,42 @@ class MatchAnalysis:
             "assists": a,
             "cs": cs,
             "cs_per_min": cs_per_min,
+            "minions_killed": p.get("totalMinionsKilled", 0),
+            "neutral_minions_killed": p.get("neutralMinionsKilled", 0),
+            "ally_jungle_monsters": p.get("totalAllyJungleMinionsKilled", 0),
+            "enemy_jungle_monsters": p.get("totalEnemyJungleMinionsKilled", 0) or p.get("challenges", {}).get("enemyJungleMonsterKills", 0),
             "gold_total": gold,
+            "gold_spent": p.get("goldSpent", 0),
+            "damage_total_all": p.get("totalDamageDealt", 0),
             "damage_to_champions": total_dmg,
             "damage_physical": p.get("physicalDamageDealtToChampions", 0),
             "damage_magic": p.get("magicDamageDealtToChampions", 0),
             "damage_true": p.get("trueDamageDealtToChampions", 0),
             "damage_to_turrets": p.get("damageDealtToTurrets", 0),
+            "damage_to_buildings": p.get("damageDealtToBuildings", 0),
+            "damage_to_objectives": p.get("damageDealtToObjectives", 0),
+            "turret_kills": p.get("turretKills", 0),
+            "inhibitor_kills": p.get("inhibitorKills", 0),
             "damage_taken": p.get("totalDamageTaken", 0),
+            "damage_taken_physical": p.get("physicalDamageTaken", 0),
+            "damage_taken_magic": p.get("magicDamageTaken", 0),
+            "damage_taken_true": p.get("trueDamageTaken", 0),
             "damage_mitigated": p.get("damageSelfMitigated", 0),
             "total_heal": p.get("totalHeal", 0),
             "damage_per_gold": round(total_dmg / max(gold, 1), 2),
+            "time_ccing_others": p.get("timeCCingOthers", 0),
+            "total_time_cc_dealt": p.get("totalTimeCCDealt", 0),
+            "largest_multikill": p.get("largestMultiKill", 1),
+            "largest_killing_spree": p.get("largestKillingSpree", 0),
+            "largest_critical_strike": p.get("largestCriticalStrike", 0),
             "vision_score": p.get("visionScore", 0),
             "detector_wards": p.get("detectorWardsPlaced", 0),
-            "enemy_jungle_monsters": p.get("totalEnemyJungleMinionsKilled", 0) or p.get("challenges", {}).get("enemyJungleMonsterKills", 0),
+            "vision_wards_bought": p.get("visionWardsBoughtInGame", 0),
+            "wards_placed": p.get("wardsPlaced", 0),
+            "wards_killed": p.get("wardsKilled", 0),
             "spells": [s1_info, s2_info],
             "rune": rune_info,
+            "sub_rune": sub_rune_info,
             "items": items,
             "subteam_id": p.get("playerSubteamId", 0),
             "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
@@ -455,6 +481,7 @@ class MatchAnalysis:
         events_log = []
         frames = self.timeline.get("info", {}).get("frames", [])
         kill_streaks = {}
+        first_blood_awarded = False
 
         for frame in frames:
             for ev in frame.get("events", []):
@@ -468,6 +495,11 @@ class MatchAnalysis:
                     assisters = ev.get("assistingParticipantIds", [])
                     v_p = self._get_part_dict(victim)
                     k_p = self._get_part_dict(killer)
+
+                    is_first_blood = False
+                    if killer != 0 and not first_blood_awarded:
+                        is_first_blood = True
+                        first_blood_awarded = True
 
                     streak_type = "normal"
                     killer_streak = kill_streaks.get(killer, {"count": 0, "last_ts": 0})
@@ -520,6 +552,7 @@ class MatchAnalysis:
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
                         "is_solo": is_solo,
+                        "is_first_blood": is_first_blood,
                         "assists_count": len(assisters),
                         "assisters": assisters_data
                     })

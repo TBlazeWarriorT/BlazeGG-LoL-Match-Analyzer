@@ -83,8 +83,29 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             penta_tag = '<span class="badge-multikill-card badge-penta-glow">👑 PENTAKILL</span>' if p.get("penta_kills", 0) > 0 else ""
             quadra_tag = '<span class="badge-multikill-card badge-quadra-glow">🔥 QUADRAKILL</span>' if (p.get("quadra_kills", 0) > 0 and not penta_tag) else ""
             
+            # Header Tooltip (Champion / KDA / CC / Multi-Kill / Crit)
+            cc_val = p.get("time_ccing_others", 0)
+            largest_multi = p.get("largest_multikill", 1)
+            multi_names = {2: "Double Kill", 3: "Triple Kill", 4: "Quadra Kill", 5: "Penta Kill"}
+            crit_val = p.get("largest_critical_strike", 0)
+            spree_val = p.get("largest_killing_spree", 0)
+
+            ratio_str = f" ({p.get('kda_ratio', '')})" if p.get("kda_ratio") else ""
+            header_tooltip_lines = [
+                f"<b>{p.get('champion', '')} ({p.get('riot_id', '')})</b>",
+                f"• KDA: <b>{p.get('kda', '')}</b>{ratio_str}",
+                f"• {get_text('cc_score', lang=lang)}: <b>{cc_val}s</b>"
+            ]
+            if largest_multi > 1:
+                header_tooltip_lines.append(f"• {get_text('largest_multikill', lang=lang)}: <b style='color:#f59e0b;'>{multi_names.get(largest_multi, str(largest_multi))}</b>")
+            if spree_val > 2:
+                header_tooltip_lines.append(f"• Killing Spree: <b>{spree_val}</b>")
+            if crit_val > 0:
+                header_tooltip_lines.append(f"• {get_text('largest_crit', lang=lang)}: <b>{crit_val:,}</b>")
+            header_tooltip_html = "<br/>".join(header_tooltip_lines)
+            header_tooltip_safe = header_tooltip_html.replace('"', '&quot;')
             header_html = f"""
-            <div class="p-header">
+            <div class="p-header" data-tooltip="{header_tooltip_safe}">
                 <img class="champ-icon {'penta-avatar-glow' if penta_tag else ('quadra-avatar-glow' if quadra_tag else '')}" src="{p['champion_icon']}" alt="{p['champion']}"/>
                 <div class="p-meta">
                     <div class="p-name">{p['riot_id']} {target_badge} {penta_tag} {quadra_tag}</div>
@@ -99,14 +120,19 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 for s in p.get("spells", []) if s.get("icon")
             ])
             rune_info = p.get("rune", {})
+            sub_rune_info = p.get("sub_rune", {})
             rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" title="{rune_info["name"]}" alt="{rune_info["name"]}"/>' if rune_info.get("icon") else ""
+            sub_rune_html = f'<img class="sub-rune-icon" src="{sub_rune_info["icon"]}" title="{sub_rune_info["name"]}" alt="{sub_rune_info["name"]}"/>' if sub_rune_info.get("icon") else ""
 
             spells_runes_strip = f"""
             <div class="spells-runes-strip">
-                {rune_html}
+                <div class="runes-col">
+                    {rune_html}
+                    {sub_rune_html}
+                </div>
                 <div class="spells-row">{spells_html}</div>
             </div>
-            """ if (spells_html or rune_html) else ""
+            """ if (spells_html or rune_html or sub_rune_html) else ""
 
             items_html = "".join([
                 f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" title="{it["name"]} (Quest/Role)" alt="{it["name"]}"/>' if it.get("is_role_bound") else f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
@@ -139,19 +165,64 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         lbl_mit = get_text("mitigated", lang=lang)
         lbl_hl = get_text("healed", lang=lang)
 
+        lbl_dmg_turrets = get_text("turret_damage", lang=lang)
+        lbl_turrets_k = get_text("turrets_destroyed", lang=lang)
+        lbl_inhibs_k = get_text("inhibs_destroyed", lang=lang)
+        turret_dmg_val = p.get("damage_to_turrets", 0) or p.get("damage_to_buildings", 0)
+        turret_kills_val = p.get("turret_kills", 0)
+        inhib_kills_val = p.get("inhibitor_kills", 0)
+        wards_killed_val = p.get("wards_killed", 0)
+        wards_placed_val = p.get("wards_placed", 0)
+        pinks_bought_val = p.get("vision_wards_bought", 0)
+
+        # 2. Clean multi-line HTML tooltip for Damage Pill
+        dmg_tot_all = p.get("damage_total_all", 0)
+        dmg_obj = p.get("damage_to_objectives", 0)
+        dmg_tooltip_lines = [
+            f"<b>💥 {lbl_dmg}: {dmg_tot:,}</b>",
+            f"• {lbl_phys}: <b>{dmg_phys:,}</b>",
+            f"• {lbl_mag}: <b>{dmg_mag:,}</b>",
+            f"• {lbl_true}: <b>{dmg_tru:,}</b>",
+            f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+            f"• {get_text('damage_total_all', lang=lang)}: <b>{dmg_tot_all:,}</b>",
+            f"• {get_text('damage_objectives', lang=lang)}: <b>{dmg_obj:,}</b>",
+            f"• {lbl_dmg_turrets}: <b>{turret_dmg_val:,}</b>",
+            f"• {lbl_turrets_k}: <b>{turret_kills_val}</b>",
+            f"• {lbl_inhibs_k}: <b>{inhib_kills_val}</b>"
+        ]
+        dmg_tooltip_html = "<br/>".join(dmg_tooltip_lines).replace('"', '&quot;')
+
+        struct_stats_str = f" • 🏰 {turret_dmg_val:,} ({turret_kills_val}T/{inhib_kills_val}I)" if (turret_dmg_val > 0 or turret_kills_val > 0) else ""
+
         line_1_dmg = f"""
-        <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+        <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')" data-tooltip="{dmg_tooltip_html}">
             <div class="pill-content-main">
                 <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
             </div>
             <div class="pill-content-detail">
-                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
+                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b>{struct_stats_str}</span>
             </div>
         </div>
         """
 
+        # 3. Clean multi-line HTML tooltip for Soaked/Tanked Pill
+        tk_phys = p.get("damage_taken_physical", 0)
+        tk_mag = p.get("damage_taken_magic", 0)
+        tk_tru = p.get("damage_taken_true", 0)
+        soaked_tooltip_lines = [
+            f"<b>🛡️ {lbl_soaked}: {dmg_soaked_tot:,}</b>",
+            f"• {lbl_taken}: <b>{dmg_tk:,}</b>",
+            f"  &nbsp; ↳ {get_text('damage_taken_phys', lang=lang)}: <b class='dmg-phys'>{tk_phys:,}</b>",
+            f"  &nbsp; ↳ {get_text('damage_taken_mag', lang=lang)}: <b class='dmg-mag'>{tk_mag:,}</b>",
+            f"  &nbsp; ↳ {get_text('damage_taken_tru', lang=lang)}: <b class='dmg-true'>{tk_tru:,}</b>",
+            f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+            f"• {lbl_mit}: <b class='dmg-mit'>{dmg_mit:,}</b>",
+            f"• {lbl_hl}: <b class='dmg-hl'>{dmg_hl:,}</b>"
+        ]
+        soaked_tooltip_html = "<br/>".join(soaked_tooltip_lines).replace('"', '&quot;')
+
         line_2_soaked = f"""
-        <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
+        <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')" data-tooltip="{soaked_tooltip_html}">
             <div class="pill-content-main">
                 <span>{lbl_soaked}: <b>{dmg_soaked_tot:,}</b></span>
             </div>
@@ -161,23 +232,56 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         </div>
         """
 
+        # 4. Clean multi-line HTML tooltip for Gold & CS Pill with official icons
+        gold_spent_val = p.get("gold_spent", 0)
+        minions_val = p.get("minions_killed", 0)
+        neutral_val = p.get("neutral_minions_killed", 0)
+        ally_jg_val = p.get("ally_jungle_monsters", 0)
+        enemy_jg_val = p.get("enemy_jungle_monsters", 0)
 
+        gold_lbl = get_text('gold', lang=lang) if get_text('gold', lang=lang) else ('Ouro' if lang == 'pt_BR' else 'Gold')
+        gold_cs_tooltip_lines = [
+            f"<b><img class='mini-icon' src='{icon_gold}'/> {gold_lbl}: {p['gold_total']:,}</b>",
+            f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
+            f"• {get_text('efficiency', lang=lang)}: <b>{p['damage_per_gold']} dmg/g</b>",
+            f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+            f"<b><img class='mini-icon' src='{icon_cs}'/> CS Total: {p['cs']} ({p['cs_per_min']}/min)</b>",
+            f"• {get_text('lane_minions', lang=lang)}: <b>{minions_val}</b>"
+        ]
+        if neutral_val > 0 or ally_jg_val > 0 or enemy_jg_val > 0:
+            gold_cs_tooltip_lines.append(f"• {get_text('neutral_minions', lang=lang)}: <b>{neutral_val}</b> (🌲 {get_text('ally_jungle', lang=lang)}: {ally_jg_val} • ⚔️ {get_text('enemy_jungle', lang=lang)}: {enemy_jg_val})")
+        gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
 
         line_3_gold_cs = f"""
-        <div class="pill pill-wide">
+        <div class="pill pill-wide" data-tooltip="{gold_cs_tooltip_html}">
             <span><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({p['damage_per_gold']} dmg/g)</span></span>
             <span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>
         </div>
         """
 
-        pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{pinks_val}</b>"
-        vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> ({pink_badge})"
+        # 5. Clean multi-line HTML tooltip for Vision Pill
+        vis_tooltip_lines = [
+            f"<b>👁️ {get_text('vision_score', lang=lang)}: {vis_val}</b>",
+            f"• {get_text('wards_placed', lang=lang)}: <b>{wards_placed_val}</b>",
+            f"• {get_text('control_wards_placed', lang=lang)}: <b>{pinks_val}</b>",
+            f"• {get_text('control_wards_bought', lang=lang)}: <b>{pinks_bought_val}</b>",
+            f"• {get_text('wards_killed', lang=lang)}: <b>{wards_killed_val}</b>"
+        ]
+        if camps_stolen_val > 0:
+            vis_tooltip_lines.append(f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>")
+            vis_tooltip_lines.append(f"🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b>")
+        vis_tooltip_html = "<br/>".join(vis_tooltip_lines).replace('"', '&quot;')
+
+        pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}'/> <b>{pinks_val}</b>"
+        ward_kill_badge = f"<span style='color:#cbd5e1;'>🗡️ <b>{wards_killed_val}</b></span>" if wards_killed_val > 0 else ""
+        vis_badges = f"({pink_badge}{(' • ' + ward_kill_badge) if ward_kill_badge else ''})"
+        vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> {vis_badges}"
 
         # Hide jungle stolen in ARAM/Arena
         camps_item = f"<span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>" if (not is_aram and not is_arena) else ""
 
         line_4_vision_camps = f"""
-        <div class="pill pill-wide">
+        <div class="pill pill-wide" data-tooltip="{vis_tooltip_html}">
             <span>{vis_combined}</span>
             {camps_item}
         </div>

@@ -50,6 +50,9 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 streak_class = "event-multi"
                 streak_badge = '<span class="multi-badge badge-multi">DOUBLE KILL! ⚔️</span>'
 
+            if ev.get("is_first_blood"):
+                streak_badge = f'<span class="multi-badge badge-first-blood">FIRST BLOOD! 🩸</span> {streak_badge}'
+
             elim_txt = get_text("eliminated", lang=lang)
             c_ast = ev.get('assists_count', 0)
             is_exec = ev.get("is_execution", False)

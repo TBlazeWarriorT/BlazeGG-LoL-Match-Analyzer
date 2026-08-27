@@ -102,6 +102,12 @@ class DataDragon:
                 cached_runes = []
         if cached_runes and isinstance(cached_runes, list):
             for tree in cached_runes:
+                tree_id = tree.get("id")
+                tree_icon = tree.get("icon", "")
+                self._runes[tree_id] = {
+                    "name": tree.get("name", ""),
+                    "icon": f"https://ddragon.leagueoflegends.com/cdn/img/{tree_icon}"
+                }
                 for slot in tree.get("slots", []):
                     for rune in slot.get("runes", []):
                         r_id = rune.get("id")
@@ -122,6 +128,12 @@ class DataDragon:
         if r:
             return r
         return {"name": f"Rune {rune_id}", "icon": ""}
+
+    def get_rune_style_info(self, style_id: int) -> Dict[str, str]:
+        r = self._runes.get(style_id)
+        if r:
+            return r
+        return {"name": f"Style {style_id}", "icon": ""}
 
     def get_item_name(self, item_id: int) -> str:
         if not item_id or item_id == 0:
