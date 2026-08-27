@@ -85,9 +85,6 @@ function toggleTabMatches(tabIndex, totalCount) {
 }
 
 function switchCacheTab(tabIndex) {
-
-
-
     var buttons = document.querySelectorAll(".cache-tab-btn");
     var contents = document.querySelectorAll(".cache-tab-content");
     
@@ -102,8 +99,13 @@ function switchCacheTab(tabIndex) {
     contents.forEach(function(content, i) {
         if (i === tabIndex) {
             content.classList.add("active");
+            content.classList.remove("tab-anim-slide-in");
+            // Trigger animation reflow on explicit user tab switch
+            void content.offsetWidth;
+            content.classList.add("tab-anim-slide-in");
         } else {
             content.classList.remove("active");
+            content.classList.remove("tab-anim-slide-in");
         }
     });
 }

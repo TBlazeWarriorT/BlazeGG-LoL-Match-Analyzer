@@ -308,9 +308,9 @@ input[type="text"], input[type="password"] {
     background: rgba(239, 68, 68, 0.15);
 }
 
-@keyframes tabFadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes tabSlideHorizontal {
+    from { opacity: 0; transform: translateX(12px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 .cache-tab-content {
@@ -321,7 +321,9 @@ input[type="text"], input[type="password"] {
     flex-direction: column;
     gap: 10px;
     margin-top: 14px;
-    animation: tabFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.cache-tab-content.tab-anim-slide-in {
+    animation: tabSlideHorizontal 0.22s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
 
