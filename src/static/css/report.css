@@ -357,6 +357,10 @@ body {
     border: 1px solid #334155;
     background: #0f172a;
 }
+.item-role-bound {
+    border: 1.5px solid #38bdf8 !important;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+}
 .spells-runes-strip {
     display: flex;
     align-items: center;

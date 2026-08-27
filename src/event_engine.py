@@ -91,8 +91,19 @@ class MatchAnalysis:
                 items.append({
                     "id": iid,
                     "name": self.ddragon.get_item_name(iid),
-                    "icon": self.ddragon.get_item_icon_url(iid)
+                    "icon": self.ddragon.get_item_icon_url(iid),
+                    "is_role_bound": False
                 })
+
+        # Riot sends quest boots/role-bound items in roleBoundItem
+        role_bound_iid = p.get("roleBoundItem", 0)
+        if role_bound_iid > 0:
+            items.append({
+                "id": role_bound_iid,
+                "name": self.ddragon.get_item_name(role_bound_iid),
+                "icon": self.ddragon.get_item_icon_url(role_bound_iid),
+                "is_role_bound": True
+            })
 
         raw_champ = p.get("championName", "")
         champ_name = self.ddragon.get_clean_champion_name(raw_champ)

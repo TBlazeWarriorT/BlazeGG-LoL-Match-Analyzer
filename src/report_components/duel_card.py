@@ -109,7 +109,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             """ if (spells_html or rune_html) else ""
 
             items_html = "".join([
-                f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
+                f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" title="{it["name"]} (Quest/Role)" alt="{it["name"]}"/>' if it.get("is_role_bound") else f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
                 for it in p.get("items", [])
             ])
 
