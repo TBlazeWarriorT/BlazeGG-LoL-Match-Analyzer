@@ -802,7 +802,7 @@ def run_app():
         return
 
     # Child server worker
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), AppHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), AppHandler)
     server.daemon_threads = True
     try:
         server.serve_forever()
