@@ -107,7 +107,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1100">
     <title>{browser_tab_title}</title>
     {favicon_link}
     <style>

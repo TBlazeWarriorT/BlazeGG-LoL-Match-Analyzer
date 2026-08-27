@@ -389,6 +389,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=1100">
     <title>Blaze GG - LoL Analytics</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
     <style>

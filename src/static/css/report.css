@@ -108,6 +108,8 @@ body {
     padding: 16px;
     margin-bottom: 14px;
 }
+/* Prevent any child from blowing past its 1fr share */
+.duel-row > * { min-width: 0; }
 .bot-lane-group {
     background: #090e1a;
     border: 1px solid #1e293b;
@@ -179,7 +181,7 @@ body {
     background: #0c1220;
     border-color: #1a2338;
 }
-@media (max-width: 1100px) {
+@media (max-width: 700px) {
     .duel-row { grid-template-columns: 1fr; }
 }
 
