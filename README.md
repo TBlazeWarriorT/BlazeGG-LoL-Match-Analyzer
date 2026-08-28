@@ -53,9 +53,14 @@ Then open `http://localhost:8000` in your browser. You can paste your Riot API k
 
 ---
 
-## License
+## 📄 License & Terms (TL;DR)
 
-This project is licensed under the [MIT License](LICENSE).
+This project is **Source-Available & Creator-Protected**:
+- ✅ **Allowed**: Personal local usage, study, experimentation, and submitting Pull Requests / contributions.
+- ❌ **Prohibited**: Public re-hosting, SaaS deployment, forks operated as competing public web services, or commercial use while the official project is active.
+- 🔄 **Continuity**: If the official project is permanently shut down and abandoned (no active official service and no repository maintenance for 12+ consecutive months), the license automatically converts to open-source (AGPLv3/MIT) for community continuity.
+
+See the full [LICENSE](LICENSE) for details.
 
 ---
 

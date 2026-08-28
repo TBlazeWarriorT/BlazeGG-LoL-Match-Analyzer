@@ -1,17 +1,33 @@
-MIT License
+Blaze GG Source-Available & Continuity License
+==================================================
+Copyright (c) 2026 TBlazeWarriorT (https://github.com/TBlazeWarriorT)
 
-Copyright (c) 2026 Blaze GG Contributors
+1. GRANT OF RIGHTS & RESTRICTIONS (ACTIVE SERVICE)
+--------------------------------------------------
+Permission is hereby granted to any person obtaining a copy of this software and
+associated documentation files (the "Software") to view the code, study it, and
+run it locally for personal, non-commercial use, as well as to submit pull requests
+and contributions to the official repository.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Except as expressly permitted above:
+- YOU MAY NOT publicly host, re-host, deploy, or run this Software (or any derivative work)
+  as a public web service, application, or SaaS platform.
+- YOU MAY NOT distribute, sublicense, sell, or commercially exploit the Software or its branding.
+- Exclusive public hosting, deployment, and operation rights remain solely with the Copyright Holder.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. SUNSET & ABANDONMENT CONTINUITY CLAUSE
+-----------------------------------------
+In the event that the official Blaze GG project is permanently discontinued, shut down,
+and the Copyright Holder ceases both operating the official public service and maintaining
+the repository for a continuous period of twelve (12) consecutive months:
 
+The restrictions in Section 1 shall automatically expire, and this Software shall
+convert into and be governed by the terms of the GNU Affero General Public License (AGPLv3)
+or the MIT License (at the community's discretion), allowing public re-hosting, forks,
+and continuity by the open-source community.
+
+3. DISCLAIMER OF WARRANTY
+-------------------------
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
