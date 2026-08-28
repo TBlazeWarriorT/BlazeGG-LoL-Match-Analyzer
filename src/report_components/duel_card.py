@@ -30,19 +30,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
     def p_card(p, is_target, is_left=True, badges_html="", is_dmg_leader=False, is_gold_leader=False, delta_dmg=0, delta_gold=0):
         align_class = "align-left" if is_left else "align-right"
         border_side = "border-blue" if is_left else "border-red"
-        
-        is_p_win = p.get("win", False)
-        placement = p.get("placement", 0)
-        if is_arena and placement:
-            is_effective_win = placement <= 4
-            win_badge_cls = "badge-win" if is_effective_win else "badge-loss"
-            badge_icon = "👑" if is_effective_win else "🪦"
-            ord_suffix = {1: "ST", 2: "ND", 3: "RD"}.get(placement, "TH")
-            txt_place = f"{badge_icon} {placement}º LUGAR" if lang == "pt_BR" else f"{badge_icon} {placement}{ord_suffix} PLACE"
-            win_loss_badge = f'<span class="target-win-badge {win_badge_cls}">{txt_place}</span>' if is_target else ""
-        else:
-            win_loss_badge = f'<span class="target-win-badge { "badge-win" if is_p_win else "badge-loss" }">{ get_text("win", lang=lang) if is_p_win else get_text("loss", lang=lang) }</span>' if is_target else ""
-        target_badge = f'<span class="target-tag">{get_text("you_tag", lang=lang)}</span> {win_loss_badge}' if is_target else ""
+        target_badge = f'<span class="target-tag">{get_text("you_tag", lang=lang)}</span>' if is_target else ""
         
         dmg_delta_tag = f'<span class="lead-delta">+{delta_dmg:,}</span>' if is_dmg_leader and delta_dmg > 0 else ""
         gold_delta_tag = f'<span class="lead-delta">+{delta_gold:,}</span>' if is_gold_leader and delta_gold > 0 else ""

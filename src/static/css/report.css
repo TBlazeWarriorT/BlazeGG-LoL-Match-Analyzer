@@ -65,13 +65,47 @@ body {
     color: #fff;
     margin: 0;
     letter-spacing: 0.5px;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
 .small-logo-title:hover {
     transform: scale(1.05);
     filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.7));
+}
+
+/* 🔥 Constant Organic Flame Flickering & Pulsing Animation (Slow & Hypnotic) */
+.fire-flame-anim {
+    display: inline-block;
+    -webkit-text-fill-color: initial;
+    transform-origin: 50% 85%;
+    animation: flameBurnFlicker 4.2s ease-in-out infinite;
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.4));
+}
+
+@keyframes flameBurnFlicker {
+    0% {
+        transform: scale(1) rotate(0deg) skewX(0deg);
+        filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.35));
+    }
+    25% {
+        transform: scale(1.05, 0.97) rotate(-2deg) skewX(-1.5deg);
+        filter: drop-shadow(0 0 5px rgba(251, 146, 60, 0.45));
+    }
+    50% {
+        transform: scale(0.97, 1.04) rotate(1.5deg) skewX(1deg);
+        filter: drop-shadow(0 0 4px rgba(234, 88, 12, 0.4));
+    }
+    75% {
+        transform: scale(1.03, 0.98) rotate(-1deg) skewX(-0.8deg);
+        filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.5));
+    }
+    100% {
+        transform: scale(1) rotate(0deg) skewX(0deg);
+        filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.35));
+    }
 }
 .header a {
     text-decoration: none;
@@ -211,6 +245,10 @@ body {
     height: 44px;
     border-radius: 50%;
     border: 2px solid var(--card-border);
+    object-fit: cover;
+    transform: scale(1.12);
+    display: block;
+    clip-path: circle(50% at 50% 50%);
 }
 .duo-avatar-stack {
     display: flex;
@@ -238,6 +276,28 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 3px;
+}
+.header-outcome-badge {
+    font-size: 0.82rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.3px;
+}
+.badge-win {
+    background: rgba(21, 128, 61, 0.45);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
+}
+.badge-loss {
+    background: rgba(185, 28, 28, 0.45);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
 }
 .p-kda { font-size: 0.88rem; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
 .kda-ratio { color: var(--text-muted); font-weight: 600; font-size: 0.80rem; }

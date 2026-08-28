@@ -169,7 +169,12 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     opp_champ = opp
                     break
 
-    avatar_block = f'<img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})" onclick="promptSearchSummoner(\'{g_name}\', \'{t_line}\')"/>'
+    avatar_block = f"""
+    <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}')" title="{champ_name} ({riot_id})">
+        <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}"/>
+        <div class="avatar-glint-sweep"></div>
+    </div>
+    """
     if opp_champ:
         opp_gname = opp_champ.get('name', '')
         opp_tline = opp_champ.get('tag', '')
@@ -177,9 +182,14 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         opp_title = f"Oponente Direto: {opp_champ['champion']} ({opp_riot})" if lang == "pt_BR" else f"Direct Opponent: {opp_champ['champion']} ({opp_riot})"
         avatar_block = f"""
         <div class="h2h-avatar-duo">
-            <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}" title="{champ_name} ({riot_id})" onclick="promptSearchSummoner(\'{g_name}\', \'{t_line}\')"/>
+            <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}')" title="{champ_name} ({riot_id})">
+                <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}"/>
+                <div class="avatar-glint-sweep"></div>
+            </div>
             <span class="h2h-vs-badge">VS</span>
-            <img class="champ-avatar-opp" src="{opp_champ['icon']}" alt="{opp_champ['champion']}" title="{opp_title}" onclick="promptSearchSummoner(\'{opp_gname}\', \'{opp_tline}\')"/>
+            <div class="avatar-glint-wrapper avatar-opp-wrapper" onclick="promptSearchSummoner('{opp_gname}', '{opp_tline}')" title="{opp_title}">
+                <img class="champ-avatar-opp" src="{opp_champ['icon']}" alt="{opp_champ['champion']}"/>
+            </div>
         </div>
         """
 
@@ -287,44 +297,58 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             s_name = p.get("name", "")
             s_tag = p.get("tag", "")
             s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else ("Global / Diversos" if lang == "pt_BR" else "Global / Other")
-            summoner_groups.setdefault(s_label, []).append(card_html)
+            
+            # Track group cards, wins and losses
+            is_match_win = p.get("win", False)
+            place_val = p.get("placement", 0)
+            if "CHERRY" in str(m.get("game_mode", "")).upper() or "ARENA" in str(m.get("game_mode", "")).upper():
+                if place_val:
+                    is_match_win = (place_val <= 4)
+            
+            group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0})
+            group_entry["cards"].append(card_html)
+            if is_match_win:
+                group_entry["wins"] += 1
+            else:
+                group_entry["losses"] += 1
 
         # Build tabs
         tab_buttons = []
         tab_panes = []
-        sorted_groups = sorted(summoner_groups.items(), key=lambda x: len(x[1]), reverse=True)
+        sorted_groups = sorted(summoner_groups.items(), key=lambda x: len(x[1]["cards"]), reverse=True)
         
         # Decide initial active tab (prefer search summoner, then session summoner, then highest count)
         searched_label = f"{search_name}#{search_tag}" if (search_name and search_tag) else ""
         sess_label = f"{last_sess.get('game_name', '')}#{last_sess.get('tag_line', '')}"
         target_focus = searched_label or sess_label
-
+        
         active_tab_idx = 0
-        for idx, (label, _) in enumerate(sorted_groups):
-            if label.lower() == target_focus.lower():
+        for idx, (s_label, s_data) in enumerate(sorted_groups):
+            if s_label.lower() == target_focus.lower():
                 active_tab_idx = idx
                 break
 
-        del_prompt = "Excluir todas as partidas salvas deste invocador?" if lang == "pt_BR" else "Delete all saved matches for this summoner?"
-        for idx, (s_label, cards_list) in enumerate(sorted_groups):
-            is_active = (idx == active_tab_idx)
-            btn_active_cls = "active" if is_active else ""
-            pane_active_cls = "active" if is_active else ""
+        for idx, (s_label, s_data) in enumerate(sorted_groups):
+            cards_list = s_data["cards"]
+            wins_cnt = s_data["wins"]
+            loss_cnt = s_data["losses"]
             tab_id = f"cache-tab-{idx}"
+            btn_active_cls = "active" if idx == active_tab_idx else ""
+            pane_active_cls = "active" if idx == active_tab_idx else ""
 
-            # Format cards: first 8 visible, remaining with .match-hidden
+            # Format cards: first 8 visible, remaining hidden
             formatted_cards = []
-            for c_idx, card_str in enumerate(cards_list):
-                if c_idx >= 8:
-                    card_str = card_str.replace('class="match-item ', 'class="match-item match-hidden ', 1)
-                formatted_cards.append(card_str)
+            for c_idx, c_html in enumerate(cards_list):
+                if c_idx < 8:
+                    formatted_cards.append(c_html)
+                else:
+                    hidden_card = c_html.replace('class="match-item ', 'class="match-item match-hidden ')
+                    formatted_cards.append(hidden_card)
 
-            # Actions bar (Show more / Show less and Load More from Riot API)
-            actions_html = ""
+            # Build action buttons inside tab
             expand_btn = ""
             if len(cards_list) > 8:
-                rem_count = len(cards_list) - 8
-                lbl_show_more = get_text("show_more_matches", lang=lang, count=rem_count)
+                lbl_show_more = get_text("show_more_matches", lang=lang, count=len(cards_list) - 8)
                 expand_btn = f"""
                 <button type="button" class="btn-tab-action" id="expand-btn-{idx}" onclick="toggleTabMatches({idx}, {len(cards_list)})">
                     <span>▼ {lbl_show_more}</span>
@@ -363,6 +387,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </form>
                 """
 
+            actions_html = ""
             if expand_btn or load_more_btn or refresh_btn:
                 actions_html = f"""
                 <div class="tab-actions-bar">
@@ -372,8 +397,17 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </div>
                 """
 
+            del_prompt = "Deseja realmente apagar o cache deste invocador?" if lang == "pt_BR" else "Do you really want to delete this summoner cache?"
+            tab_tip_lines = [
+                f"<b>{s_label}</b>",
+                f"• {get_text('cached_matches_title', lang=lang, count=len(cards_list)).split('(')[0].strip()}: <b>{len(cards_list)}</b>",
+                f"• {get_text('win', lang=lang)}: <b>{wins_cnt}</b>",
+                f"• {get_text('loss', lang=lang)}: <b>{loss_cnt}</b>"
+            ]
+            tab_tip_html = "<br/>".join(tab_tip_lines).replace('"', '&quot;')
+
             tab_buttons.append(f"""
-            <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})">
+            <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})" data-tooltip="{tab_tip_html}">
                 <span>{s_label}</span>
                 <span class="cache-tab-count">{len(cards_list)}</span>
                 <form action="/delete_summoner_cache" method="POST" style="display:inline; margin:0;" onsubmit="event.stopPropagation(); return confirm('{del_prompt}');">
@@ -444,7 +478,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         <div class="header">
             <div>
                 <a href="/?lang={lang}" style="text-decoration:none;" title="Voltar ao início">
-                    <h1 class="logo-title" style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-block; cursor:pointer;">🔥 Blaze GG</h1>
+                    <h1 class="logo-title" style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:8px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
                 </a>
                 <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">{get_text('app_sub', lang=lang)}</div>
             </div>

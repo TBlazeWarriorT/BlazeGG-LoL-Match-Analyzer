@@ -68,12 +68,45 @@ body {
     background: linear-gradient(90deg, #fb923c, #f97316, #ef4444);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
 }
 .header a:hover .logo-title, .logo-title:hover {
     transform: scale(1.06) rotate(-1.5deg);
     filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.6));
+}
+
+/* 🔥 Constant Organic Flame Flickering & Pulsing Animation (Slow & Hypnotic) */
+.fire-flame-anim {
+    display: inline-block;
+    -webkit-text-fill-color: initial;
+    transform-origin: 50% 85%;
+    animation: flameBurnFlicker 4.2s ease-in-out infinite;
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.4));
+}
+
+@keyframes flameBurnFlicker {
+    0% {
+        transform: scale(1) rotate(0deg) skewX(0deg);
+        filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.35));
+    }
+    25% {
+        transform: scale(1.05, 0.97) rotate(-2deg) skewX(-1.5deg);
+        filter: drop-shadow(0 0 5px rgba(251, 146, 60, 0.45));
+    }
+    50% {
+        transform: scale(0.97, 1.04) rotate(1.5deg) skewX(1deg);
+        filter: drop-shadow(0 0 4px rgba(234, 88, 12, 0.4));
+    }
+    75% {
+        transform: scale(1.03, 0.98) rotate(-1deg) skewX(-0.8deg);
+        filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.5));
+    }
+    100% {
+        transform: scale(1) rotate(0deg) skewX(0deg);
+        filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.35));
+    }
 }
 
 .header h1 { margin: 0; font-size: 1.5rem; }
@@ -289,15 +322,71 @@ input[type="text"], input[type="password"] {
 .card-loss { border-left-color: #ef4444; }
 
 .m-left { display: flex; align-items: center; gap: 14px; }
+
+/* 🌟 Glint Wrapper & Zero-Bleed Avatars */
+.avatar-glint-wrapper {
+    position: relative;
+    display: inline-block;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    line-height: 0;
+    border: 2px solid #38bdf8;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.avatar-glint-wrapper:hover {
+    transform: scale(1.15);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+}
+
+.card-win .avatar-glint-wrapper:hover {
+    border-color: #22c55e;
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.75);
+}
+
+.card-loss .avatar-glint-wrapper:hover {
+    border-color: #ef4444;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.75);
+}
+
+.avatar-opp-wrapper {
+    border: 1.5px solid #475569;
+    box-shadow: none;
+}
+
+.avatar-opp-wrapper:hover {
+    border-color: #f87171;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
 .champ-avatar-lg {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    border: 2px solid #38bdf8;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
-    flex-shrink: 0;
-    cursor: pointer;
+    object-fit: cover;
+    transform: scale(1.12); /* Zoom in to eliminate Riot DDragon black corner borders */
+    display: block;
 }
+
+.avatar-glint-sweep {
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 70%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    transform: skewX(-25deg);
+    pointer-events: none;
+}
+
+.avatar-glint-wrapper:hover .avatar-glint-sweep {
+    left: 140%;
+    transition: left 0.55s ease-in-out;
+}
+
 .h2h-avatar-duo {
     display: flex;
     align-items: center;
@@ -314,18 +403,16 @@ input[type="text"], input[type="password"] {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    border: 1.5px solid #475569;
     opacity: 0.8;
     transition: all 0.2s ease;
-    flex-shrink: 0;
     filter: grayscale(15%);
-    cursor: pointer;
+    object-fit: cover;
+    transform: scale(1.12);
+    display: block;
 }
-.champ-avatar-opp:hover {
+.avatar-opp-wrapper:hover .champ-avatar-opp {
     opacity: 1;
     filter: grayscale(0%);
-    transform: scale(1.15);
-    border-color: #f87171;
 }
 
 .m-champ-name { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
@@ -356,14 +443,16 @@ input[type="text"], input[type="password"] {
     border-radius: 12px;
     border: 1px solid #1e293b;
 }
-.m-team-blue { border-color: rgba(59, 130, 246, 0.3); }
-.m-team-red { border-color: rgba(239, 68, 68, 0.3); }
+.m-team-blue { border-color: rgba(56, 189, 248, 0.55); }
+.m-team-red { border-color: rgba(239, 68, 68, 0.38); }
 .m-mini-champ {
     width: 22px;
     height: 22px;
     border-radius: 50%;
     border: 1px solid #334155;
     background: #0f172a;
+    object-fit: cover;
+    clip-path: circle(50% at 50% 50%);
     transition: transform 0.15s ease;
     display: block;
     cursor: pointer;
@@ -393,17 +482,17 @@ input[type="text"], input[type="password"] {
 }
 
 .badge-win {
-    background: #15803d;
-    color: #bbf7d0;
-    border: 1px solid #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.25);
+    background: rgba(21, 128, 61, 0.45);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.15);
 }
 
 .badge-loss {
-    background: #b91c1c;
-    color: #fee2e2;
-    border: 1px solid #ef4444;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+    background: rgba(185, 28, 28, 0.45);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.15);
 }
 .btn-analyze {
     position: relative;

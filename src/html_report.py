@@ -103,6 +103,21 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     </script>
     """
 
+    # Target player outcome badge (Win/Defeat or Arena placement)
+    target_win = target_player.get("win", False) if target_player else False
+    target_placement = target_player.get("placement", 0) if target_player else 0
+    if is_arena and target_placement:
+        is_arena_win = (target_placement <= 4)
+        h_outcome_cls = "badge-win" if is_arena_win else "badge-loss"
+        h_icon = "👑" if is_arena_win else "🪦"
+        ord_suf = {1: "ST", 2: "ND", 3: "RD"}.get(target_placement, "TH")
+        h_outcome_txt = f"{h_icon} {target_placement}º LUGAR" if lang == "pt_BR" else f"{h_icon} {target_placement}{ord_suf} PLACE"
+    else:
+        h_outcome_cls = "badge-win" if target_win else "badge-loss"
+        h_outcome_txt = get_text("win", lang=lang) if target_win else get_text("loss", lang=lang)
+
+    header_outcome_badge = f'<span class="header-outcome-badge {h_outcome_cls}">{h_outcome_txt}</span>'
+
     html_content = f"""<!DOCTYPE html>
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
@@ -128,7 +143,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
             <a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:8px; border:1px solid var(--card-border); transition:background 0.2s;" onmouseover="this.style.background='#1f293d'" onmouseout="this.style.background='#111827'">{get_text('back_to_hub', lang=lang)}</a>
             <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none;">
-                <span class="small-logo-title">🔥 <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span></span>
+                <span class="small-logo-title"><span class="fire-flame-anim">🔥</span> <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span></span>
             </a>
         </div>
 
@@ -138,6 +153,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                     <h1 style="margin:0; font-size: 1.45rem; font-weight:800; color:#fff;">{target_nick}</h1>
+                    {header_outcome_badge}
                     <span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_kda}</span>
                 </div>
                 <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem;">
