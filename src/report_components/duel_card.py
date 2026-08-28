@@ -192,15 +192,13 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         ]
         dmg_tooltip_html = "<br/>".join(dmg_tooltip_lines).replace('"', '&quot;')
 
-        struct_stats_str = f" • 🏰 {turret_dmg_val:,} ({turret_kills_val}T/{inhib_kills_val}I)" if (turret_dmg_val > 0 or turret_kills_val > 0) else ""
-
         line_1_dmg = f"""
         <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')" data-tooltip="{dmg_tooltip_html}">
             <div class="pill-content-main">
                 <span>{lbl_dmg}: <b>{dmg_tot:,}</b> {dmg_delta_tag}</span>
             </div>
             <div class="pill-content-detail">
-                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b>{struct_stats_str}</span>
+                <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{dmg_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{dmg_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{dmg_tru:,}</b></span>
             </div>
         </div>
         """

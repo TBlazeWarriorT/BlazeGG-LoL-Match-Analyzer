@@ -277,6 +277,7 @@ function swapPageContent(targetUrl, pushToHistory) {
 
             if (typeof autoResizeTextarea === "function") autoResizeTextarea();
             if (typeof syncTimelineState === "function") syncTimelineState();
+            if (typeof initRiotIdSmartPaste === "function") initRiotIdSmartPaste();
         })
         .catch(function() {
             window.location.href = targetUrl;
@@ -299,6 +300,41 @@ document.addEventListener("click", function(e) {
 window.addEventListener("popstate", function() {
     swapPageContent(window.location.href, false);
 });
+
+// ⚡ Smart Riot ID Paste / Input Splitter (Paste "Name#TAG" -> splits into Name & Tag)
+function initRiotIdSmartPaste() {
+    var nameInput = document.querySelector('input[name="game_name"]');
+    var tagInput = document.querySelector('input[name="tag_line"]');
+    if (!nameInput || !tagInput) return;
+
+    function handleRiotIdSplit(val) {
+        if (!val || typeof val !== "string" || !val.includes("#")) return false;
+        var parts = val.split("#");
+        var namePart = parts[0].trim();
+        var tagPart = parts.slice(1).join("#").trim();
+        nameInput.value = namePart;
+        tagInput.value = tagPart;
+        tagInput.focus();
+        return true;
+    }
+
+    nameInput.addEventListener("paste", function(e) {
+        var pasteData = (e.clipboardData || window.clipboardData).getData("text");
+        if (pasteData && pasteData.includes("#")) {
+            e.preventDefault();
+            handleRiotIdSplit(pasteData);
+        }
+    });
+
+    nameInput.addEventListener("input", function() {
+        if (nameInput.value && nameInput.value.includes("#")) {
+            handleRiotIdSplit(nameInput.value);
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", initRiotIdSmartPaste);
+window.addEventListener("load", initRiotIdSmartPaste);
 
 
 

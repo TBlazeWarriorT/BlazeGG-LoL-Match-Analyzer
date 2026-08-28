@@ -490,6 +490,14 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
 class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        import importlib
+        import src.config
+        import src.riot_client
+        import src.i18n
+        importlib.reload(src.config)
+        importlib.reload(src.i18n)
+        importlib.reload(src.riot_client)
+
         parsed = urlparse(self.path)
         path = parsed.path
         qs = parse_qs(parsed.query)
@@ -518,13 +526,20 @@ class AppHandler(BaseHTTPRequestHandler):
             name = qs.get("game_name", [""])[0].strip()
             tag = qs.get("tag_line", [""])[0].strip()
 
+            if "#" in name and not tag:
+                parts = name.split("#", 1)
+                name = parts[0].strip()
+                tag = parts[1].strip()
+            elif "#" in name:
+                name = name.split("#")[0].strip()
+
             if not name or not tag:
                 err_msg = "Informe o Nome e a Tag do jogador." if lang == "pt_BR" else "Please provide Game Name and Tag."
                 self._send_html(render_home_html(error_msg=err_msg, lang=lang))
                 return
 
             try:
-                client = RiotClient()
+                client = RiotClient(lang=lang)
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8)
@@ -601,7 +616,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient()
+                client = RiotClient(lang=lang)
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8, start=start_offset)
@@ -629,7 +644,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient()
+                client = RiotClient(lang=lang)
                 m = client.get_match_detail(match_id)
                 t = client.get_match_timeline(match_id)
                 

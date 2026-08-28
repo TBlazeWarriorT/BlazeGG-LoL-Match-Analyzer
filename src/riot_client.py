@@ -3,26 +3,28 @@ import time
 from typing import Optional, List, Dict, Any
 from .config import get_api_key, get_key_expires_at, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
+from .i18n import get_text
 
 class RiotAPIError(Exception):
     pass
 
 class RiotClient:
-    def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION):
+    def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION, lang: str = "pt_BR"):
         self.api_key = api_key or get_api_key()
         self.routing = routing
         self.region = region
+        self.lang = lang
         self._check_key_validity()
         self.headers = {"X-Riot-Token": self.api_key}
 
     def _check_key_validity(self):
         if not self.api_key:
-            raise RiotAPIError("RIOT_API_KEY não configurada. Defina no arquivo .env ou configure na tela inicial.")
+            raise RiotAPIError(get_text("err_key_missing", lang=self.lang))
         exp_val = get_key_expires_at()
         if exp_val and str(exp_val).isdigit():
             exp_ts = int(exp_val)
             if time.time() >= exp_ts:
-                raise RiotAPIError("Sua chave de desenvolvimento da Riot EXPIROU! Gere uma nova em developer.riotgames.com e atualize na tela inicial.")
+                raise RiotAPIError(get_text("err_key_expired", lang=self.lang))
 
     def _request(self, url: str) -> Any:
         self._check_key_validity()
@@ -37,10 +39,10 @@ class RiotClient:
             elif resp.status_code == 404:
                 return None
             elif resp.status_code in (401, 403):
-                raise RiotAPIError("Chave de API inválida ou expirada. Atualize em developer.riotgames.com")
+                raise RiotAPIError(get_text("err_key_invalid", lang=self.lang))
             else:
-                raise RiotAPIError(f"Erro na API Riot [{resp.status_code}]: {resp.text}")
-        raise RiotAPIError("Rate limit excedido repetidamente.")
+                raise RiotAPIError(f"Riot API Error [{resp.status_code}]: {resp.text}")
+        raise RiotAPIError(get_text("err_rate_limit", lang=self.lang))
 
     def get_puuid(self, game_name: str, tag_line: str) -> str:
         url = f"https://{self.routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
