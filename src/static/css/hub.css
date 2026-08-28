@@ -44,9 +44,11 @@ body {
     padding: 24px;
     display: flex;
     justify-content: center;
+    min-width: 900px;
 }
 .container {
     max-width: 1000px;
+    min-width: 860px;
     width: 100%;
     display: flex;
     flex-direction: column;
