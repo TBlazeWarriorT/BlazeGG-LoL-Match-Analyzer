@@ -104,11 +104,24 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 header_tooltip_lines.append(f"• {get_text('largest_crit', lang=lang)}: <b>{crit_val:,}</b>")
             header_tooltip_html = "<br/>".join(header_tooltip_lines)
             header_tooltip_safe = header_tooltip_html.replace('"', '&quot;')
+
+            # Parse riot_id for search prompt
+            r_name = p.get("game_name") or (p.get("riot_id", "").split("#")[0] if "#" in p.get("riot_id", "") else p.get("riot_id", ""))
+            r_tag = p.get("tag_line") or (p.get("riot_id", "").split("#")[1] if "#" in p.get("riot_id", "") else "")
+            
+            if r_name and r_tag:
+                name_clickable_html = f'<span class="summoner-link" onclick="event.stopPropagation(); promptSearchSummoner(\'{r_name}\', \'{r_tag}\')" title="{r_name}#{r_tag}">{p["riot_id"]}</span>'
+            else:
+                name_clickable_html = f'<span>{p["riot_id"]}</span>'
+
             header_html = f"""
             <div class="p-header" data-tooltip="{header_tooltip_safe}">
-                <img class="champ-icon {'penta-avatar-glow' if penta_tag else ('quadra-avatar-glow' if quadra_tag else '')}" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                <div class="avatar-glint-wrapper {'penta-avatar-glow' if penta_tag else ('quadra-avatar-glow' if quadra_tag else '')}">
+                    <img class="champ-icon" src="{p['champion_icon']}" alt="{p['champion']}"/>
+                    <span class="avatar-glint-sweep"></span>
+                </div>
                 <div class="p-meta">
-                    <div class="p-name">{p['riot_id']} {target_badge} {penta_tag} {quadra_tag}</div>
+                    <div class="p-name">{name_clickable_html} {target_badge} {penta_tag} {quadra_tag}</div>
                     <div class="p-champ">{p['champion']} • KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
                 </div>
             </div>

@@ -452,12 +452,54 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
 
 
-    error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
+        key_card_cls = "section-card key-card-urgent" if (is_expired or not key_configured or "expir" in str(error_msg).lower()) else "section-card"
+        error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
-    hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
-    hub_js = HUB_JS_FILE.read_text(encoding="utf-8") if HUB_JS_FILE.exists() else ""
+        hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
+        hub_js = HUB_JS_FILE.read_text(encoding="utf-8") if HUB_JS_FILE.exists() else ""
 
-    return f"""<!DOCTYPE html>
+        config_card_html = f"""
+        <!-- CONFIGURAR API KEY -->
+        <div class="{key_card_cls}" style="margin-top: 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">{get_text('key_config_title', lang=lang)}</h3>
+                <a href="https://developer.riotgames.com" target="_blank" style="color:var(--accent); font-size:0.85rem; font-weight:700; text-decoration:none;">{get_text('key_portal_link', lang=lang)}</a>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 14px 0;">
+                {get_text('key_current', lang=lang, masked=masked_key, status=expiry_msg)}
+            </p>
+            <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;">
+                <input type="hidden" name="lang" value="{lang}"/>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="flex: 1.2;">
+                        <label class="form-label">{get_text('key_label', lang=lang)}</label>
+                        <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required/>
+                    </div>
+                    <div class="form-group" style="flex: 1.8;">
+                        <label class="form-label">{get_text('key_exp_label', lang=lang)}</label>
+                        <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes"/>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn" style="background:#16a34a; border-color:#22c55e;">{get_text('btn_save_config', lang=lang)}</button>
+                </div>
+            </form>
+        </div>
+        """
+
+        # Dynamic positioning: if expired/invalid, put config above cached matches
+        if is_expired or not key_configured or "expir" in str(error_msg).lower():
+            body_sections_html = f"""
+            {config_card_html}
+            {cached_html}
+            """
+        else:
+            body_sections_html = f"""
+            {cached_html}
+            {config_card_html}
+            """
+
+        return f"""<!DOCTYPE html>
 <html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
 <head>
     <meta charset="UTF-8">
@@ -537,36 +579,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             </div>
         </div>
 
-        {cached_html}
-
-
-
-        <!-- CONFIGURAR API KEY -->
-        <div class="section-card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;">{get_text('key_config_title', lang=lang)}</h3>
-                <a href="https://developer.riotgames.com" target="_blank" style="color:var(--accent); font-size:0.85rem; font-weight:700; text-decoration:none;">{get_text('key_portal_link', lang=lang)}</a>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 14px 0;">
-                {get_text('key_current', lang=lang, masked=masked_key, status=expiry_msg)}
-            </p>
-            <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;">
-                <input type="hidden" name="lang" value="{lang}"/>
-                <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                    <div class="form-group" style="flex: 1.2;">
-                        <label class="form-label">{get_text('key_label', lang=lang)}</label>
-                        <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required/>
-                    </div>
-                    <div class="form-group" style="flex: 1.8;">
-                        <label class="form-label">{get_text('key_exp_label', lang=lang)}</label>
-                        <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes"/>
-                    </div>
-                </div>
-                <div>
-                    <button type="submit" class="btn" style="background:#16a34a;">{get_text('btn_save_config', lang=lang)}</button>
-                </div>
-            </form>
-        </div>
+        {body_sections_html}
 
         <div class="legal-footer">
             Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.

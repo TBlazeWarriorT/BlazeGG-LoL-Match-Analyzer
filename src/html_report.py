@@ -80,7 +80,10 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     browser_tab_title = " • ".join(tab_title_parts)
 
     favicon_link = f'<link rel="icon" type="image/png" href="{favicon_url}"/>' if favicon_url else ""
-    header_avatar_html = f'<img src="{favicon_url}" alt="{target_nick}" style="width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);"/>' if favicon_url else ""
+    header_avatar_html = f'''<div class="avatar-glint-wrapper" style="width:52px; height:52px; border:2px solid var(--accent); box-shadow:0 0 12px rgba(56, 189, 248, 0.35); flex-shrink:0;">
+        <img src="{favicon_url}" alt="{target_nick}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.15); display:block;"/>
+        <span class="avatar-glint-sweep"></span>
+    </div>''' if favicon_url else ""
 
     team_titles_html = f"""
     <div class="team-titles">
