@@ -455,26 +455,38 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         {error_html}
 
         <!-- BUSCADORES (INVOCADOR & MATCH ID) -->
-        <div style="display:grid; grid-template-columns: 1.6fr 1fr; gap:16px;">
+        <div class="search-cards-grid">
             <!-- BUSCADOR DE INVOCADOR -->
-            <div class="section-card">
-                <h3 style="margin-top:0;">{get_text('search_title', lang=lang)}</h3>
-                <form action="/search" method="GET" class="form-row">
+            <div class="section-card search-card-glow">
+                <div class="search-card-header">
+                    <span class="search-card-title">{get_text('search_title', lang=lang)}</span>
+                </div>
+                <form action="/search" method="GET" class="search-form-layout">
                     <input type="hidden" name="lang" value="{lang}"/>
-                    <input type="text" name="game_name" placeholder="{get_text('search_game_name_ph', lang=lang)}" value="{def_name}" required style="flex: 2;"/>
-                    <span style="color:#64748b; font-weight:800; font-size:1.3rem; margin:0 2px;">#</span>
-                    <input type="text" name="tag_line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required style="flex: 1; max-width: 130px;"/>
-                    <button type="submit" class="btn" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
+                    <div class="search-inputs-group">
+                        <input type="text" name="game_name" class="input-game-name" placeholder="{get_text('search_game_name_ph', lang=lang)}" value="{def_name}" required/>
+                        <span class="tag-hash-separator">#</span>
+                        <input type="text" name="tag_line" class="input-tag-line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required/>
+                    </div>
+                    <div class="search-btn-container">
+                        <button type="submit" class="btn btn-search-action" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
+                    </div>
                 </form>
             </div>
 
             <!-- BUSCADOR DE MATCH ID -->
-            <div class="section-card">
-                <h3 style="margin-top:0;">{get_text('search_match_id_title', lang=lang)}</h3>
-                <form action="/search_match" method="GET" class="form-row">
+            <div class="section-card search-card-glow">
+                <div class="search-card-header">
+                    <span class="search-card-title">{get_text('search_match_id_title', lang=lang)}</span>
+                </div>
+                <form action="/search_match" method="GET" class="search-form-layout">
                     <input type="hidden" name="lang" value="{lang}"/>
-                    <input type="text" name="match_id" placeholder="{get_text('search_match_id_ph', lang=lang)}" required style="flex: 1;"/>
-                    <button type="submit" class="btn" style="background:#0284c7;">{get_text('search_match_id_btn', lang=lang)}</button>
+                    <div class="search-inputs-group">
+                        <input type="text" name="match_id" class="input-match-id" placeholder="{get_text('search_match_id_ph', lang=lang)}" required/>
+                    </div>
+                    <div class="search-btn-container">
+                        <button type="submit" class="btn btn-search-action btn-search-match-id">{get_text('search_match_id_btn', lang=lang)}</button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -83,7 +83,154 @@ body {
     border-radius: 12px;
     padding: 20px;
 }
-.section-card h3 { margin-top: 0; font-size: 1.15rem; color: var(--accent); }	.summoner-link {
+.section-card h3 { margin-top: 0; font-size: 1.15rem; color: var(--accent); }
+
+/* 🔥 Modern Radiating Search Cards (Vertical Blaze Orange -> Deep Blue) */
+.search-cards-grid {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 16px;
+}
+
+.search-card-glow {
+    background: linear-gradient(180deg, rgba(249, 115, 22, 0.12) 0%, rgba(15, 23, 42, 0.6) 40%, #0d1322 100%);
+    border: 1px solid #29354d;
+    border-top: 2px solid #f97316;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(249, 115, 22, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 18px 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.search-card-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45), 0 0 14px rgba(249, 115, 22, 0.15);
+    border-color: #3b4968;
+    border-top-color: #fb923c;
+}
+
+.search-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.search-card-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-card-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    background: #f97316;
+    border-radius: 2px;
+}
+
+.search-form-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.search-inputs-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.input-game-name {
+    flex: 2;
+}
+
+.tag-hash-separator {
+    color: #64748b;
+    font-weight: 800;
+    font-size: 1.25rem;
+    margin: 0 2px;
+    user-select: none;
+}
+
+.input-tag-line {
+    flex: 1;
+    max-width: 120px;
+}
+
+.input-match-id {
+    width: 100%;
+}
+
+.search-btn-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2px;
+}
+
+.btn-search-action {
+    position: relative;
+    background: linear-gradient(135deg, rgba(154, 52, 18, 0.85) 0%, rgba(67, 20, 7, 0.95) 100%);
+    border: 1.5px solid #f97316;
+    color: #ffffff !important;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.86rem;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(251, 146, 60, 0.35);
+}
+
+.btn-search-action::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-22deg);
+    transition: none;
+}
+
+.btn-search-action:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35);
+    border-color: #fb923c;
+    color: #ffffff !important;
+}
+
+.btn-search-action:hover::before {
+    left: 140%;
+    transition: left 0.65s ease-in-out;
+}
+
+.btn-search-action:active {
+    transform: translateY(0.5px);
+}
+
+.btn-search-match-id {
+    border-color: #0284c7;
+}
+
+.btn-search-match-id:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+}
+
+.summoner-link {
     color: var(--text-muted);
     font-size: 0.85rem;
     text-decoration: none;
@@ -260,8 +407,8 @@ input[type="text"], input[type="password"] {
 }
 .btn-analyze {
     position: relative;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: #fb923c !important;
+    background: linear-gradient(135deg, rgba(154, 52, 18, 0.85) 0%, rgba(67, 20, 7, 0.95) 100%);
+    color: #ffffff !important;
     padding: 8px 16px;
     border-radius: 6px;
     font-weight: 800;
@@ -274,9 +421,9 @@ input[type="text"], input[type="password"] {
     gap: 6px;
     cursor: pointer;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(251, 146, 60, 0.35);
     border: 1.5px solid #f97316;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
 }
 
 .btn-analyze::before {
@@ -286,16 +433,16 @@ input[type="text"], input[type="password"] {
     left: -120%;
     width: 80%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
     transform: skewX(-22deg);
     transition: none;
 }
 
 .btn-analyze:hover {
     transform: translateY(-1.5px);
-    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
     border-color: #fb923c;
-    color: #fed7aa !important;
+    color: #ffffff !important;
 }
 
 .btn-analyze:hover::before {
@@ -330,7 +477,7 @@ input[type="text"], input[type="password"] {
     100% { background-position: -100% 0; }
 }
 
-.btn-analyze:visited { color: #fb923c !important; }
+.btn-analyze:visited { color: #ffffff !important; }
 .cache-tabs-nav {
     display: flex;
     align-items: center;
