@@ -382,7 +382,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     <input type="hidden" name="start" value="{len(cards_list)}"/>
                     <input type="hidden" name="lang" value="{lang}"/>
                     <button type="submit" class="btn-tab-action btn-tab-load-more" onclick="this.innerText='{get_text('loading_more_btn', lang=lang)}';">
-                        <span>⬇️ {lbl_load_more}</span>
+                        <span>{lbl_load_more}</span>
                     </button>
                 </form>
                 """
