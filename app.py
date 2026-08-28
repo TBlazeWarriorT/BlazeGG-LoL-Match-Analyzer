@@ -213,7 +213,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
             <div>
                 <div class="m-champ-name">
                     {champ_name} 
-                    <a href="{search_link}" class="summoner-link" title="Buscar partidas">({riot_id})</a>
+                    <a href="{search_link}" class="summoner-link" title="{get_text('tooltip_search_matches', lang=lang)}">({riot_id})</a>
                 </div>
                 <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
             </div>
@@ -417,7 +417,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 <form action="/delete_summoner_cache" method="POST" style="display:inline; margin:0;" onsubmit="event.stopPropagation(); return confirm('{del_prompt}');">
                     <input type="hidden" name="summoner_label" value="{s_label}"/>
                     <input type="hidden" name="lang" value="{lang}"/>
-                    <button type="submit" class="cache-tab-delete" title="Excluir partidas deste invocador" style="background:none; border:none; cursor:pointer;" onclick="event.stopPropagation();">✕</button>
+                    <button type="submit" class="cache-tab-delete" title="{get_text('tooltip_delete_tab', lang=lang)}" style="background:none; border:none; cursor:pointer;" onclick="event.stopPropagation();">✕</button>
                 </form>
             </div>
             """)
@@ -528,7 +528,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     <div class="container">
         <div class="header">
             <div>
-                <a href="/?lang={lang}" style="text-decoration:none;" title="Voltar ao início">
+                <a href="/?lang={lang}" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
                     <div style="display:inline-flex; align-items:baseline; gap:16px;">
                         <h1 class="logo-title" style="font-size:2.35rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:10px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
                         <span class="logo-author-badge">by TBlazeWarriorT</span>

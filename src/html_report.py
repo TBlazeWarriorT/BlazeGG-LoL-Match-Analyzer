@@ -150,7 +150,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     <div class="container">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
             <a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:8px; border:1px solid var(--card-border); transition:background 0.2s;" onmouseover="this.style.background='#1f293d'" onmouseout="this.style.background='#111827'">{get_text('back_to_hub', lang=lang)}</a>
-            <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none;">
+            <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
                 <span class="small-logo-title"><span class="fire-flame-anim">🔥</span> <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span> <span class="logo-author-badge">by TBlazeWarriorT</span></span>
             </a>
         </div>

@@ -464,7 +464,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             
             <div class="lane-bar-wrapper">
                 {gap_badge_left}
-                <div class="lane-bar-container" title="Distribuição de Ouro (5000 delta = barra cheia)">
+                <div class="lane-bar-container" title="{get_text('gold_dist_duel_tt', lang=lang)}">
                     <div class="lane-bar-blue" style="width: {p1_share:.1f}%;"></div>
                     <div class="lane-bar-red" style="width: {p2_share:.1f}%;"></div>
                 </div>
@@ -1112,7 +1112,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             <div class="duel-center">
                 <div class="role-badge-lg" style="background:#3730a3; color:#c7d2fe;">{get_text("team_combined_title", lang=lang)}</div>
                 <div class="lane-bar-wrapper">
-                    <div class="lane-bar-container" title="Distribuição de Ouro da Equipe (15000 delta = barra cheia)">
+                    <div class="lane-bar-container" title="{get_text('gold_dist_team_tt', lang=lang)}">
                         <div class="lane-bar-blue" style="width: {calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
                         <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
                     </div>
