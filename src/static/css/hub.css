@@ -129,7 +129,13 @@ body {
     border-radius: 12px;
     padding: 20px;
 }
-.section-card h3 { margin-top: 0; font-size: 1.15rem; color: var(--accent); }
+.section-card h3 { 
+    margin-top: 0; 
+    font-size: 1.15rem; 
+    color: #ffffff;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
 
 /* 🔥 Modern Radiating Search Cards (Vertical Blaze Orange -> Deep Blue) */
 .search-cards-grid {
@@ -226,8 +232,8 @@ body {
 
 .btn-search-action {
     position: relative;
-    background: linear-gradient(135deg, rgba(154, 52, 18, 0.85) 0%, rgba(67, 20, 7, 0.95) 100%);
-    border: 1.5px solid #f97316;
+    background: linear-gradient(135deg, rgba(154, 52, 18, 0.95) 0%, rgba(67, 20, 7, 0.95) 100%) !important;
+    border: 1.5px solid #f97316 !important;
     color: #ffffff !important;
     padding: 8px 18px;
     border-radius: 6px;
@@ -253,7 +259,7 @@ body {
 
 .btn-search-action:hover {
     transform: translateY(-1.5px);
-    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35);
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.45);
     border-color: #fb923c;
     color: #ffffff !important;
 }
@@ -268,12 +274,12 @@ body {
 }
 
 .btn-search-match-id {
-    border-color: #0284c7;
+    border-color: #f97316;
 }
 
 .btn-search-match-id:hover {
-    border-color: #38bdf8;
-    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+    border-color: #fb923c;
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.45);
 }
 
 .summoner-link {
@@ -303,18 +309,23 @@ input[type="text"], input[type="password"] {
     flex: 1;
 }
 .btn {
-    background: #2563eb;
+    background: linear-gradient(135deg, rgba(154, 52, 18, 0.95) 0%, rgba(67, 20, 7, 0.95) 100%);
     color: #fff;
-    border: none;
+    border: 1.5px solid #f97316;
     padding: 10px 20px;
     border-radius: 6px;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
     text-decoration: none;
     font-size: 0.95rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(251, 146, 60, 0.35);
 }
-.btn:hover { background: #1d4ed8; }
+.btn:hover { 
+    background: #f97316;
+    border-color: #fb923c;
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.45);
+}
 .matches-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .match-item {
     background: #0d1322;
@@ -652,18 +663,18 @@ input[type="text"], input[type="password"] {
 }
 .cache-tab-btn:hover {
     color: #fff;
-    border-color: #3b82f6;
-    background: #172554;
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.12);
 }
 .cache-tab-btn.active {
-    background: #2563eb;
+    background: linear-gradient(135deg, rgba(154, 52, 18, 0.95) 0%, rgba(67, 20, 7, 0.95) 100%);
     color: #ffffff;
-    border-color: #60a5fa;
-    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+    border-color: #f97316;
+    box-shadow: 0 2px 10px rgba(249, 115, 22, 0.4), inset 0 1px 0 rgba(251, 146, 60, 0.3);
 }
 .cache-tab-count {
     background: #1e293b;
-    color: #38bdf8;
+    color: #ffffff;
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 0.75rem;
@@ -671,9 +682,9 @@ input[type="text"], input[type="password"] {
     border: 1px solid #334155;
 }
 .cache-tab-btn.active .cache-tab-count {
-    background: #1e3a8a;
+    background: rgba(0, 0, 0, 0.4);
     color: #ffffff;
-    border-color: #60a5fa;
+    border-color: rgba(249, 115, 22, 0.4);
 }
 .cache-tab-delete {
     color: #94a3b8;
@@ -764,14 +775,15 @@ input[type="text"], input[type="password"] {
     border-color: #64748b;
 }
 .btn-tab-load-more {
-    background: #1e3a8a;
-    border-color: #3b82f6;
-    color: #93c5fd;
+    background: rgba(154, 52, 18, 0.5);
+    border-color: #f97316;
+    color: #fed7aa;
 }
 .btn-tab-load-more:hover {
-    background: #2563eb;
+    background: rgba(249, 115, 22, 0.85);
     color: #fff;
-    border-color: #60a5fa;
+    border-color: #fb923c;
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
 }
 
 .btn-tab-refresh {
@@ -868,9 +880,10 @@ input[type="text"], input[type="password"] {
 }
 .lang-btn:hover { color: #fff; }
 .lang-btn.active {
-    background: #2563eb;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    background: rgba(154, 52, 18, 0.55);
+    color: #ffffff;
+    border: 1px solid rgba(249, 115, 22, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 .flag-icon {
     width: 16px;
