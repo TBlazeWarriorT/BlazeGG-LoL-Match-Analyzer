@@ -562,10 +562,10 @@ body {
 .award-avatar {
     border-radius: 50%;
     object-fit: cover;
-    transform: scale(1.15);
     display: block;
-    clip-path: circle(49% at 50% 50%);
+    flex-shrink: 0;
     background: #0f172a;
+    box-sizing: border-box;
 }
 .awards-grid {
     display: grid;
@@ -689,9 +689,8 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 .award-name {
     overflow: hidden;
@@ -1074,6 +1073,13 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+.event-avatar-wrap:hover {
+    transform: scale(1.25);
+    border-color: var(--accent);
+    z-index: 2;
 }
 .event-avatar {
     width: 100%;
