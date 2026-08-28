@@ -130,20 +130,25 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     </style>
 </head>
 <body>
-    <div class="lang-picker">
-        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
-            <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
-        </a>
-        <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
-            <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
-        </a>
+    <div class="top-nav-bar">
+        <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
+            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
+        </div>
+        <div class="lang-picker">
+            <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
+                <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
+            </a>
+            <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
+                <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
+            </a>
+        </div>
     </div>
 
     <div class="container">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
             <a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:8px; border:1px solid var(--card-border); transition:background 0.2s;" onmouseover="this.style.background='#1f293d'" onmouseout="this.style.background='#111827'">{get_text('back_to_hub', lang=lang)}</a>
             <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none;">
-                <span class="small-logo-title"><span class="fire-flame-anim">🔥</span> <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span></span>
+                <span class="small-logo-title"><span class="fire-flame-anim">🔥</span> <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span> <span class="logo-author-badge">by TBlazeWarriorT</span></span>
             </a>
         </div>
 

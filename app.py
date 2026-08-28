@@ -398,11 +398,15 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 """
 
             del_prompt = "Deseja realmente apagar o cache deste invocador?" if lang == "pt_BR" else "Do you really want to delete this summoner cache?"
+            lbl_saved = "Partidas Salvas" if lang == "pt_BR" else "Saved Matches"
+            lbl_v = "Vitórias" if lang == "pt_BR" else "Victory"
+            lbl_d = "Derrotas" if lang == "pt_BR" else "Defeat"
+            
             tab_tip_lines = [
                 f"<b>{s_label}</b>",
-                f"• {get_text('cached_matches_title', lang=lang, count=len(cards_list)).split('(')[0].strip()}: <b>{len(cards_list)}</b>",
-                f"• {get_text('win', lang=lang)}: <b>{wins_cnt}</b>",
-                f"• {get_text('loss', lang=lang)}: <b>{loss_cnt}</b>"
+                f"• {lbl_saved}: <b>{len(cards_list)}</b>",
+                f"• {lbl_v}: <b>{wins_cnt}</b>",
+                f"• {lbl_d}: <b>{loss_cnt}</b>"
             ]
             tab_tip_html = "<br/>".join(tab_tip_lines).replace('"', '&quot;')
 
@@ -465,20 +469,28 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     </style>
 </head>
 <body>
-    <div class="lang-picker">
-        <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
-            <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
-        </a>
-        <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
-            <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
-        </a>
+    <div class="top-nav-bar">
+        <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
+            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
+        </div>
+        <div class="lang-picker">
+            <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
+                <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
+            </a>
+            <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
+                <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
+            </a>
+        </div>
     </div>
 
     <div class="container">
         <div class="header">
             <div>
                 <a href="/?lang={lang}" style="text-decoration:none;" title="Voltar ao início">
-                    <h1 class="logo-title" style="font-size:1.8rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:8px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
+                    <div style="display:inline-flex; align-items:baseline; gap:16px;">
+                        <h1 class="logo-title" style="font-size:2.35rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:10px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
+                        <span class="logo-author-badge">by TBlazeWarriorT</span>
+                    </div>
                 </a>
                 <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">{get_text('app_sub', lang=lang)}</div>
             </div>
