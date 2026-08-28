@@ -71,6 +71,7 @@ def get_cached_matches_list(lang: str = "pt_BR"):
                         "icon": dd.get_champion_icon_url(raw_champ),
                         "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
                         "win": p.get("win", False),
+                        "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
                         "puuid": p.get("puuid"),
                         "team_id": p.get("teamId", 100),
                         "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN")
@@ -118,10 +119,27 @@ def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US") -> str:
     q_name = get_text(q_key, lang=lang) if q_key else ""
     return f"{mode_name} ({q_name})" if q_name else mode_name
 
-def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None):
-    win_class = "card-win" if win else "card-loss"
-    win_txt = get_text("win", lang=lang) if win else get_text("loss", lang=lang)
-    badge_class = "badge-win" if win else "badge-loss"
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0):
+    m_upper = str(mode).upper()
+    is_arena = ("CHERRY" in m_upper or "ARENA" in m_upper or queue_id == 1700)
+    
+    # In Arena: top 50% is considered a win (e.g. 1st-4th in 8-team 2v2v2v2 or 1st-2nd/3rd in 3v3v3v3)
+    if is_arena and placement:
+        is_effective_win = placement <= 4 if queue_id == 1700 or placement <= 8 else win
+        place_suffix = f" (#{placement})"
+        win_class = "card-win" if is_effective_win else "card-loss"
+        badge_class = "badge-win" if is_effective_win else "badge-loss"
+        
+        ord_suffix = {1: "ST", 2: "ND", 3: "RD"}.get(placement, "TH")
+        if is_effective_win:
+            win_txt = f"👑 {placement}º LUGAR" if lang == "pt_BR" else f"👑 {placement}{ord_suffix} PLACE"
+        else:
+            win_txt = f"🪦 {placement}º LUGAR" if lang == "pt_BR" else f"🪦 {placement}{ord_suffix} PLACE"
+    else:
+        win_class = "card-win" if win else "card-loss"
+        win_txt = get_text("win", lang=lang) if win else get_text("loss", lang=lang)
+        badge_class = "badge-win" if win else "badge-loss"
+
     btn_text = get_text("btn_cached", lang=lang) if is_cached else get_text("btn_analyze", lang=lang)
     btn_class = "btn-analyze btn-cached" if is_cached else "btn-analyze"
     time_badge = f'<span style="color:#64748b; font-size:0.78rem; margin-left:6px;">• {rel_time}</span>' if rel_time else ""
@@ -131,7 +149,6 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
     search_link = f"/search?game_name={g_name}&tag_line={t_line}&lang={lang}" if t_line else "#"
 
     # Find lane opponent only in Summoner's Rift (CLASSIC)
-    m_upper = str(mode).upper()
     is_classic = (m_upper == "CLASSIC" or queue_id in (420, 440, 400, 430))
     opp_champ = None
     target_part = None
@@ -187,14 +204,16 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                 <div class="m-champ-name">
                     {champ_name} 
                     <a href="{search_link}" class="summoner-link" title="Buscar partidas">({riot_id})</a>
-                    <span class="m-badge {badge_class}">{win_txt}</span>
                 </div>
                 <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
             </div>
         </div>
         <div class="m-right">
             {teams_html}
-            <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
+            <div class="m-actions-row">
+                <span class="m-badge {badge_class}">{win_txt}</span>
+                <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
+            </div>
         </div>
     </div>
     """
@@ -262,7 +281,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
                 p.get("win", False), m["duration"], m["game_mode"],
                 p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
-                team_100=m.get("team_100"), team_200=m.get("team_200")
+                team_100=m.get("team_100"), team_200=m.get("team_200"), placement=p.get("placement", 0)
             )
 
             s_name = p.get("name", "")
@@ -312,11 +331,25 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </button>
                 """
 
-            # Parse game_name and tag_line for load more
+            # Parse game_name and tag_line for refresh & load more
             load_more_btn = ""
+            refresh_btn = ""
             if "#" in s_label:
                 parts = s_label.split("#")
                 g_n, t_l = parts[0], parts[1]
+                
+                lbl_refresh = get_text("btn_refresh_summoner", lang=lang)
+                refresh_btn = f"""
+                <form action="/search" method="GET" style="margin:0; display:inline;">
+                    <input type="hidden" name="game_name" value="{g_n}"/>
+                    <input type="hidden" name="tag_line" value="{t_l}"/>
+                    <input type="hidden" name="lang" value="{lang}"/>
+                    <button type="submit" class="btn-tab-action btn-tab-refresh" onclick="this.innerText='{get_text('refreshing_btn', lang=lang)}';">
+                        <span>{lbl_refresh}</span>
+                    </button>
+                </form>
+                """
+
                 lbl_load_more = get_text("btn_load_more", lang=lang)
                 load_more_btn = f"""
                 <form action="/load_more" method="GET" style="margin:0; display:inline;">
@@ -330,10 +363,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </form>
                 """
 
-            if expand_btn or load_more_btn:
+            if expand_btn or load_more_btn or refresh_btn:
                 actions_html = f"""
                 <div class="tab-actions-bar">
                     {expand_btn}
+                    {refresh_btn}
                     {load_more_btn}
                 </div>
                 """
@@ -364,7 +398,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0;">{c_title}</h3>
                 <form action="/clear_cache" method="POST" onsubmit="return confirm('{get_text('confirm_clear_cache', lang=lang)}');">
-                    <button type="submit" class="btn" style="background:#475569; font-size:0.78rem; padding:6px 12px;">{get_text('btn_clear_cache', lang=lang)}</button>
+                    <button type="submit" class="btn btn-clear-cache">{get_text('btn_clear_cache', lang=lang)}</button>
                 </form>
             </div>
             
@@ -565,6 +599,7 @@ class AppHandler(BaseHTTPRequestHandler):
                                 "icon": dd.get_champion_icon_url(raw_champ),
                                 "kda": f"{part.get('kills')}/{part.get('deaths')}/{part.get('assists')}",
                                 "win": part.get("win", False),
+                                "placement": part.get("subteamPlacement") or part.get("placement") or part.get("challenges", {}).get("placement", 0),
                                 "puuid": part.get("puuid"),
                                 "team_id": part.get("teamId", 100),
                                 "role": part.get("teamPosition") or part.get("individualPosition", "UNKNOWN")
@@ -582,6 +617,7 @@ class AppHandler(BaseHTTPRequestHandler):
                             target_p = info["participants"][0]
 
                         raw_champ = target_p.get("championName", "") if target_p else ""
+                        target_placement = target_p.get("subteamPlacement") or target_p.get("placement") or target_p.get("challenges", {}).get("placement", 0) if target_p else 0
                         results.append({
                             "match_id": mid,
                             "puuid": puuid,
@@ -589,6 +625,7 @@ class AppHandler(BaseHTTPRequestHandler):
                             "champion_icon": dd.get_champion_icon_url(raw_champ),
                             "kda": f"{target_p.get('kills')}/{target_p.get('deaths')}/{target_p.get('assists')}" if target_p else "0/0/0",
                             "win": target_p.get("win", False) if target_p else False,
+                            "placement": target_placement,
                             "duration": f"{dur_s // 60}m {dur_s % 60}s",
                             "relative_time": format_relative_time(creation_ms, lang=lang),
                             "game_mode": info.get("gameMode", "CLASSIC"),

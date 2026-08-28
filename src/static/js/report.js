@@ -249,6 +249,21 @@ function initCustomTooltips() {
 }
 window.addEventListener("DOMContentLoaded", initCustomTooltips);
 
+// Trigger sleek loading bar on analyze button click
+document.addEventListener("click", function(e) {
+    var btn = e.target.closest(".btn-analyze");
+    if (btn) {
+        btn.classList.add("is-loading");
+    }
+});
+
+// Clear stuck loading states on browser back/forward (BFCache navigation)
+window.addEventListener("pageshow", function(e) {
+    document.querySelectorAll(".btn-analyze.is-loading").forEach(function(btn) {
+        btn.classList.remove("is-loading");
+    });
+});
+
 function swapPageContent(targetUrl, pushToHistory) {
     fetch(targetUrl)
         .then(function(res) { return res.text(); })
