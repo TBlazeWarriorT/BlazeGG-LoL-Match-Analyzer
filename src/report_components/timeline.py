@@ -28,7 +28,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             events_list_items.append(f"""
             <li class="event-item event-obj {obj_theme_class} {extra_class}">
                 <span class="event-time">{t}</span>
-                <img class="event-avatar" src="{icon_uri}"/>
+                <div class="event-avatar-wrap"><img class="event-avatar" src="{icon_uri}"/></div>
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)
@@ -60,7 +60,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             assists_html = ""
             if c_ast > 0:
                 assister_icons = "".join([
-                    f'<img class="event-assister-avatar" src="{a["icon"]}" title="{a["champ"]} ({a["name"]})" alt="{a["champ"]}"/>'
+                    f'<div class="event-assister-wrap"><img class="event-assister-avatar" src="{a["icon"]}" title="{a["champ"]} ({a["name"]})" alt="{a["champ"]}"/></div>'
                     for a in ev.get("assisters", [])
                 ])
                 ast_label = get_text("assists_plural", lang=lang) if c_ast > 1 else get_text("assists", lang=lang)
@@ -74,7 +74,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 <li class="event-item event-kill event-execution {extra_class}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
-                        <img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/>
+                        <div class="event-avatar-wrap"><img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/></div>
                         <span class="event-arrow">💀</span>
                     </div>
                     <span class="event-desc">
@@ -90,9 +90,9 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 <li class="event-item event-kill {streak_class} {extra_class}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
-                        <img class="event-avatar" src="{ev['killer_icon']}" title="{ev['killer_champ']}"/>
+                        <div class="event-avatar-wrap"><img class="event-avatar" src="{ev['killer_icon']}" title="{ev['killer_champ']}"/></div>
                         <span class="event-arrow">⚔️</span>
-                        <img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/>
+                        <div class="event-avatar-wrap"><img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/></div>
                     </div>
                     <span class="event-desc">
                         {desc_html}
