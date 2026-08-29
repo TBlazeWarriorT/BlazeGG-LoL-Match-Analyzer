@@ -48,70 +48,69 @@ _MATCHES_CACHE_TIMESTAMP = 0
 
 def get_cached_matches_list(lang: str = "en_US"):
     global _MATCHES_CACHE_STORE, _MATCHES_CACHE_TIMESTAMP
+    from src.cache_manager import list_cache_files, load_json
     if not MATCH_CACHE_DIR.exists():
         return []
 
     # Get current directory state / latest mtime
     try:
-        current_files = list(MATCH_CACHE_DIR.glob("*.json"))
+        current_files = list_cache_files(MATCH_CACHE_DIR)
         latest_mtime = max((f.stat().st_mtime for f in current_files), default=0)
         cache_key = (lang, len(current_files), latest_mtime)
         if cache_key in _MATCHES_CACHE_STORE:
             return _MATCHES_CACHE_STORE[cache_key]
     except Exception:
-        current_files = list(MATCH_CACHE_DIR.glob("*.json"))
+        current_files = list_cache_files(MATCH_CACHE_DIR)
 
     matches = []
     dd = get_ddragon(lang)
     for f in current_files:
         try:
-            with open(f, "r", encoding="utf-8") as file:
-                data = json.load(file)
-                info = data.get("info", {})
-                meta = data.get("metadata", {})
-                mid = meta.get("matchId", f.stem)
-                dur_s = info.get("gameDuration", 0)
-                creation_ms = info.get("gameCreation", 0)
-                target_puuid = meta.get("target_puuid", "")
-                parts = []
-                t1_parts = []
-                t2_parts = []
+            data = load_json(f)
+            if not data:
+                continue
+            info = data.get("info", {})
+            meta = data.get("metadata", {})
+            mid = meta.get("matchId", f.name.split(".")[0])
+            dur_s = info.get("gameDuration", 0)
+            creation_ms = info.get("gameCreation", 0)
+            target_puuid = meta.get("target_puuid", "")
+            parts = []
+            t1_parts = []
+            t2_parts = []
 
+            for p in info.get("participants", []):
+                raw_champ = p.get("championName", "")
+                part_dict = {
+                    "name": p.get("riotIdGameName", ""),
+                    "tag": p.get("riotIdTagline", ""),
+                    "champion": dd.get_clean_champion_name(raw_champ),
+                    "icon": dd.get_champion_icon_url(raw_champ),
+                    "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
+                    "win": p.get("win", False),
+                    "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
+                    "puuid": p.get("puuid"),
+                    "team_id": p.get("teamId", 100),
+                    "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN")
+                }
+                parts.append(part_dict)
+                if p.get("teamId", 100) == 100:
+                    t1_parts.append(part_dict)
+                else:
+                    t2_parts.append(part_dict)
 
-
-                for p in info.get("participants", []):
-                    raw_champ = p.get("championName", "")
-                    part_dict = {
-                        "name": p.get("riotIdGameName", ""),
-                        "tag": p.get("riotIdTagline", ""),
-                        "champion": dd.get_clean_champion_name(raw_champ),
-                        "icon": dd.get_champion_icon_url(raw_champ),
-                        "kda": f"{p.get('kills')}/{p.get('deaths')}/{p.get('assists')}",
-                        "win": p.get("win", False),
-                        "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
-                        "puuid": p.get("puuid"),
-                        "team_id": p.get("teamId", 100),
-                        "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN")
-                    }
-                    parts.append(part_dict)
-                    if p.get("teamId", 100) == 100:
-                        t1_parts.append(part_dict)
-                    else:
-                        t2_parts.append(part_dict)
-
-
-                matches.append({
-                    "match_id": mid,
-                    "game_mode": info.get("gameMode", "CLASSIC"),
-                    "queue_id": info.get("queueId", 0),
-                    "duration": f"{dur_s // 60}m {dur_s % 60}s",
-                    "creation_ms": creation_ms,
-                    "relative_time": format_relative_time(creation_ms, lang=lang),
-                    "target_puuid": target_puuid,
-                    "participants": parts,
-                    "team_100": t1_parts,
-                    "team_200": t2_parts
-                })
+            matches.append({
+                "match_id": mid,
+                "game_mode": info.get("gameMode", "CLASSIC"),
+                "queue_id": info.get("queueId", 0),
+                "duration": f"{dur_s // 60}m {dur_s % 60}s",
+                "creation_ms": creation_ms,
+                "relative_time": format_relative_time(creation_ms, lang=lang),
+                "target_puuid": target_puuid,
+                "participants": parts,
+                "team_100": t1_parts,
+                "team_200": t2_parts
+            })
         except Exception:
             continue
     matches.sort(key=lambda x: x.get("creation_ms", 0), reverse=True)
@@ -981,11 +980,13 @@ class AppHandler(BaseHTTPRequestHandler):
 
             if s_label and is_local:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
+                from src.cache_manager import list_cache_files, load_json
                 if MATCH_CACHE_DIR.exists():
-                    for f in MATCH_CACHE_DIR.glob("*.json"):
+                    for f in list_cache_files(MATCH_CACHE_DIR):
                         try:
-                            with open(f, "r", encoding="utf-8") as file:
-                                data = json.load(file)
+                            data = load_json(f)
+                            if not data:
+                                continue
                             info = data.get("info", {})
                             meta = data.get("metadata", {})
                             target_puuid = meta.get("target_puuid", "")
@@ -1002,10 +1003,11 @@ class AppHandler(BaseHTTPRequestHandler):
                                     break
                             
                             if p_match:
-                                m_id = meta.get("matchId", f.stem)
+                                m_id = meta.get("matchId", f.name.split(".")[0])
                                 f.unlink(missing_ok=True)
                                 if TIMELINE_CACHE_DIR.exists():
                                     (TIMELINE_CACHE_DIR / f"{m_id}.json").unlink(missing_ok=True)
+                                    (TIMELINE_CACHE_DIR / f"{m_id}.json.gz").unlink(missing_ok=True)
                         except Exception:
                             continue
             
@@ -1013,9 +1015,10 @@ class AppHandler(BaseHTTPRequestHandler):
             self._redirect(f"/?lang={lang}", cookies=del_cookie)
         elif parsed.path == "/clear_cache":
             from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
+            from src.cache_manager import list_cache_files
             for d in [MATCH_CACHE_DIR, TIMELINE_CACHE_DIR]:
                 if d.exists():
-                    for f in d.glob("*.json"):
+                    for f in list_cache_files(d):
                         try:
                             f.unlink()
                         except Exception:

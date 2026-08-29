@@ -23,15 +23,16 @@ def main():
         match_id = last_session.get("match_id")
         target_puuid = last_session.get("puuid")
 
-    if not match_id or not (MATCH_CACHE_DIR / f"{match_id}.json").exists():
-        match_files = glob.glob(str(MATCH_CACHE_DIR / "*.json"))
+    if not match_id or (not (MATCH_CACHE_DIR / f"{match_id}.json.gz").exists() and not (MATCH_CACHE_DIR / f"{match_id}.json").exists()):
+        from src.cache_manager import list_cache_files
+        match_files = list_cache_files(MATCH_CACHE_DIR)
         if not match_files:
             print("\n[!] Nenhuma partida em cache encontrada!")
             print("Baixe uma partida primeiro usando 3_BAIXAR_NOVA_PARTIDA.bat")
             input("\nPressione Enter para fechar...")
             return
         latest_file = max(match_files, key=os.path.getmtime)
-        match_id = Path(latest_file).stem
+        match_id = latest_file.name.split(".")[0]
 
     match_data = load_json(MATCH_CACHE_DIR / f"{match_id}.json")
     timeline_data = load_json(TIMELINE_CACHE_DIR / f"{match_id}.json") or {}
