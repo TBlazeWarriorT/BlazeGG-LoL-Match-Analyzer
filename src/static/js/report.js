@@ -522,65 +522,6 @@ document.addEventListener("click", function(e) {
     }
 });
 
-// Clear stuck loading states on browser back/forward (BFCache navigation)
-window.addEventListener("pageshow", function(e) {
-    document.querySelectorAll(".btn-analyze.is-loading").forEach(function(btn) {
-        btn.classList.remove("is-loading");
-    });
-});
-
-function swapPageContent(targetUrl, pushToHistory) {
-    fetch(targetUrl)
-        .then(function(res) { return res.text(); })
-        .then(function(htmlText) {
-            var parser = new DOMParser();
-            var doc = parser.parseFromString(htmlText, "text/html");
-
-            document.title = doc.title;
-            document.documentElement.lang = doc.documentElement.lang;
-
-            var currentContainer = document.querySelector(".container");
-            var newContainer = doc.querySelector(".container");
-            if (currentContainer && newContainer) {
-                currentContainer.innerHTML = newContainer.innerHTML;
-            }
-
-            var currentPicker = document.querySelector(".lang-picker");
-            var newPicker = doc.querySelector(".lang-picker");
-            if (currentPicker && newPicker) {
-                currentPicker.innerHTML = newPicker.innerHTML;
-            }
-
-            if (pushToHistory) {
-                window.history.pushState({ url: targetUrl }, "", targetUrl);
-            }
-
-            if (typeof autoResizeTextarea === "function") autoResizeTextarea();
-            if (typeof syncTimelineState === "function") syncTimelineState();
-            if (typeof initRiotIdSmartPaste === "function") initRiotIdSmartPaste();
-        })
-        .catch(function() {
-            window.location.href = targetUrl;
-        });
-}
-
-// ⚡ Seamless In-Place Language Switching (Zero reload, zero scroll jump)
-document.addEventListener("click", function(e) {
-    var langLink = e.target.closest(".lang-btn");
-    if (!langLink || langLink.classList.contains("active")) return;
-    
-    e.preventDefault();
-    var targetUrl = langLink.getAttribute("href");
-    if (!targetUrl) return;
-
-    swapPageContent(targetUrl, true);
-});
-
-// Handle browser back/forward buttons seamlessly
-window.addEventListener("popstate", function() {
-    swapPageContent(window.location.href, false);
-});
-
 // ⚡ Smart Riot ID Paste / Input Splitter (Paste "Name#TAG" -> splits into Name & Tag)
 function initRiotIdSmartPaste() {
     var nameInput = document.querySelector('input[name="game_name"]');

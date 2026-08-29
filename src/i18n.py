@@ -15,7 +15,7 @@ LANGUAGES = {
         "search_game_name_ph": "Nome (Ex: Hide on bush)",
         "search_tag_ph": "TAG (Ex: KR1)",
         "search_btn": "Buscar Partidas ➔",
-        "kofi_btn": "Apoie no Ko-fi",
+        "kofi_btn": "Me apoie no Ko-fi",
 
         "searching_btn": "Buscando...",
         "live_matches_title": "🎮 Últimas Partidas de {name}#{tag} (Live Riot API)",

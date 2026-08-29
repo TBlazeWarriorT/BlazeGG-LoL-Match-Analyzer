@@ -602,7 +602,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 <body>
     <div class="top-nav-bar">
         <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
-            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
+            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
         </div>
         <div class="lang-picker">
             <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
@@ -922,6 +922,8 @@ class AppHandler(BaseHTTPRequestHandler):
                     content = rf.read()
                 
                 self._send_html(content)
+            except (ConnectionError, BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                pass
             except Exception as e:
                 err_text = get_text("err_analyze_match", lang=lang, match_id=match_id, err=str(e))
                 self._send_html(render_home_html(error_msg=err_text, lang=lang))
@@ -1029,13 +1031,16 @@ class AppHandler(BaseHTTPRequestHandler):
 
 
     def _send_html(self, html_str: str):
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-        self.send_header("Pragma", "no-cache")
-        self.send_header("Expires", "0")
-        self.end_headers()
-        self.wfile.write(html_str.encode("utf-8"))
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            self.end_headers()
+            self.wfile.write(html_str.encode("utf-8"))
+        except (ConnectionError, BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            pass
 
     def _redirect(self, url: str, cookies: list = None):
         self.send_response(302)

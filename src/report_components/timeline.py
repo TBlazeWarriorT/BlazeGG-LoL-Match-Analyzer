@@ -417,15 +417,14 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
     win_announcement = get_text("victory_announcement", lang=lang, team=f"<b style='color:{'#60a5fa' if t100_win else '#f87171'};'>{winning_team_name}</b>")
     game_ended_title = get_text("game_ended", lang=lang)
 
-    # Render all 10 avatars with tooltips
-    all_players = team_100.get("players", []) + team_200.get("players", [])
-    end_avatars_html = []
-    for p in all_players:
+    # Render avatars grouped by team/subteam with vs divider matching search cards
+    raw_game_mode = str(data.get("game_mode", "")).upper()
+    is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
+    
+    def render_end_avatar(p, border_c):
         raw_c = p.get("champion_raw", "")
         c_name = p.get("champion", "")
         c_icon = p.get("champion_icon", "")
-        is_blue = (p.get("teamId") == 100)
-        border_c = "#60a5fa" if is_blue else "#f87171"
         
         # Build snapshot items
         p_items = p.get("items", [])
@@ -479,8 +478,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         t_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_it["icon"]}" title="{trinket_it.get("name", "")} (Trinket)"/></div>' if trinket_it else '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
         end_items_row = f'<div class="stat-items-row" style="margin-top:4px;">{"".join(m_slots)}{b_slot_html}{t_slot_html}</div>'
 
-        # Tooltip card for end game avatar
-        end_avatars_html.append(f"""
+        return f"""
         <div class="event-avatar-wrap stat-tooltip-trigger" style="border-color:{border_c};">
             <img class="event-avatar" src="{c_icon}" alt="{c_name}"/>
             <div class="stat-popup-card">
@@ -493,7 +491,30 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 {end_items_row}
             </div>
         </div>
-        """)
+        """
+
+    if is_arena:
+        all_arena_players = team_100.get("players", []) + team_200.get("players", [])
+        subteams = {}
+        for p in all_arena_players:
+            place = p.get("placement") or p.get("subteam_id", 0)
+            subteams.setdefault(place, []).append(p)
+        sorted_subteams = sorted(subteams.items(), key=lambda x: x[0] if isinstance(x[0], int) and x[0] > 0 else 99)
+        
+        team_groups_html = []
+        for pl, p_list in sorted_subteams:
+            b_col = "#22c55e" if pl == 1 else ("#38bdf8" if pl <= 2 else "#94a3b8")
+            avatars = "".join([render_end_avatar(p, b_col) for p in p_list])
+            team_groups_html.append(f'<div class="game-end-team-group" style="display:flex; align-items:center; gap:3px; background:#090d16; padding:2px 6px; border-radius:12px; border:1px solid rgba(255,255,255,0.1);">{avatars}</div>')
+        strip_content = ' <span class="m-vs-text" style="color:#64748b; font-weight:800; font-size:0.75rem;">vs</span> '.join(team_groups_html)
+    else:
+        t1_avatars = "".join([render_end_avatar(p, "#60a5fa") for p in team_100.get("players", [])])
+        t2_avatars = "".join([render_end_avatar(p, "#f87171") for p in team_200.get("players", [])])
+        strip_content = f"""
+        <div class="m-team-group m-team-blue">{t1_avatars}</div>
+        <span class="m-vs-text" style="color:#64748b; font-weight:800; font-size:0.75rem;">vs</span>
+        <div class="m-team-group m-team-red">{t2_avatars}</div>
+        """
 
     game_end_li_kills = f"""
     <li class="event-item event-game-end" data-phase="{end_phase}">
@@ -504,7 +525,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 <span><b>{game_ended_title}</b> • {win_announcement}</span>
             </div>
             <div class="game-end-avatars-strip">
-                {''.join(end_avatars_html)}
+                {strip_content}
             </div>
         </span>
     </li>
