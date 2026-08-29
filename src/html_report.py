@@ -61,30 +61,71 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             if p.get("puuid") == target_puuid:
                 target_player = p
                 break
-    if not target_player and all_players:
-        target_player = all_players[0]
 
-    favicon_url = target_player.get("champion_icon", "") if target_player else ""
-    target_nick = target_player.get("riot_id", "") if target_player else ""
-    target_kda = target_player.get("kda", "") if target_player else ""
     match_id_str = data.get("match_id", "")
-
     tab_title_parts = []
-    if target_nick:
-        tab_title_parts.append(target_nick)
-    if target_kda:
-        tab_title_parts.append(f"({target_kda})")
+    if target_player:
+        target_nick = target_player.get("riot_id", "")
+        target_kda = target_player.get("kda", "")
+        if target_nick:
+            tab_title_parts.append(target_nick)
+        if target_kda:
+            tab_title_parts.append(f"({target_kda})")
     if match_mode:
         tab_title_parts.append(match_mode)
     tab_title_parts.append(f"LoL Head-to-Head Duel Analytics ({match_id_str})")
     browser_tab_title = " • ".join(tab_title_parts)
 
+    favicon_url = target_player.get("champion_icon", "") if target_player else ""
     favicon_link = f'<link rel="icon" type="image/png" href="{favicon_url}"/>' if favicon_url else ""
-    header_avatar_html = f'''<div class="avatar-glint-wrapper" style="width:52px; height:52px; border:2px solid var(--accent); box-shadow:0 0 12px rgba(56, 189, 248, 0.35); flex-shrink:0;">
-        <img src="{favicon_url}" alt="{target_nick}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.15); display:block;"/>
-        <span class="avatar-glint-sweep"></span>
-    </div>''' if favicon_url else ""
-
+    
+    if target_player:
+        header_avatar_html = f'''<div class="avatar-glint-wrapper" style="width:52px; height:52px; border:2px solid var(--accent); box-shadow:0 0 12px rgba(56, 189, 248, 0.35); flex-shrink:0;">
+            <img src="{favicon_url}" alt="{target_player.get('riot_id', '')}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.15); display:block;"/>
+            <span class="avatar-glint-sweep"></span>
+        </div>'''
+        target_win = target_player.get("win", False)
+        target_placement = target_player.get("placement", 0)
+        if is_arena and target_placement:
+            is_arena_win = (target_placement <= 4)
+            h_outcome_cls = "badge-win" if is_arena_win else "badge-loss"
+            ord_suf = {1: "ST", 2: "ND", 3: "RD"}.get(target_placement, "TH")
+            key_res = "arena_place_win" if is_arena_win else "arena_place_loss"
+            h_outcome_txt = get_text(key_res, lang=lang, place=target_placement, ord_suffix=ord_suf)
+        else:
+            h_outcome_cls = "badge-win" if target_win else "badge-loss"
+            h_outcome_txt = get_text("win", lang=lang) if target_win else get_text("loss", lang=lang)
+        header_outcome_badge = f'<span class="header-outcome-badge {h_outcome_cls}">{h_outcome_txt}</span>'
+        header_kda_badge = f'<span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_player.get("kda", "")}</span>'
+        header_title_name = target_player.get("riot_id", "")
+        header_main_info = f"""
+        {header_avatar_html}
+        <div style="flex:1;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <h1 style="margin:0; font-size: 1.45rem; font-weight:800; color:#fff;">{header_title_name}</h1>
+                {header_outcome_badge}
+                {header_kda_badge}
+            </div>
+            <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                {rc.get_region_flag_badge(data.get('match_id', ''))}
+                <span style="color:#94a3b8; font-family:monospace;">{data.get('match_id')}</span> • <b>{full_mode_display}</b> • {get_text('duration', lang=lang)}: <b>{data.get('duration')}</b>
+            </div>
+        </div>
+        """
+    else:
+        # Neutral header (searched directly by Match ID)
+        header_main_info = f"""
+        <div style="flex:1;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <h1 style="margin:0; font-size: 1.35rem; font-weight:900; color:#fff; display:flex; align-items:center; gap:8px;">
+                    {rc.get_region_flag_badge(data.get('match_id', ''))}
+                    <span style="font-family:monospace; color:#38bdf8;">{data.get('match_id')}</span>
+                </h1>
+                <span style="background:#1e293b; color:#cbd5e1; font-weight:700; font-size:0.85rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">{full_mode_display}</span>
+                <span style="background:#090d16; color:#94a3b8; font-weight:600; font-size:0.85rem; padding:3px 10px; border-radius:6px; border:1px solid #1e293b;">{get_text('duration', lang=lang)}: <b>{data.get('duration')}</b></span>
+            </div>
+        </div>
+        """
     team_titles_html = f"""
     <div class="team-titles">
         <div style="color: #60a5fa;">{get_text('blue_team', lang=lang)} {t100_status}</div>
@@ -105,21 +146,6 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         }};
     </script>
     """
-
-    # Target player outcome badge (Win/Defeat or Arena placement)
-    target_win = target_player.get("win", False) if target_player else False
-    target_placement = target_player.get("placement", 0) if target_player else 0
-    if is_arena and target_placement:
-        is_arena_win = (target_placement <= 4)
-        h_outcome_cls = "badge-win" if is_arena_win else "badge-loss"
-        ord_suf = {1: "ST", 2: "ND", 3: "RD"}.get(target_placement, "TH")
-        key_res = "arena_place_win" if is_arena_win else "arena_place_loss"
-        h_outcome_txt = get_text(key_res, lang=lang, place=target_placement, ord_suffix=ord_suf)
-    else:
-        h_outcome_cls = "badge-win" if target_win else "badge-loss"
-        h_outcome_txt = get_text("win", lang=lang) if target_win else get_text("loss", lang=lang)
-
-    header_outcome_badge = f'<span class="header-outcome-badge {h_outcome_cls}">{h_outcome_txt}</span>'
 
     html_content = f"""<!DOCTYPE html>
 <html lang="{get_text('html_lang_code', lang=lang)}">
@@ -157,18 +183,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
 
         <div class="header" style="display:flex; align-items:center; gap:16px;">
-            {header_avatar_html}
-            <div style="flex:1;">
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <h1 style="margin:0; font-size: 1.45rem; font-weight:800; color:#fff;">{target_nick}</h1>
-                    {header_outcome_badge}
-                    <span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_kda}</span>
-                </div>
-                <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    {rc.get_region_flag_badge(data.get('match_id', ''))}
-                    <span style="color:#94a3b8; font-family:monospace;">{data.get('match_id')}</span> • <b>{full_mode_display}</b> • {get_text('duration', lang=lang)}: <b>{data.get('duration')}</b>
-                </div>
-            </div>
+            {header_main_info}
         </div>
 
         {team_titles_html}

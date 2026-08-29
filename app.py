@@ -633,12 +633,12 @@ class AppHandler(BaseHTTPRequestHandler):
             
             # Format clean match_id
             match_id = mid_input.upper()
-            if not match_id.startswith(("BR1_", "NA1_", "EUW1_", "KR_")) and match_id.isdigit():
+            if match_id.startswith("KR1_"):
+                match_id = "KR_" + match_id[4:]
+            elif not any(match_id.startswith(p + "_") for p in ["BR1", "NA1", "EUW1", "EUN1", "KR", "JP1", "LA1", "LA2", "OC1", "TR1", "RU", "ME1", "PH2", "SG2", "TH2", "TW2", "VN2"]) and match_id.isdigit():
                 match_id = f"BR1_{match_id}"
             
-            last_sess = get_last_session() or {}
-            puuid = last_sess.get("puuid", "")
-            self._redirect(f"/analyze?match_id={match_id}&puuid={puuid}&lang={lang}")
+            self._redirect(f"/analyze?match_id={match_id}&lang={lang}")
             return
 
         elif path == "/search":
