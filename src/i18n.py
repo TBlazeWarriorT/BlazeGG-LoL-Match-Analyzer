@@ -201,7 +201,7 @@ LANGUAGES = {
         "lbl_defeats": "Derrotas",
         "err_provide_name_tag": "Informe o Nome e a Tag do jogador.",
         "html_lang_code": "pt-BR",
-        "deaths_to_laners_tt": "Mortes causadas pelo(s) oponente(s) de lane",
+        "deaths_to_laners_tt": "Mortes causadas pelo(s) oponente(s) de rota",
         "deaths_to_others_tt": "Mortes causadas por inimigos de outras rotas",
         "dmg_share_tt": "Proporção de Dano: {pct1:.1f}% ({d1:,}) vs {pct2:.1f}% ({d2:,})",
         "arena_team_place": "🏆 #{place} Lugar",
