@@ -1409,6 +1409,39 @@ body {
 .event-item-purchase {
     border-left: 3px solid #10b981;
 }
+.event-game-end {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(78, 42, 6, 0.45) 0%, rgba(30, 20, 8, 0.75) 50%, rgba(15, 23, 42, 0.95) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-left: 4px solid #f59e0b;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15), inset 0 1px 1px rgba(245, 158, 11, 0.35);
+}
+.event-game-end::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.15), rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-25deg);
+    pointer-events: none;
+    transition: none;
+}
+.event-game-end:hover::before {
+    animation: gameEndGlint 1.2s ease-out 1;
+}
+@keyframes gameEndGlint {
+    0% { left: -120%; }
+    100% { left: 160%; }
+}
+.game-end-avatars-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
 .event-kill-duel {
     display: flex;
     align-items: center;

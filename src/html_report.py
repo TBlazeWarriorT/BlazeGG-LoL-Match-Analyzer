@@ -144,6 +144,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             nav_prev_mid: "{get_text('nav_prev_mid', lang=lang)}",
             nav_next_mid: "{get_text('nav_next_mid', lang=lang)}",
             nav_next_late: "{get_text('nav_next_late', lang=lang)}",
+            expand_timeline: "{get_text('expand_timeline', lang=lang)}",
+            collapse_timeline: "{get_text('collapse_timeline', lang=lang)}",
             no_events: "{get_text('no_events_in_phase', lang=lang)}"
         }};
     </script>
@@ -186,7 +188,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 <body>
     <div class="top-nav-bar">
         <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
-            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
+            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
         </div>
         <div class="lang-picker">
             <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
@@ -230,9 +232,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                 <h3 style="margin:0;">{get_text('timeline_title', lang=lang)}</h3>
                 {timeline_top_toggle_btn}
             </div>
-            <ul class="events-list">
-                {events_html}
-            </ul>
+            {events_html}
             {timeline_toggle_btn}
         </div>
 

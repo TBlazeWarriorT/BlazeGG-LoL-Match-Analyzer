@@ -228,13 +228,11 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             else:
                 ev_phase = "late"
 
-            extra_class = "timeline-hidden" if idx >= 10 else ""
-
             if is_exec:
                 exec_text = get_text("was_executed", lang=lang)
                 v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
                 kills_list_items.append(f"""
-                <li class="event-item event-kill event-execution {extra_class}" data-phase="{ev_phase}">
+                <li class="event-item event-kill event-execution" data-phase="{ev_phase}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
                         {v_avatar}
@@ -252,7 +250,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
 
                 kills_list_items.append(f"""
-                <li class="event-item event-kill {streak_class} {extra_class}" data-phase="{ev_phase}">
+                <li class="event-item event-kill {streak_class}" data-phase="{ev_phase}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
                         {k_avatar}
@@ -366,7 +364,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         """
 
         items_list_items.append(f"""
-        <li class="event-item event-item-purchase {extra_class}" data-phase="{ev_phase}">
+        <li class="event-item event-item-purchase" data-phase="{ev_phase}">
             <span class="event-time">{t}</span>
             <div class="event-kill-duel">
                 {avatar_html}
@@ -378,6 +376,142 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             </span>
         </li>
         """)
+
+    # 3. GAME END MILESTONE EVENT
+    raw_dur = data.get("duration", "00:00")
+    # Parse format like "24m 45s" or "24:45"
+    end_min = 0
+    end_sec = 0
+    if "m" in raw_dur:
+        try:
+            parts = raw_dur.replace("s", "").split("m")
+            end_min = int(parts[0].strip())
+            end_sec = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip() else 0
+        except Exception:
+            end_min = 0
+            end_sec = 0
+    elif ":" in raw_dur:
+        try:
+            parts = raw_dur.split(":")
+            end_min = int(parts[0])
+            end_sec = int(parts[1]) if len(parts) > 1 else 0
+        except Exception:
+            end_min = 0
+            end_sec = 0
+
+    match_dur_formatted = f"{end_min:02d}:{end_sec:02d}"
+
+    if end_min < 14:
+        end_phase = "early"
+    elif end_min < 25:
+        end_phase = "mid"
+    else:
+        end_phase = "late"
+
+    team_100 = data.get("team_100", {})
+    team_200 = data.get("team_200", {})
+    t100_win = team_100.get("win", False)
+    t200_win = team_200.get("win", False)
+    
+    winning_team_name = get_text("blue_team", lang=lang) if t100_win else get_text("red_team", lang=lang)
+    win_announcement = get_text("victory_announcement", lang=lang, team=f"<b style='color:{'#60a5fa' if t100_win else '#f87171'};'>{winning_team_name}</b>")
+    game_ended_title = get_text("game_ended", lang=lang)
+
+    # Render all 10 avatars with tooltips
+    all_players = team_100.get("players", []) + team_200.get("players", [])
+    end_avatars_html = []
+    for p in all_players:
+        raw_c = p.get("champion_raw", "")
+        c_name = p.get("champion", "")
+        c_icon = p.get("champion_icon", "")
+        is_blue = (p.get("teamId") == 100)
+        border_c = "#60a5fa" if is_blue else "#f87171"
+        
+        # Build snapshot items
+        p_items = p.get("items", [])
+        p_role = str(p.get("role", "")).upper()
+        has_adc_role = (p_role == "BOTTOM")
+        
+        TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
+        BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
+        CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
+
+        trinket_it = None
+        boot_it = None
+        norm_its = []
+        c_counts = {}
+        c_objs = {}
+        for it in p_items:
+            iid = it.get("id", 0)
+            if iid in TRINKET_IDS and not trinket_it:
+                trinket_it = it
+            elif has_adc_role and iid in BOOT_IDS and not boot_it:
+                boot_it = it
+            else:
+                if iid in CONSUMABLE_STACKS:
+                    c_counts[iid] = c_counts.get(iid, 0) + 1
+                    c_objs[iid] = it
+                else:
+                    norm_its.append((it, 1))
+
+        for iid, count in c_counts.items():
+            norm_its.append((c_objs[iid], count))
+
+        m_slots = []
+        for it, count in norm_its[:6]:
+            if it.get("icon"):
+                b_tag = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
+                m_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" title="{it.get("name", "")}" />{b_tag}</div>')
+        while len(m_slots) < 6:
+            m_slots.append('<div class="stat-item-slot-empty"></div>')
+
+        b_slot_html = ""
+        if has_adc_role:
+            if boot_it:
+                b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_it["icon"]}" title="{boot_it.get("name", "")} (Role Quest Boot)"/></div>'
+            else:
+                b_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
+        elif len(norm_its) > 6:
+            extra_it, extra_count = norm_its[6]
+            b_tag = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
+            b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{b_tag}</div>'
+
+        t_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_it["icon"]}" title="{trinket_it.get("name", "")} (Trinket)"/></div>' if trinket_it else '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
+        end_items_row = f'<div class="stat-items-row" style="margin-top:4px;">{"".join(m_slots)}{b_slot_html}{t_slot_html}</div>'
+
+        # Tooltip card for end game avatar
+        end_avatars_html.append(f"""
+        <div class="event-avatar-wrap stat-tooltip-trigger" style="border-color:{border_c};">
+            <img class="event-avatar" src="{c_icon}" alt="{c_name}"/>
+            <div class="stat-popup-card">
+                <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:800; color:{border_c};">{c_name} ({p.get('riot_id', '')})</span>
+                    <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;">@ {match_dur_formatted} (End)</span>
+                </div>
+                <div style="font-size:0.75rem; color:#f1f5f9; font-weight:700; margin-bottom:4px;">KDA: <b>{p.get('kda', '')}</b> • CS: <b>{p.get('cs', 0)}</b> • Gold: <b>{p.get('gold_total', 0):,}</b></div>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; margin-bottom:4px;">Final Build:</div>
+                {end_items_row}
+            </div>
+        </div>
+        """)
+
+    game_end_li_kills = f"""
+    <li class="event-item event-game-end" data-phase="{end_phase}">
+        <span class="event-time">{match_dur_formatted}</span>
+        <span class="event-desc" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.15rem;">🏆</span>
+                <span><b>{game_ended_title}</b> • {win_announcement}</span>
+            </div>
+            <div class="game-end-avatars-strip">
+                {''.join(end_avatars_html)}
+            </div>
+        </span>
+    </li>
+    """
+
+    kills_list_items.append(game_end_li_kills)
+    items_list_items.append(game_end_li_kills)
 
     tab_kills_txt = get_text("tab_kills_objectives", lang=lang)
     tab_items_txt = get_text("tab_item_purchases", lang=lang)
@@ -415,11 +549,15 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
     </div>
     <div class="timeline-phase-nav-footer" style="display:flex; justify-content:center; gap:10px; margin-top:14px;">
         <button id="timelinePrevPhaseBtn" class="phase-nav-btn" style="display:none;" onclick="navigateTimelinePhase(-1, this)">{get_text('nav_prev_early', lang=lang)}</button>
+        <button id="timelineTogglePhaseBtn" class="phase-nav-btn" style="background:#1e293b; border-color:#475569;" onclick="togglePhaseExpansion()">{get_text('expand_timeline', lang=lang)}</button>
         <button id="timelineNextPhaseBtn" class="phase-nav-btn" onclick="navigateTimelinePhase(1, this)">{get_text('nav_next_mid', lang=lang)}</button>
     </div>
     """
 
-    timeline_top_toggle_btn = ""
+    expand_top_txt = get_text("expand_timeline", lang=lang)
+    timeline_top_toggle_btn = f"""
+    <button id="toggleTimelineTopBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.78rem; padding:4px 12px; border-radius:6px; cursor:pointer;" onclick="togglePhaseExpansion()">{expand_top_txt}</button>
+    """
     timeline_toggle_btn = ""
 
     return combined_html, timeline_top_toggle_btn, timeline_toggle_btn

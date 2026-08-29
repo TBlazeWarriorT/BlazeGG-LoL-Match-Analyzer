@@ -196,37 +196,58 @@ var PHASE_NAMES = {
     "late": "Late Game (25m+)"
 };
 
-function syncTimelineState() {
-    var activePane = document.querySelector(".timeline-pane.active") || document.getElementById("timelinePaneKills");
-    var paneItems = activePane ? activePane.querySelectorAll(".events-list .event-item") : document.querySelectorAll(".events-list .event-item");
-    
-    // Count events per phase in current active tab
-    var phaseCounts = { "early": 0, "mid": 0, "late": 0 };
-    paneItems.forEach(function(el) {
-        var p = el.getAttribute("data-phase") || "early";
-        if (phaseCounts[p] !== undefined) {
-            phaseCounts[p]++;
-        }
-        var matchesPhase = (p === currentTimelinePhase);
-        if (!matchesPhase) {
-            el.style.display = "none";
-        } else {
-            el.style.display = "";
-            el.classList.remove("timeline-hidden");
-        }
-    });
+var isPhaseExpanded = sessionStorage.getItem("blaze_phase_expanded") === "true";
 
-    // If current selected phase is empty but another has events, don't leave blank if possible
+function syncTimelineState() {
     var i18n = window.REPORT_I18N || {};
 
-    // Update Phase Filter Buttons (Disable/Gray-out if empty)
+    // 1. Process items inside both timeline panes
+    ["timelinePaneKills", "timelinePaneItems"].forEach(function(paneId) {
+        var pane = document.getElementById(paneId);
+        if (!pane) return;
+        var items = pane.querySelectorAll(".event-item");
+        var visibleCountInCurrentPhase = 0;
+
+        items.forEach(function(el) {
+            var p = el.getAttribute("data-phase") || "early";
+            var matchesPhase = (p === currentTimelinePhase);
+            if (!matchesPhase) {
+                el.style.display = "none";
+            } else {
+                if (!isPhaseExpanded && visibleCountInCurrentPhase >= 8) {
+                    el.style.display = "none";
+                } else {
+                    el.style.display = "";
+                }
+                visibleCountInCurrentPhase++;
+            }
+        });
+    });
+
+    // 2. Count events per phase in the currently active pane for header & navigation buttons
+    var paneKills = document.getElementById("timelinePaneKills");
+    var paneItems = document.getElementById("timelinePaneItems");
+    var activePane = (paneItems && paneItems.classList.contains("active")) ? paneItems : paneKills;
+    
+    var phaseCounts = { "early": 0, "mid": 0, "late": 0 };
+    if (activePane) {
+        var activeItems = activePane.querySelectorAll(".event-item");
+        activeItems.forEach(function(el) {
+            var p = el.getAttribute("data-phase") || "early";
+            if (phaseCounts[p] !== undefined) {
+                phaseCounts[p]++;
+            }
+        });
+    }
+
+    // 3. Update Phase Filter Buttons (Highlight active, gray out if 0 events in active tab)
     var filterBtns = document.querySelectorAll(".phase-filter-btn");
     filterBtns.forEach(function(b) {
         var onclickAttr = b.getAttribute("onclick") || "";
         var phaseMatch = onclickAttr.match(/'(early|mid|late)'/);
         if (phaseMatch) {
             var ph = phaseMatch[1];
-            var count = phaseCounts[ph];
+            var count = phaseCounts[ph] || 0;
             if (count === 0) {
                 b.classList.add("phase-disabled");
                 b.style.opacity = "0.35";
@@ -246,7 +267,33 @@ function syncTimelineState() {
         }
     });
 
-    // Update Next / Prev Phase Footer Buttons with i18n and empty phase checks
+    // Update Top & Footer Expand / Collapse Buttons
+    var topToggleBtn = document.getElementById("toggleTimelineTopBtn");
+    var footerToggleBtn = document.getElementById("timelineTogglePhaseBtn");
+    var totalInPhase = phaseCounts[currentTimelinePhase] || 0;
+    var hasMoreInPhase = (totalInPhase > 8);
+
+    var toggleTxt = isPhaseExpanded ? (i18n.collapse_timeline || "Recolher ⬆") : (i18n.expand_timeline || "Expandir ⬇");
+
+    if (topToggleBtn) {
+        if (hasMoreInPhase) {
+            topToggleBtn.style.display = "inline-block";
+            topToggleBtn.innerText = toggleTxt;
+        } else {
+            topToggleBtn.style.display = "none";
+        }
+    }
+
+    if (footerToggleBtn) {
+        if (hasMoreInPhase) {
+            footerToggleBtn.style.display = "inline-flex";
+            footerToggleBtn.innerText = toggleTxt;
+        } else {
+            footerToggleBtn.style.display = "none";
+        }
+    }
+
+    // Update Next / Prev Phase Footer Buttons
     var currIdx = PHASES_ORDER.indexOf(currentTimelinePhase);
     var prevBtn = document.getElementById("timelinePrevPhaseBtn");
     var nextBtn = document.getElementById("timelineNextPhaseBtn");
@@ -288,6 +335,12 @@ function syncTimelineState() {
             nextBtn.style.display = "none";
         }
     }
+}
+
+function togglePhaseExpansion() {
+    isPhaseExpanded = !isPhaseExpanded;
+    sessionStorage.setItem("blaze_phase_expanded", String(isPhaseExpanded));
+    syncTimelineState();
 }
 
 function filterTimelinePhase(phase, btnEl) {
