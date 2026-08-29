@@ -153,7 +153,11 @@ class MatchAnalysis:
             "champion": champ_name,
             "champion_raw": raw_champ,
             "champion_icon": self.ddragon.get_champion_icon_url(raw_champ),
-            "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
+            "role": (
+                ""
+                if str(p.get("teamPosition") or p.get("individualPosition") or "").strip().upper() in ["", "INVALID", "UNKNOWN"]
+                else str(p.get("teamPosition") or p.get("individualPosition", "")).strip().upper()
+            ),
             "champ_level": p.get("champLevel", 1),
             "kda": f"{k}/{d}/{a}",
             "executions": exec_count,
@@ -274,7 +278,13 @@ class MatchAnalysis:
             t_lines = [f"\n[{team_name} TEAM]"]
             for p in data[team_key]["players"]:
                 items_str = ", ".join([it["name"] for it in p["items"]]) or "None"
-                t_lines.append(f"• {p['role']} {p['champion']} ({p['riot_id']}): KDA {p['kda']} | CS {p['cs']} | DMG {p['damage_to_champions']:,} | GOLD {p['gold_total']:,} | ITEMS: {items_str}")
+                dmg_total = p["damage_to_champions"]
+                dmg_p = p.get("damage_physical", 0)
+                dmg_m = p.get("damage_magic", 0)
+                dmg_t = p.get("damage_true", 0)
+                dmg_str = f"{dmg_total:,} (Phys: {dmg_p:,}, Magic: {dmg_m:,}, True: {dmg_t:,})"
+                role_prefix = f"{p['role']} " if p.get("role") else ""
+                t_lines.append(f"• {role_prefix}{p['champion']} ({p['riot_id']}): KDA {p['kda']} | CS {p['cs']} | DMG {dmg_str} | GOLD {p['gold_total']:,} | ITEMS: {items_str}")
             return t_lines
 
         lines.extend(format_team_players("team_100", "BLUE"))
