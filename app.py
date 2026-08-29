@@ -666,11 +666,7 @@ class AppHandler(BaseHTTPRequestHandler):
         x_forwarded_for = self.headers.get("X-Forwarded-For", "")
         client_ip = self.client_address[0]
         
-        # In production or behind public reverse proxy, consider non-local
-        if os.getenv("BLAZE_ENV") == "production" or x_forwarded_for:
-            is_local = False
-        else:
-            is_local = (client_ip in ("127.0.0.1", "::1")) and ("localhost" in host_header or "127.0.0.1" in host_header)
+        is_local = not is_production_mode()
 
         cookies_raw = self.headers.get("Cookie", "")
         import http.cookies
@@ -907,8 +903,7 @@ class AppHandler(BaseHTTPRequestHandler):
             exp_text = form_data.get("expires_text", [""])[0].strip()
             lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
             
-            client_ip = self.client_address[0]
-            is_local = client_ip in ("127.0.0.1", "::1", "localhost") or self.headers.get("Host", "").startswith("localhost")
+            is_local = not is_production_mode()
             
             cookies_to_set = []
             if new_key:
@@ -931,11 +926,7 @@ class AppHandler(BaseHTTPRequestHandler):
             
             host_header = self.headers.get("Host", "").lower()
             x_forwarded_for = self.headers.get("X-Forwarded-For", "")
-            client_ip = self.client_address[0]
-            if os.getenv("BLAZE_ENV") == "production" or x_forwarded_for:
-                is_local = False
-            else:
-                is_local = (client_ip in ("127.0.0.1", "::1")) and ("localhost" in host_header or "127.0.0.1" in host_header)
+            is_local = not is_production_mode()
             
             cookies_raw = self.headers.get("Cookie", "")
             import http.cookies
