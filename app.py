@@ -435,7 +435,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </div>
                 """
 
-            del_prompt = get_text("del_summoner_prompt", lang=lang)
+            del_prompt = get_text("del_summoner_prompt", lang=lang) if is_local else get_text("close_summoner_prompt", lang=lang)
+            tab_delete_title = get_text("tooltip_delete_tab", lang=lang) if is_local else get_text("tooltip_close_tab", lang=lang)
             lbl_saved = get_text("lbl_saved_matches", lang=lang)
             lbl_v = get_text("lbl_victories", lang=lang)
             lbl_d = get_text("lbl_defeats", lang=lang)
@@ -448,14 +449,16 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             ]
             tab_tip_html = "<br/>".join(tab_tip_lines).replace('"', '&quot;')
 
+            onsubmit_str = f"event.stopPropagation(); return confirm('{del_prompt}');" if is_local else "event.stopPropagation();"
+
             tab_buttons.append(f"""
             <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})" data-tooltip="{tab_tip_html}">
                 <span>{s_label}</span>
                 <span class="cache-tab-count">{len(cards_list)}</span>
-                <form action="/delete_summoner_cache" method="POST" style="display:inline; margin:0;" onsubmit="event.stopPropagation(); return confirm('{del_prompt}');">
+                <form action="/delete_summoner_cache" method="POST" style="display:inline; margin:0;" onsubmit="{onsubmit_str}">
                     <input type="hidden" name="summoner_label" value="{s_label}"/>
                     <input type="hidden" name="lang" value="{lang}"/>
-                    <button type="submit" class="cache-tab-delete" title="{get_text('tooltip_delete_tab', lang=lang)}" style="background:none; border:none; cursor:pointer;" onclick="event.stopPropagation();">✕</button>
+                    <button type="submit" class="cache-tab-delete" data-tooltip="{tab_delete_title}" style="background:none; border:none; cursor:pointer;" onclick="event.stopPropagation();">✕</button>
                 </form>
             </div>
             """)
