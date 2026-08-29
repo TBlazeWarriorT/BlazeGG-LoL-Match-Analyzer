@@ -5,7 +5,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
@@ -234,21 +234,21 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US"):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry=""):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
     def_name = search_name or last_sess.get("game_name", "")
     def_tag = search_tag or last_sess.get("tag_line", "")
     
-    curr_key = get_api_key()
-    exp_val = get_key_expires_at()
+    curr_key = get_api_key(session_key=session_key)
+    exp_val = get_key_expires_at(session_expiry=session_expiry)
     key_configured = bool(curr_key)
     
     import time
     expiry_msg = ""
     is_expired = False
     
-    prod_mode = is_production_mode()
+    prod_mode = is_production_mode(session_key=session_key)
     err_lower = str(error_msg).lower()
     has_api_error = bool(error_msg and ("expir" in err_lower or "401" in err_lower or "403" in err_lower or "chave" in err_lower or "key" in err_lower or "unauthorized" in err_lower or "forbidden" in err_lower))
     
@@ -618,13 +618,19 @@ class AppHandler(BaseHTTPRequestHandler):
         importlib.reload(src.i18n)
         importlib.reload(src.riot_client)
 
-        parsed = urlparse(self.path)
-        path = parsed.path
-        qs = parse_qs(parsed.query)
-        lang = qs.get("lang", ["en_US"])[0].strip() or "en_US"
+        cookies_raw = self.headers.get("Cookie", "")
+        import http.cookies
+        cookie_obj = http.cookies.SimpleCookie()
+        if cookies_raw:
+            try:
+                cookie_obj.load(cookies_raw)
+            except Exception:
+                pass
+        sess_key = cookie_obj.get("blaze_dev_key").value if "blaze_dev_key" in cookie_obj else ""
+        sess_exp = cookie_obj.get("blaze_dev_exp").value if "blaze_dev_exp" in cookie_obj else ""
 
         if path in ("", "/"):
-            self._send_html(render_home_html(lang=lang))
+            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp))
 
         elif path == "/search_match":
             mid_input = qs.get("match_id", [""])[0].strip()
@@ -655,11 +661,11 @@ class AppHandler(BaseHTTPRequestHandler):
 
             if not name or not tag:
                 err_msg = get_text("err_provide_name_tag", lang=lang)
-                self._send_html(render_home_html(error_msg=err_msg, lang=lang))
+                self._send_html(render_home_html(error_msg=err_msg, lang=lang, session_key=sess_key, session_expiry=sess_exp))
                 return
 
             try:
-                client = RiotClient(lang=lang)
+                client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8)
@@ -739,7 +745,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient(lang=lang)
+                client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8, start=start_offset)
@@ -767,7 +773,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient(lang=lang)
+                client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
                 m = client.get_match_detail(match_id)
                 t = client.get_match_timeline(match_id)
                 
@@ -826,9 +832,22 @@ class AppHandler(BaseHTTPRequestHandler):
             new_key = form_data.get("api_key", [""])[0].strip()
             exp_text = form_data.get("expires_text", [""])[0].strip()
             lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
+            
+            client_ip = self.client_address[0]
+            is_local = client_ip in ("127.0.0.1", "::1", "localhost") or self.headers.get("Host", "").startswith("localhost")
+            
+            cookies_to_set = []
             if new_key:
-                save_api_key(new_key, exp_text)
-            self._redirect(f"/?lang={lang}")
+                exp_ts = parse_expiry_str(exp_text) if exp_text else (int(time.time() + 24 * 3600))
+                if is_local:
+                    # In local development, safely update .env file
+                    save_api_key(new_key, exp_text)
+                else:
+                    # On public/remote server, isolate key inside user's private cookies (never alter global .env)
+                    cookies_to_set.append(f"blaze_dev_key={new_key}; Path=/; SameSite=Lax; Max-Age=86400")
+                    cookies_to_set.append(f"blaze_dev_exp={exp_ts}; Path=/; SameSite=Lax; Max-Age=86400")
+            
+            self._redirect(f"/?lang={lang}", cookies=cookies_to_set)
         elif parsed.path == "/delete_summoner_cache":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length).decode("utf-8")
@@ -889,9 +908,12 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html_str.encode("utf-8"))
 
-    def _redirect(self, url: str):
+    def _redirect(self, url: str, cookies: list = None):
         self.send_response(302)
         self.send_header("Location", url)
+        if cookies:
+            for c in cookies:
+                self.send_header("Set-Cookie", c)
         self.end_headers()
 
 def run_app():

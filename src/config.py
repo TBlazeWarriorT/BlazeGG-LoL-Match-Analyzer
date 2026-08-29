@@ -94,17 +94,17 @@ def get_dev_key() -> str:
 def get_dev_expires_at() -> str:
     return os.getenv("DEV_EXPIRY") or os.getenv("DEV_KEY_EXPIRES_AT") or os.getenv("RIOT_KEY_EXPIRES_AT") or ""
 
-def get_api_key() -> str:
-    # Priority: PROD_KEY > DEV_KEY
-    return get_prod_key() or get_dev_key() or ""
+def get_api_key(session_key: str = "") -> str:
+    # Priority: PROD_KEY > session_key (User Cookie) > DEV_KEY (Local .env)
+    return get_prod_key() or session_key or get_dev_key() or ""
 
-def get_key_expires_at() -> str:
+def get_key_expires_at(session_expiry: str = "") -> str:
     # If using PROD_KEY, never expires
     if get_prod_key():
         return "permanent"
-    return get_dev_expires_at()
+    return session_expiry or get_dev_expires_at()
 
-def is_production_mode() -> bool:
+def is_production_mode(session_key: str = "") -> bool:
     # Production mode is active if PROD_KEY is present or explicit BLAZE_ENV=production
     return bool(get_prod_key() or os.getenv("BLAZE_ENV") == "production")
 
