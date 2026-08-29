@@ -46,6 +46,30 @@ body {
     justify-content: center;
     min-width: 900px;
 }
+.region-flag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #090d16;
+    border: 1px solid #334155;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    line-height: 1;
+}
+.region-flag-img {
+    width: 15px;
+    height: 11px;
+    object-fit: cover;
+    border-radius: 2px;
+    display: inline-block;
+}
+.region-tag-text {
+    font-family: Consolas, Monaco, monospace;
+    letter-spacing: 0.5px;
+}
 .container {
     max-width: 1000px;
     min-width: 860px;

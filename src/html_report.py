@@ -164,7 +164,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                     {header_outcome_badge}
                     <span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_kda}</span>
                 </div>
-                <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem;">
+                <div style="color: var(--text-muted); margin-top: 5px; font-size:0.88rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    {rc.get_region_flag_badge(data.get('match_id', ''))}
                     <span style="color:#94a3b8; font-family:monospace;">{data.get('match_id')}</span> • <b>{full_mode_display}</b> • {get_text('duration', lang=lang)}: <b>{data.get('duration')}</b>
                 </div>
             </div>
