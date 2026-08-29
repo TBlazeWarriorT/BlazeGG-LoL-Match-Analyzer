@@ -5,6 +5,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
+import concurrent.futures
 from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
@@ -755,8 +756,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 match_ids = client.get_recent_matches(puuid, count=8)
                 
                 dd = get_ddragon(lang)
-                results = []
-                for mid in match_ids:
+                
+                def fetch_single_match(mid):
                     try:
                         m = client.get_match_detail(mid, target_puuid=puuid)
                         info = m.get("info", {})
@@ -787,14 +788,12 @@ class AppHandler(BaseHTTPRequestHandler):
                             else:
                                 t2_parts.append(p_info)
 
-
-
                         if not target_p and info.get("participants"):
                             target_p = info["participants"][0]
 
                         raw_champ = target_p.get("championName", "") if target_p else ""
                         target_placement = target_p.get("subteamPlacement") or target_p.get("placement") or target_p.get("challenges", {}).get("placement", 0) if target_p else 0
-                        results.append({
+                        return {
                             "match_id": mid,
                             "puuid": puuid,
                             "champion": dd.get_clean_champion_name(raw_champ),
@@ -808,9 +807,14 @@ class AppHandler(BaseHTTPRequestHandler):
                             "queue_id": info.get("queueId", 0),
                             "team_100": t1_parts,
                             "team_200": t2_parts
-                        })
+                        }
                     except Exception:
-                        continue
+                        return None
+
+                results = []
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                    fetched_items = list(executor.map(fetch_single_match, match_ids))
+                    results = [item for item in fetched_items if item is not None]
 
                 # Add summoner to user's history list
                 searched_riot_id = f"{name}#{tag}"
@@ -851,11 +855,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 match_ids = client.get_recent_matches(puuid, count=8, start=start_offset)
                 
                 dd = get_ddragon(lang)
-                for mid in match_ids:
-                    try:
-                        client.get_match_detail(mid, target_puuid=puuid)
-                    except Exception:
-                        continue
+                with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                    list(executor.map(lambda mid: client.get_match_detail(mid, target_puuid=puuid), match_ids))
 
                 self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang))
 
