@@ -42,14 +42,27 @@ def format_relative_time(creation_ms: int, lang: str = "en_US") -> str:
     else:
         from datetime import datetime
         fmt = "%d/%m/%Y" if lang == "pt_BR" else "%m/%d/%Y"
-        return datetime.fromtimestamp(creation_ms / 1000).strftime(fmt)
+_MATCHES_CACHE_STORE = {}
+_MATCHES_CACHE_TIMESTAMP = 0
 
 def get_cached_matches_list(lang: str = "en_US"):
-    matches = []
+    global _MATCHES_CACHE_STORE, _MATCHES_CACHE_TIMESTAMP
     if not MATCH_CACHE_DIR.exists():
-        return matches
+        return []
+
+    # Get current directory state / latest mtime
+    try:
+        current_files = list(MATCH_CACHE_DIR.glob("*.json"))
+        latest_mtime = max((f.stat().st_mtime for f in current_files), default=0)
+        cache_key = (lang, len(current_files), latest_mtime)
+        if cache_key in _MATCHES_CACHE_STORE:
+            return _MATCHES_CACHE_STORE[cache_key]
+    except Exception:
+        current_files = list(MATCH_CACHE_DIR.glob("*.json"))
+
+    matches = []
     dd = get_ddragon(lang)
-    for f in MATCH_CACHE_DIR.glob("*.json"):
+    for f in current_files:
         try:
             with open(f, "r", encoding="utf-8") as file:
                 data = json.load(file)
@@ -101,6 +114,8 @@ def get_cached_matches_list(lang: str = "en_US"):
         except Exception:
             continue
     matches.sort(key=lambda x: x.get("creation_ms", 0), reverse=True)
+    if 'cache_key' in locals():
+        _MATCHES_CACHE_STORE[cache_key] = matches
     return matches
 
 def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US") -> str:
