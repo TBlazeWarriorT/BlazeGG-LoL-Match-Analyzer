@@ -93,7 +93,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 role_label = get_text("killer", lang=lang) if is_killer else get_text("victim", lang=lang)
                 border_color = "#38bdf8" if is_killer else "#ef4444"
 
-                # Items row inside tooltip: 6 main slots | Boot/Quest Slot | Trinket
+                # Items row inside tooltip: 6 main slots | Role Quest Slot (ADC / Special) | Trinket
                 items_row_html = ""
                 if items_snapshot:
                     TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
@@ -106,11 +106,15 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     item_counts = {}
                     item_objs = {}
                     
+                    # Detect role from ev dictionary
+                    p_role = str(ev.get("killer_role" if is_killer else "victim_role", "")).upper()
+                    has_adc_role_slot = (p_role == "BOTTOM")
+                    
                     for it in items_snapshot:
                         iid = it.get("id", 0)
                         if iid in TRINKET_IDS and not trinket_item:
                             trinket_item = it
-                        elif iid in BOOT_IDS and not boot_item:
+                        elif has_adc_role_slot and iid in BOOT_IDS and not boot_item:
                             boot_item = it
                         else:
                             if iid in CONSUMABLE_STACKS:
@@ -130,16 +134,17 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     while len(main_slots) < 6:
                         main_slots.append('<div class="stat-item-slot-empty"></div>')
                     
-                    # 7th Slot: Boot or Quest
+                    # 7th Slot: Only rendered if ADC role has dedicated boot slot or extra quest item
                     boot_slot_html = ""
-                    if boot_item:
-                        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Boot/Role item)"/></div>'
+                    if has_adc_role_slot:
+                        if boot_item:
+                            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Role Quest Boot)"/></div>'
+                        else:
+                            boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
                     elif len(raw_normal_items) > 6:
                         extra_it, extra_count = raw_normal_items[6]
                         count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
                         boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{count_badge}</div>'
-                    else:
-                        boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Boot / Quest Slot"></div>'
 
                     # Trinket Slot
                     trinket_slot_html = ""
@@ -256,11 +261,14 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         item_counts = {}
         item_objs = {}
         
+        p_role = str(ev.get("role", "")).upper()
+        has_adc_role_slot = (p_role == "BOTTOM")
+
         for it in snapshot:
             iid = it.get("id", 0)
             if iid in TRINKET_IDS and not trinket_item:
                 trinket_item = it
-            elif iid in BOOT_IDS and not boot_item:
+            elif has_adc_role_slot and iid in BOOT_IDS and not boot_item:
                 boot_item = it
             else:
                 if iid in CONSUMABLE_STACKS:
@@ -280,16 +288,17 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         while len(main_slots) < 6:
             main_slots.append('<div class="stat-item-slot-empty"></div>')
 
-        # 7th Slot: Boot or Quest
+        # 7th Slot: Only rendered if ADC role has dedicated boot slot or extra quest item
         boot_slot_html = ""
-        if boot_item:
-            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Boot/Role item)"/></div>'
+        if has_adc_role_slot:
+            if boot_item:
+                boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Role Quest Boot)"/></div>'
+            else:
+                boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
         elif len(raw_normal_items) > 6:
             extra_it, extra_count = raw_normal_items[6]
             count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
             boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{count_badge}</div>'
-        else:
-            boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Boot / Quest Slot"></div>'
 
         # Trinket Slot
         trinket_slot_html = ""
@@ -320,8 +329,10 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             <div class="event-kill-duel">
                 {avatar_html}
             </div>
-            <span class="event-desc">
-                <b>{c_name}</b> ({s_name}) {purchased_lbl} <span class="item-purchased-badge"><img src="{i_icon}" alt="{i_name}"/> <span style="font-size:0.78rem; font-weight:700; color:#e2e8f0;">{i_name}</span></span>
+            <span class="event-desc" style="display:flex; align-items:center; gap:8px;">
+                <span><b>{c_name}</b> ({s_name}) {purchased_lbl}</span>
+                <img class="item-icon" src="{i_icon}" alt="{i_name}" title="{i_name}"/>
+                <b>{i_name}</b>
             </span>
         </li>
         """)

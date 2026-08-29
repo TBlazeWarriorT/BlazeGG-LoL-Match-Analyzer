@@ -495,7 +495,16 @@ class MatchAnalysis:
         first_blood_awarded = False
 
         # Track ongoing inventory snapshots per participant
-        inventories = {pid: [] for pid in range(1, 11)}
+        # All players start with Stealth Ward (3340) automatically in matchmade queues
+        inventories = {pid: [3340] for pid in range(1, 11)}
+        
+        # In permanent matchmade Summoner's Rift queues, Support role automatically starts with World Atlas (3865)
+        for p in self.match.get("info", {}).get("participants", []):
+            pid = p.get("participantId")
+            role = p.get("teamPosition") or p.get("individualPosition") or ""
+            if pid and role.upper() == "UTILITY":
+                inventories[pid].append(3865) # Atlas Mundial / World Atlas
+
         item_events_log = []
 
         for frame in frames:
@@ -520,6 +529,7 @@ class MatchAnalysis:
                             "type": "item_purchased",
                             "time": t_str,
                             "participant_id": pid,
+                            "role": str(p_dict.get("teamPosition") or p_dict.get("individualPosition", "")).upper(),
                             "champ": self.ddragon.get_clean_champion_name(raw_c),
                             "champ_icon": self.ddragon.get_champion_icon_url(raw_c),
                             "summoner_name": p_dict.get("riotIdGameName", ""),
@@ -621,11 +631,13 @@ class MatchAnalysis:
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if not is_execution else "",
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
+                        "killer_role": str(k_p.get("teamPosition") or k_p.get("individualPosition", "")).upper() if not is_execution else "",
                         "killer_stats": k_stats,
                         "killer_items": k_items,
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
+                        "victim_role": str(v_p.get("teamPosition") or v_p.get("individualPosition", "")).upper(),
                         "victim_stats": v_stats,
                         "victim_items": v_items,
                         "is_solo": is_solo,

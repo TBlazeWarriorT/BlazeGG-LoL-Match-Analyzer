@@ -238,7 +238,28 @@ function toggleTimeline() {
     syncTimelineState();
 }
 
-window.addEventListener("DOMContentLoaded", syncTimelineState);
+function initSmartTooltips() {
+    document.addEventListener("mouseover", function(e) {
+        var trigger = e.target.closest(".stat-tooltip-trigger");
+        if (!trigger) return;
+        var popup = trigger.querySelector(".stat-popup-card");
+        if (!popup) return;
+
+        var rect = trigger.getBoundingClientRect();
+        var cardHeight = popup.offsetHeight || 300;
+        // Flip downwards aggressively with 60px buffer to protect the top
+        if (rect.top < (cardHeight + 60)) {
+            popup.classList.add("popup-flipped");
+        } else {
+            popup.classList.remove("popup-flipped");
+        }
+    });
+}
+
+window.addEventListener("DOMContentLoaded", function() {
+    syncTimelineState();
+    initSmartTooltips();
+});
 
 function autoResizeTextarea() {
     var ta = document.getElementById("rawSummaryText");
