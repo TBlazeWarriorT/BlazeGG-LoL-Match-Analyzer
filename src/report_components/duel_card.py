@@ -172,6 +172,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         camps_stolen_val = p.get("enemy_jungle_monsters", 0)
 
         lbl_dmg = get_text("dmg_dealt", lang=lang)
+        lbl_dmg_champs = get_text("damage_dealt_label", lang=lang)
         lbl_phys = get_text("dmg_physical", lang=lang)
         lbl_mag = get_text("dmg_magic", lang=lang)
         lbl_true = get_text("dmg_true", lang=lang)
@@ -195,10 +196,10 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         dmg_tot_all = p.get("damage_total_all", 0)
         dmg_obj = p.get("damage_to_objectives", 0)
         dmg_tooltip_lines = [
-            f"<b>💥 {lbl_dmg}: {dmg_tot:,}</b>",
-            f"• {lbl_phys}: <b>{dmg_phys:,}</b>",
-            f"• {lbl_mag}: <b>{dmg_mag:,}</b>",
-            f"• {lbl_true}: <b>{dmg_tru:,}</b>",
+            f"<b>💥 {lbl_dmg_champs}: {dmg_tot:,}</b>",
+            f"  &nbsp; ↳ {lbl_phys}: <b class='dmg-phys'>{dmg_phys:,}</b>",
+            f"  &nbsp; ↳ {lbl_mag}: <b class='dmg-mag'>{dmg_mag:,}</b>",
+            f"  &nbsp; ↳ {lbl_true}: <b class='dmg-true'>{dmg_tru:,}</b>",
             f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
             f"• {get_text('damage_total_all', lang=lang)}: <b>{dmg_tot_all:,}</b>",
             f"• {get_text('damage_objectives', lang=lang)}: <b>{dmg_obj:,}</b>",
