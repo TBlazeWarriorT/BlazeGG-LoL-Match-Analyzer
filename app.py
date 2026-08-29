@@ -5,7 +5,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
@@ -245,9 +245,15 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     expiry_msg = ""
     is_expired = False
     
+    prod_mode = is_production_mode()
+    has_api_error = bool(error_msg and ("expir" in str(error_msg).lower() or "401" in str(error_msg) or "403" in str(error_msg) or "chave" in str(error_msg).lower()))
+    
     if key_configured:
         masked_key = f"{curr_key[:6]}...{curr_key[-4:]}" if len(curr_key) > 10 else "******"
-        if exp_val and str(exp_val).isdigit():
+        if prod_mode:
+            expiry_msg = "Chave de Produção Ativa" if lang == "pt_BR" else "Production Key Active"
+            key_status_badge = ""  # Em produção limpa, não precisa poluir o header
+        elif exp_val and str(exp_val).isdigit():
             exp_ts = int(exp_val)
             diff_s = exp_ts - time.time()
             if diff_s <= 0:
@@ -488,7 +494,12 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         """
 
         # Dynamic positioning: if expired/invalid, put config above cached matches
-        if is_expired or not key_configured or "expir" in str(error_msg).lower():
+        # If in production mode with no error, hide configuration box completely
+        if prod_mode and not has_api_error and key_configured and not is_expired:
+            body_sections_html = f"""
+            {cached_html}
+            """
+        elif is_expired or not key_configured or "expir" in str(error_msg).lower():
             body_sections_html = f"""
             {config_card_html}
             {cached_html}
@@ -891,7 +902,11 @@ def run_app():
         print(f"  ⚡ Auto-Reloader ENABLED (code changes reload on refresh)")
         print(f"  Press Ctrl+C to stop.")
         print(f"==================================================\n")
-        webbrowser.open(url)
+        if not os.getenv("BLAZE_ENV") and not os.getenv("HEADLESS"):
+            try:
+                webbrowser.open(url)
+            except Exception:
+                pass
 
         env = os.environ.copy()
         env["BLAZE_AUTO_RELOAD"] = "1"

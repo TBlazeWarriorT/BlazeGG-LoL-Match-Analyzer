@@ -20,6 +20,11 @@ def get_key_expires_at() -> str:
     global RIOT_KEY_EXPIRES_AT
     return os.getenv("RIOT_KEY_EXPIRES_AT") or RIOT_KEY_EXPIRES_AT or ""
 
+def is_production_mode() -> bool:
+    # Only active if explicitly defined as production or permanent in config/env
+    exp = (get_key_expires_at() or "").lower()
+    return bool(get_api_key() and (exp in ("permanent", "perma", "never") or os.getenv("BLAZE_ENV") == "production"))
+
 def parse_expiry_str(text: str) -> int:
     import re
     if not text:
