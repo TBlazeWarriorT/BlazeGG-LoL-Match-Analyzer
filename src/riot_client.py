@@ -1,7 +1,7 @@
 import requests
 import time
 from typing import Optional, List, Dict, Any
-from .config import get_api_key, get_key_expires_at, DEFAULT_ROUTING, DEFAULT_REGION
+from .config import get_api_key, get_key_expires_at, get_prod_key, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
 from .i18n import get_text
 
@@ -39,7 +39,10 @@ class RiotClient:
             elif resp.status_code == 404:
                 return None
             elif resp.status_code in (401, 403):
-                raise RiotAPIError(get_text("err_key_invalid", lang=self.lang))
+                err_key = "err_prod_key_invalid" if bool(get_prod_key()) else "err_dev_key_invalid"
+                # Extract clean debugging status if returned by Riot
+                detail_msg = f" [Riot API: {resp.status_code} {resp.reason}]" if resp.reason else f" [Riot API: {resp.status_code}]"
+                raise RiotAPIError(get_text(err_key, lang=self.lang, detail=f"<br/><small style='opacity:0.8;'>{detail_msg}</small>"))
             else:
                 raise RiotAPIError(f"Riot API Error [{resp.status_code}]: {resp.text}")
         raise RiotAPIError(get_text("err_rate_limit", lang=self.lang))

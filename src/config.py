@@ -5,10 +5,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
-RIOT_API_KEY = os.getenv("RIOT_API_KEY", "")
-RIOT_KEY_EXPIRES_AT = os.getenv("RIOT_KEY_EXPIRES_AT", "") # Unix timestamp in seconds
+PROD_KEY = os.getenv("PROD_KEY", "")
+DEV_KEY = os.getenv("DEV_KEY", os.getenv("RIOT_API_KEY", ""))
+DEV_EXPIRY = os.getenv("DEV_EXPIRY", os.getenv("RIOT_KEY_EXPIRES_AT", ""))
 DEFAULT_ROUTING = os.getenv("DEFAULT_ROUTING", "americas")
 DEFAULT_REGION = os.getenv("DEFAULT_REGION", "br1")
 
@@ -84,18 +85,28 @@ def get_region_flag_badge(match_id: str) -> str:
         return f'<span class="region-flag-badge"><span class="region-tag-text">{prefix}</span></span>'
     return ""
 
+def get_prod_key() -> str:
+    return os.getenv("PROD_KEY") or os.getenv("RIOT_PROD_KEY") or ""
+
+def get_dev_key() -> str:
+    return os.getenv("DEV_KEY") or os.getenv("RIOT_DEV_KEY") or os.getenv("RIOT_API_KEY") or ""
+
+def get_dev_expires_at() -> str:
+    return os.getenv("DEV_EXPIRY") or os.getenv("DEV_KEY_EXPIRES_AT") or os.getenv("RIOT_KEY_EXPIRES_AT") or ""
+
 def get_api_key() -> str:
-    global RIOT_API_KEY
-    return os.getenv("RIOT_API_KEY") or RIOT_API_KEY or ""
+    # Priority: PROD_KEY > DEV_KEY
+    return get_prod_key() or get_dev_key() or ""
 
 def get_key_expires_at() -> str:
-    global RIOT_KEY_EXPIRES_AT
-    return os.getenv("RIOT_KEY_EXPIRES_AT") or RIOT_KEY_EXPIRES_AT or ""
+    # If using PROD_KEY, never expires
+    if get_prod_key():
+        return "permanent"
+    return get_dev_expires_at()
 
 def is_production_mode() -> bool:
-    # Only active if explicitly defined as production or permanent in config/env
-    exp = (get_key_expires_at() or "").lower()
-    return bool(get_api_key() and (exp in ("permanent", "perma", "never") or os.getenv("BLAZE_ENV") == "production"))
+    # Production mode is active if PROD_KEY is present or explicit BLAZE_ENV=production
+    return bool(get_prod_key() or os.getenv("BLAZE_ENV") == "production")
 
 def parse_expiry_str(text: str) -> int:
     import re
@@ -117,33 +128,33 @@ def parse_expiry_str(text: str) -> int:
     return int(time.time() + 24 * 3600)
 
 def save_api_key(new_key: str, expiry_text: str = ""):
-    global RIOT_API_KEY, RIOT_KEY_EXPIRES_AT
+    # Form updates only modify DEV_KEY and DEV_EXPIRY to safeguard PROD_KEY
     import time
-    RIOT_API_KEY = new_key
     exp_ts = parse_expiry_str(expiry_text) if expiry_text else (int(time.time() + 24 * 3600))
-    RIOT_KEY_EXPIRES_AT = str(exp_ts)
 
     env_file = BASE_DIR / ".env"
     lines = []
-    found_key = False
-    found_exp = False
+    found_dev_key = False
+    found_dev_exp = False
     if env_file.exists():
         with open(env_file, "r", encoding="utf-8") as f:
             for line in f:
-                if line.startswith("RIOT_API_KEY="):
-                    lines.append(f"RIOT_API_KEY={new_key}\n")
-                    found_key = True
-                elif line.startswith("RIOT_KEY_EXPIRES_AT="):
-                    lines.append(f"RIOT_KEY_EXPIRES_AT={exp_ts}\n")
-                    found_exp = True
+                if line.startswith("DEV_KEY=") or line.startswith("RIOT_API_KEY="):
+                    lines.append(f"DEV_KEY={new_key}\n")
+                    found_dev_key = True
+                elif line.startswith("DEV_EXPIRY=") or line.startswith("RIOT_KEY_EXPIRES_AT="):
+                    lines.append(f"DEV_EXPIRY={exp_ts}\n")
+                    found_dev_exp = True
                 else:
                     lines.append(line)
-    if not found_key:
-        lines.append(f"RIOT_API_KEY={new_key}\n")
-    if not found_exp:
-        lines.append(f"RIOT_KEY_EXPIRES_AT={exp_ts}\n")
+    if not found_dev_key:
+        lines.append(f"DEV_KEY={new_key}\n")
+    if not found_dev_exp:
+        lines.append(f"DEV_EXPIRY={exp_ts}\n")
     with open(env_file, "w", encoding="utf-8") as f:
         f.writelines(lines)
+    os.environ["DEV_KEY"] = new_key
+    os.environ["DEV_EXPIRY"] = str(exp_ts)
     os.environ["RIOT_API_KEY"] = new_key
     os.environ["RIOT_KEY_EXPIRES_AT"] = str(exp_ts)
 

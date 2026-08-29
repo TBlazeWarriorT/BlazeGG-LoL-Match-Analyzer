@@ -249,7 +249,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     is_expired = False
     
     prod_mode = is_production_mode()
-    has_api_error = bool(error_msg and ("expir" in str(error_msg).lower() or "401" in str(error_msg) or "403" in str(error_msg) or "chave" in str(error_msg).lower()))
+    err_lower = str(error_msg).lower()
+    has_api_error = bool(error_msg and ("expir" in err_lower or "401" in err_lower or "403" in err_lower or "chave" in err_lower or "key" in err_lower or "unauthorized" in err_lower or "forbidden" in err_lower))
     
     if key_configured:
         masked_key = f"{curr_key[:6]}...{curr_key[-4:]}" if len(curr_key) > 10 else "******"
@@ -496,15 +497,15 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         </div>
         """
 
-        # Dynamic positioning: if expired/invalid, put config above cached matches
+        # Dynamic positioning: if expired/invalid or has API error, put config above cached matches
         # If in production mode with no error, hide configuration box completely
-        if prod_mode and not has_api_error and key_configured and not is_expired:
-            body_sections_html = f"""
-            {cached_html}
-            """
-        elif is_expired or not key_configured or "expir" in str(error_msg).lower():
+        if has_api_error or is_expired or not key_configured:
             body_sections_html = f"""
             {config_card_html}
+            {cached_html}
+            """
+        elif prod_mode:
+            body_sections_html = f"""
             {cached_html}
             """
         else:
