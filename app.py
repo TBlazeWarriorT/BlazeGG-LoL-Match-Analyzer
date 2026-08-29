@@ -916,10 +916,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
                 data = analyzer.generate_full_analysis()
                 
-                src.html_report.generate_html_report(data, open_browser=False, lang=lang)
-                
-                with open(src.html_report.REPORT_FILE, "r", encoding="utf-8") as rf:
-                    content = rf.read()
+                content = src.html_report.generate_html_report(data, open_browser=False, lang=lang)
                 
                 self._send_html(content)
             except (ConnectionError, BrokenPipeError, ConnectionAbortedError, ConnectionResetError):

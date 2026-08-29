@@ -40,7 +40,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             kills_list_items.append(f"""
             <li class="event-item event-obj {obj_theme_class}" data-phase="{ev_phase}">
                 <span class="event-time">{t}</span>
-                <div class="event-avatar-wrap"><img class="event-avatar" src="{icon_uri}"/></div>
+                <img class="event-obj-icon" src="{icon_uri}" alt="{obj_desc}"/>
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)
@@ -68,6 +68,9 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             c_ast = ev.get('assists_count', 0)
             is_exec = ev.get("is_execution", False)
 
+            k_team = ev.get("killer_team", 100)
+            v_team = ev.get("victim_team", 200)
+
             assists_html = ""
             if c_ast > 0:
                 assister_icons = "".join([
@@ -81,7 +84,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
             def render_stat_tooltip(champ_name, stats, items_snapshot=None, is_killer=True):
                 if not stats:
-                    return f'<div class="event-avatar-wrap"><img class="event-avatar" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
+                    return f'<div class="team-champ-mini-wrap" style="margin-right:0;"><img class="team-champ-mini" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
                 
                 hp_max = stats.get("healthMax", stats.get("health", 0))
                 hp_regen = stats.get("healthRegen", 0)
@@ -104,7 +107,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
                 avatar_src = ev["killer_icon"] if is_killer else ev["victim_icon"]
                 role_label = get_text("killer", lang=lang) if is_killer else get_text("victim", lang=lang)
-                border_color = "#38bdf8" if is_killer else "#ef4444"
+                p_team = k_team if is_killer else v_team
+                title_color = "#60a5fa" if p_team == 100 else "#f87171"
 
                 # Items row inside tooltip: 6 main slots | Role Quest Slot (ADC / Special) | Trinket
                 items_row_html = ""
@@ -182,11 +186,13 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     kill_min = 0
 
                 return f"""
-                <div class="event-avatar-wrap stat-tooltip-trigger">
-                    <img class="event-avatar" src="{avatar_src}" alt="{champ_name}"/>
+                <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
+                    <div class="team-champ-mini-wrap" style="margin-right:0;">
+                        <img class="team-champ-mini" src="{avatar_src}" alt="{champ_name}"/>
+                    </div>
                     <div class="stat-popup-card">
                         <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-weight:800; color:{border_color};">{champ_name}</span>
+                            <span style="font-weight:800; color:{title_color};">{champ_name}</span>
                             <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;" title="Lance aos {t} • Snapshot do frame aos {kill_min}m">@ {kill_min}:00 <span style="opacity:0.6;">({t})</span></span>
                         </div>
                         <div class="stat-grid-2col">
@@ -244,13 +250,14 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 </li>
                 """)
             else:
+                team_border_class = "event-kill-blue" if k_team == 100 else "event-kill-red"
                 killer_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
                 desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html}"
                 k_avatar = render_stat_tooltip(ev['killer_champ'], ev.get('killer_stats', {}), ev.get('killer_items', []), is_killer=True)
                 v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
 
                 kills_list_items.append(f"""
-                <li class="event-item event-kill {streak_class}" data-phase="{ev_phase}">
+                <li class="event-item event-kill {team_border_class} {streak_class}" data-phase="{ev_phase}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
                         {k_avatar}
@@ -350,8 +357,10 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         items_row = f'<div class="stat-items-row" style="margin-top:4px;">{"".join(main_slots)}{boot_slot_html}{trinket_slot_html}</div>'
 
         avatar_html = f"""
-        <div class="event-avatar-wrap stat-tooltip-trigger">
-            <img class="event-avatar" src="{c_icon}" alt="{c_name}"/>
+        <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
+            <div class="team-champ-mini-wrap" style="border-color:#38bdf8; margin-right:0;">
+                <img class="team-champ-mini" src="{c_icon}" alt="{c_name}"/>
+            </div>
             <div class="stat-popup-card">
                 <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-weight:800; color:#38bdf8;">{c_name}</span>
@@ -425,6 +434,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         raw_c = p.get("champion_raw", "")
         c_name = p.get("champion", "")
         c_icon = p.get("champion_icon", "")
+        stats = p.get("final_stats", {})
         
         # Build snapshot items
         p_items = p.get("items", [])
@@ -476,19 +486,82 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{b_tag}</div>'
 
         t_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_it["icon"]}" title="{trinket_it.get("name", "")} (Trinket)"/></div>' if trinket_it else '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
-        end_items_row = f'<div class="stat-items-row" style="margin-top:4px;">{"".join(m_slots)}{b_slot_html}{t_slot_html}</div>'
+        
+        items_row_html = f"""
+        <div class="stat-divider"></div>
+        <div class="stat-items-row">
+            {''.join(m_slots)}
+            {b_slot_html}
+            {t_slot_html}
+        </div>
+        """
+
+        if not stats:
+            return f"""
+            <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
+                <div class="team-champ-mini-wrap" style="border-color:{border_c}; margin-right:0;">
+                    <img class="team-champ-mini" src="{c_icon}" alt="{c_name}"/>
+                </div>
+                <div class="stat-popup-card">
+                    <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <span style="font-weight:800; color:{border_c}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{c_name} ({p.get('riot_id', '')})">{c_name}</span>
+                        <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600; white-space:nowrap; flex-shrink:0;">@ {match_dur_formatted} (End)</span>
+                    </div>
+                    {items_row_html}
+                </div>
+            </div>
+            """
+
+        hp_max = stats.get("healthMax", stats.get("health", 0))
+        hp_regen = stats.get("healthRegen", 0)
+        ad = stats.get("attackDamage", 0)
+        ap = stats.get("abilityPower", 0)
+        armor = stats.get("armor", 0)
+        mr = stats.get("magicResist", 0)
+        as_val = stats.get("attackSpeed", 100) / 100.0 if stats.get("attackSpeed", 0) > 10 else stats.get("attackSpeed", 0)
+        ah = stats.get("abilityHaste", 0)
+        ms = stats.get("movementSpeed", 0)
+        lifesteal = stats.get("lifesteal", 0)
+        omnivamp = stats.get("omnivamp", 0) or stats.get("physicalVamp", 0)
+        
+        arm_pen_flat = stats.get("armorPen", 0)
+        arm_pen_pct = stats.get("armorPenPercent", 0) or stats.get("bonusArmorPenPercent", 0)
+        mag_pen_flat = stats.get("magicPen", 0)
+        mag_pen_pct = stats.get("magicPenPercent", 0) or stats.get("bonusMagicPenPercent", 0)
+        tenacity = stats.get("ccReduction", 0)
+        champ_range = stats.get("attackRange", 125)
 
         return f"""
-        <div class="event-avatar-wrap stat-tooltip-trigger" style="border-color:{border_c};">
-            <img class="event-avatar" src="{c_icon}" alt="{c_name}"/>
+        <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
+            <div class="team-champ-mini-wrap" style="border-color:{border_c}; margin-right:0;">
+                <img class="team-champ-mini" src="{c_icon}" alt="{c_name}"/>
+            </div>
             <div class="stat-popup-card">
-                <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:800; color:{border_c};">{c_name} ({p.get('riot_id', '')})</span>
-                    <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;">@ {match_dur_formatted} (End)</span>
+                <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <span style="font-weight:800; color:{border_c}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{c_name} ({p.get('riot_id', '')})">{c_name}</span>
+                    <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600; white-space:nowrap; flex-shrink:0;">@ {match_dur_formatted} (End)</span>
                 </div>
-                <div style="font-size:0.75rem; color:#f1f5f9; font-weight:700; margin-bottom:4px;">KDA: <b>{p.get('kda', '')}</b> • CS: <b>{p.get('cs', 0)}</b> • Gold: <b>{p.get('gold_total', 0):,}</b></div>
-                <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; margin-bottom:4px;">Final Build:</div>
-                {end_items_row}
+                <div class="stat-grid-2col">
+                    <div class="stat-cell"><i class="stat-ico ico-hp"></i> <span>{hp_max}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-hpregen"></i> <span>{hp_regen}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-ad"></i> <span>{ad}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-ap"></i> <span>{ap}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-armor"></i> <span>{armor}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-mr"></i> <span>{mr}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-as"></i> <span>{as_val:.2f}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-ah"></i> <span>{ah}</span></div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-grid-2col">
+                    <div class="stat-cell"><i class="stat-ico ico-armpen"></i> <span>{arm_pen_flat} | {arm_pen_pct}%</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-mpen"></i> <span>{mag_pen_flat} | {mag_pen_pct}%</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-lifesteal"></i> <span>{lifesteal}%</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-omnivamp"></i> <span>{omnivamp}%</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-ms"></i> <span>{ms}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-range"></i> <span>{champ_range}</span></div>
+                    <div class="stat-cell" style="grid-column: span 2;"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
+                </div>
+                {items_row_html}
             </div>
         </div>
         """
@@ -518,6 +591,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
     game_end_li_kills = f"""
     <li class="event-item event-game-end" data-phase="{end_phase}">
+        <div class="event-game-end-glint"></div>
         <span class="event-time">{match_dur_formatted}</span>
         <span class="event-desc" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%;">
             <div style="display:flex; align-items:center; gap:8px;">

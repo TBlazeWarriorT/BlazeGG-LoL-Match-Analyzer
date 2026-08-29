@@ -134,9 +134,15 @@ class MatchAnalysis:
         rune_info = self.ddragon.get_rune_info(perk_id) if perk_id else {"name": "", "icon": ""}
         sub_rune_info = self.ddragon.get_rune_style_info(sub_style_id) if sub_style_id else {"name": "", "icon": ""}
 
-        # Executions count from timeline
+        # Executions count and final frame championStats from timeline
         exec_count = 0
+        final_stats = {}
         frames = self.timeline.get("info", {}).get("frames", []) if self.timeline else []
+        if frames:
+            last_p_frames = frames[-1].get("participantFrames", {})
+            p_pid_str = str(p.get("participantId"))
+            final_stats = last_p_frames.get(p_pid_str, {}).get("championStats", {})
+
         for frame in frames:
             for ev in frame.get("events", []):
                 if ev.get("type") == "CHAMPION_KILL" and ev.get("victimId") == p.get("participantId"):
@@ -148,6 +154,7 @@ class MatchAnalysis:
         return {
             "participantId": p.get("participantId"),
             "puuid": p.get("puuid"),
+            "final_stats": final_stats,
             "teamId": p.get("teamId"),
             "riot_id": f"{p.get('riotIdGameName', '')}#{p.get('riotIdTagline', '')}",
             "champion": champ_name,
@@ -605,7 +612,8 @@ class MatchAnalysis:
                         assisters_data.append({
                             "champ": self.ddragon.get_clean_champion_name(a_raw),
                             "icon": self.ddragon.get_champion_icon_url(a_raw),
-                            "name": a_p.get("riotIdGameName", "")
+                            "name": a_p.get("riotIdGameName", ""),
+                            "team_id": a_p.get("teamId", 100)
                         })
 
                     # Extract championStats from frame
@@ -632,12 +640,14 @@ class MatchAnalysis:
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
                         "killer_role": str(k_p.get("teamPosition") or k_p.get("individualPosition", "")).upper() if not is_execution else "",
+                        "killer_team": k_p.get("teamId", 100) if not is_execution else 0,
                         "killer_stats": k_stats,
                         "killer_items": k_items,
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
                         "victim_role": str(v_p.get("teamPosition") or v_p.get("individualPosition", "")).upper(),
+                        "victim_team": v_p.get("teamId", 200),
                         "victim_stats": v_stats,
                         "victim_items": v_items,
                         "is_solo": is_solo,

@@ -257,11 +257,17 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 </body>
 </html>
 """
-    with open(REPORT_FILE, "w", encoding="utf-8") as f:
-        f.write(html_content)
+    try:
+        with open(REPORT_FILE, "w", encoding="utf-8") as f:
+            f.write(html_content)
+    except Exception:
+        pass
 
     import webbrowser
     if open_browser:
-        webbrowser.open(REPORT_FILE.as_uri())
+        try:
+            webbrowser.open(REPORT_FILE.as_uri())
+        except Exception:
+            pass
 
-    return REPORT_FILE
+    return html_content

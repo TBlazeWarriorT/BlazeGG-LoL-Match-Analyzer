@@ -779,14 +779,31 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 1px solid #38bdf8;
-    background: #0f172a;
+    border: none;
+    background: transparent;
     transition: all 0.2s ease;
+    display: block;
+}
+.event-obj-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    flex-shrink: 0;
+    display: block;
 }
 .soul-dragon-badge {
-    border-color: #f59e0b !important;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.7) !important;
-    transform: scale(1.1);
+    filter: drop-shadow(0 0 2.5px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 4px rgba(245, 158, 11, 0.7)) !important;
+    transform: scale(1.04);
+}
+.baron-badge {
+    filter: drop-shadow(0 0 2.5px rgba(192, 132, 252, 0.95)) drop-shadow(0 0 4px rgba(168, 85, 247, 0.75)) !important;
+    transform: scale(1.04);
+}
+.elder-badge {
+    filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 4px rgba(186, 230, 253, 0.75)) !important;
+    transform: scale(1.04);
 }
 .mini-icon-round {
     border-radius: 50% !important;
@@ -1120,10 +1137,10 @@ body {
     flex-shrink: 0;
 }
 .event-avatar-wrap {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    border: 1px solid var(--card-border);
+    border: 2px solid #334155;
     line-height: 0;
     flex-shrink: 0;
     background: #0f172a;
@@ -1133,10 +1150,11 @@ body {
     transition: transform 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
     position: relative;
+    box-sizing: border-box;
 }
 .event-avatar-wrap:hover {
     transform: scale(1.25);
-    border-color: var(--accent);
+    border-color: var(--accent) !important;
     z-index: 2000;
 }
 .event-avatar {
@@ -1147,7 +1165,8 @@ body {
     flex-shrink: 0;
     border-radius: 50%;
     object-fit: cover;
-    transform: scale(1.22);
+    transform: scale(1.18);
+    clip-path: circle(50% at 50% 50%);
     display: block;
 }
 .stat-tooltip-trigger {
@@ -1164,7 +1183,8 @@ body {
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(56, 189, 248, 0.15);
     border-radius: 8px;
     padding: 10px 12px;
-    width: 256px;
+    width: 290px;
+    max-width: 90vw;
     z-index: 9999;
     backdrop-filter: blur(8px);
     pointer-events: none;
@@ -1411,13 +1431,21 @@ body {
 }
 .event-game-end {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     background: linear-gradient(135deg, rgba(78, 42, 6, 0.45) 0%, rgba(30, 20, 8, 0.75) 50%, rgba(15, 23, 42, 0.95) 100%);
     border: 1px solid rgba(245, 158, 11, 0.4);
     border-left: 4px solid #f59e0b;
     box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15), inset 0 1px 1px rgba(245, 158, 11, 0.35);
 }
-.event-game-end::before {
+.event-game-end-glint {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 5px;
+    pointer-events: none;
+    z-index: 1;
+}
+.event-game-end-glint::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1429,7 +1457,7 @@ body {
     pointer-events: none;
     transition: none;
 }
-.event-game-end:hover::before {
+.event-game-end:hover .event-game-end-glint::before {
     animation: gameEndGlint 1.2s ease-out 1;
 }
 @keyframes gameEndGlint {
@@ -1439,8 +1467,25 @@ body {
 .game-end-avatars-strip {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     flex-wrap: wrap;
+}
+.game-end-avatars-strip .m-team-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: #090d16;
+    padding: 2px 6px;
+    border-radius: 12px;
+    border: 1px solid #1e293b;
+}
+.game-end-avatars-strip .m-team-blue { border-color: rgba(56, 189, 248, 0.55); }
+.game-end-avatars-strip .m-team-red { border-color: rgba(239, 68, 68, 0.38); }
+.game-end-avatars-strip .m-vs-text {
+    color: #475569;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 .event-kill-duel {
     display: flex;
@@ -1503,13 +1548,21 @@ body {
     border: none;
     vertical-align: middle;
     flex-shrink: 0;
+    border-radius: 50%;
     object-fit: cover;
     transform: scale(1.22);
+    clip-path: circle(49% at 50% 50%);
     display: block;
 }
 .event-kill {
     background: #151d30;
     border-left-color: #3b82f6;
+}
+.event-kill-blue {
+    border-left-color: #3b82f6 !important;
+}
+.event-kill-red {
+    border-left-color: #ef4444 !important;
 }
 .event-execution {
     background: #101726;
