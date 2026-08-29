@@ -1119,7 +1119,6 @@ body {
     height: 26px;
     border-radius: 50%;
     border: 1px solid var(--card-border);
-    overflow: hidden;
     line-height: 0;
     flex-shrink: 0;
     background: #0f172a;
@@ -1128,11 +1127,12 @@ body {
     justify-content: center;
     transition: transform 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
+    position: relative;
 }
 .event-avatar-wrap:hover {
     transform: scale(1.25);
     border-color: var(--accent);
-    z-index: 2;
+    z-index: 100;
 }
 .event-avatar {
     width: 100%;
@@ -1140,9 +1140,78 @@ body {
     border: none;
     vertical-align: middle;
     flex-shrink: 0;
+    border-radius: 50%;
     object-fit: cover;
     transform: scale(1.22);
     display: block;
+}
+.stat-tooltip-trigger {
+    overflow: visible;
+}
+.stat-popup-card {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(13, 19, 34, 0.96);
+    border: 1px solid #334155;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(56, 189, 248, 0.15);
+    border-radius: 8px;
+    padding: 10px 12px;
+    width: 230px;
+    z-index: 9999;
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+    font-family: inherit;
+    line-height: 1.2;
+    text-align: left;
+}
+.stat-tooltip-trigger:hover .stat-popup-card {
+    display: block;
+}
+.stat-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+}
+.stat-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+.stat-ico {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    flex-shrink: 0;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: -webkit-optimize-contrast;
+}
+.ico-hp { background-image: var(--ico-hp); }
+.ico-hpregen { background-image: var(--ico-hpregen); }
+.ico-ad { background-image: var(--ico-ad); }
+.ico-ap { background-image: var(--ico-ap); }
+.ico-armor { background-image: var(--ico-armor); }
+.ico-mr { background-image: var(--ico-mr); }
+.ico-as { background-image: var(--ico-as); }
+.ico-ah { background-image: var(--ico-ah); }
+.ico-armpen { background-image: var(--ico-armpen); }
+.ico-mpen { background-image: var(--ico-mpen); }
+.ico-lifesteal { background-image: var(--ico-lifesteal); }
+.ico-omnivamp { background-image: var(--ico-omnivamp); }
+.ico-ms { background-image: var(--ico-ms); }
+.ico-range { background-image: var(--ico-range); }
+.ico-tenacity { background-image: var(--ico-tenacity); }
+.stat-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 6px 0;
 }
 .event-kill-duel {
     display: flex;

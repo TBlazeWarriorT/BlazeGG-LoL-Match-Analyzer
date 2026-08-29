@@ -53,7 +53,29 @@ ASSETS = {
     "baron_circle": {
         "url": f"{CD_DRAGON_BASE}/baron_circle.png",
         "fallback": "https://wiki.leagueoflegends.com/en-us/images/thumb/Baron_NashorSquare.png/48px-Baron_NashorSquare.png"
-    }
+    },
+    "stat_hp": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/1/17/Health_icon.png/revision/latest/scale-to-width-down/15?cb=20240607103046", "fallback": ""},
+    "stat_hpregen": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/3/31/Health_regeneration_icon.png/revision/latest/scale-to-width-down/15?cb=20240607102806", "fallback": ""},
+    "stat_healshield": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/2/28/Heal_and_shield_power_icon.png/revision/latest/scale-to-width-down/15?cb=20240607102503", "fallback": ""},
+    "stat_armor": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/f/f0/Armor_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203442", "fallback": ""},
+    "stat_mr": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/8/84/Magic_resistance_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203539", "fallback": ""},
+    "stat_tenacity": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/3/33/Tenacity_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203541", "fallback": ""},
+    "stat_as": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/9/91/Attack_speed_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203443", "fallback": ""},
+    "stat_ad": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/7/75/Attack_damage_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203443", "fallback": ""},
+    "stat_ap": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/0/0a/Ability_power_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203441", "fallback": ""},
+    "stat_crit": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/c/c6/Critical_strike_chance_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203445", "fallback": ""},
+    "stat_critdmg": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/0/0f/Critical_strike_damage_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203445", "fallback": ""},
+    "stat_armpen": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/6/64/Armor_penetration_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203442", "fallback": ""},
+    "stat_mpen": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/6/62/Magic_penetration_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203538", "fallback": ""},
+    "stat_lifesteal": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/7/76/Life_steal_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203537", "fallback": ""},
+    "stat_omnivamp": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/3/35/Omnivamp_icon.png/revision/latest/scale-to-width-down/15?cb=20210120115930", "fallback": ""},
+    "stat_ah": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/9/95/Cooldown_reduction_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203444", "fallback": ""},
+    "stat_mana": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/8/8b/Mana_icon.png/revision/latest/scale-to-width-down/15?cb=20240607103302", "fallback": ""},
+    "stat_manaregen": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/0/0c/Mana_regeneration_icon.png/revision/latest/scale-to-width-down/15?cb=20240607103627", "fallback": ""},
+    "stat_energy": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/7/7d/Energy_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203447", "fallback": ""},
+    "stat_energyregen": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/7/7e/Energy_regeneration_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203446", "fallback": ""},
+    "stat_range": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/1/13/Range_icon.png/revision/latest/scale-to-width-down/15?cb=20170715002053", "fallback": ""},
+    "stat_ms": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/e/ea/Movement_speed_icon.png/revision/latest/scale-to-width-down/15?cb=20170515203540", "fallback": ""}
 }
 
 class AssetManager:
@@ -64,7 +86,7 @@ class AssetManager:
         if asset_key in cls._data_uri_cache:
             return cls._data_uri_cache[asset_key]
 
-        if asset_key in ("gold_icon", "xp_icon", "cs_icon"):
+        if asset_key in ("gold_icon", "xp_icon", "cs_icon") or asset_key.startswith("stat_"):
             return cls._get_cropped_icon(asset_key)
 
         info = ASSETS.get(asset_key)
@@ -116,7 +138,6 @@ class AssetManager:
             if atlas_bytes:
                 try:
                     img = Image.open(io.BytesIO(atlas_bytes))
-                    # TopLeft (979, 303) 19x23 ajustado com 24x24
                     box = (977, 302, 977 + 24, 302 + 24)
                     cropped = img.crop(box)
                     cropped.save(local_path, "PNG")
@@ -136,7 +157,32 @@ class AssetManager:
                 return uri
             return fallback_url
 
-        # Ouro e XP do texticons.png
+        STAT_BOXES = {
+            "gold_icon": (45, 92, 45 + 24, 92 + 24),
+            "xp_icon": (47, 263, 47 + 24, 263 + 24),
+            "stat_mana": (0, 0, 24, 24),
+            "stat_manaregen": (24, 0, 48, 24),
+            "stat_mpen": (48, 0, 72, 24),
+            "stat_mr": (72, 0, 96, 24),
+            "stat_ms": (96, 0, 120, 24),
+            "stat_ad": (0, 24, 24, 48),
+            "stat_omnivamp": (24, 24, 48, 48),
+            "stat_tenacity": (48, 24, 72, 48),
+            "stat_ap": (96, 24, 120, 48),
+            "stat_armor": (0, 48, 24, 72),
+            "stat_as": (24, 48, 48, 72),
+            "stat_ah": (48, 48, 72, 72),
+            "stat_crit": (72, 48, 96, 72),
+            "stat_hp": (96, 48, 120, 72),
+            "stat_lifesteal": (0, 72, 24, 96),
+            "stat_range": (72, 72, 96, 96),
+            "stat_armpen": (96, 72, 120, 96),
+            "stat_hpregen": (0, 96, 24, 120),
+            "stat_critdmg": (24, 240, 48, 264),
+            "stat_healshield": (70, 262, 94, 286),
+        }
+
+        # Ouro, XP e Stats do texticons.png
         atlas_path = CDRAGON_CACHE_DIR / "texticons.png"
         atlas_bytes = b""
         if atlas_path.exists():
@@ -151,11 +197,7 @@ class AssetManager:
         if atlas_bytes:
             try:
                 img = Image.open(io.BytesIO(atlas_bytes))
-                if icon_type == "gold_icon":
-                    box = (45, 92, 45 + 24, 92 + 24)
-                else:
-                    box = (47, 263, 47 + 24, 263 + 24)
-
+                box = STAT_BOXES.get(icon_type, (0, 0, 24, 24))
                 cropped = img.crop(box)
                 cropped.save(local_path, "PNG")
                 uri = cls._file_to_data_uri(local_path, ".png")

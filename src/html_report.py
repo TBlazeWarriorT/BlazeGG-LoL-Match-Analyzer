@@ -147,6 +147,28 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     </script>
     """
 
+    # Inject stat icon CSS variables once in stylesheet to avoid repeating large strings in DOM
+    from .asset_cache import AssetManager
+    stat_vars = f"""
+    :root {{
+        --ico-hp: url('{AssetManager.get_asset_uri("stat_hp")}');
+        --ico-hpregen: url('{AssetManager.get_asset_uri("stat_hpregen")}');
+        --ico-ad: url('{AssetManager.get_asset_uri("stat_ad")}');
+        --ico-ap: url('{AssetManager.get_asset_uri("stat_ap")}');
+        --ico-armor: url('{AssetManager.get_asset_uri("stat_armor")}');
+        --ico-mr: url('{AssetManager.get_asset_uri("stat_mr")}');
+        --ico-as: url('{AssetManager.get_asset_uri("stat_as")}');
+        --ico-ah: url('{AssetManager.get_asset_uri("stat_ah")}');
+        --ico-armpen: url('{AssetManager.get_asset_uri("stat_armpen")}');
+        --ico-mpen: url('{AssetManager.get_asset_uri("stat_mpen")}');
+        --ico-lifesteal: url('{AssetManager.get_asset_uri("stat_lifesteal")}');
+        --ico-omnivamp: url('{AssetManager.get_asset_uri("stat_omnivamp")}');
+        --ico-ms: url('{AssetManager.get_asset_uri("stat_ms")}');
+        --ico-range: url('{AssetManager.get_asset_uri("stat_range")}');
+        --ico-tenacity: url('{AssetManager.get_asset_uri("stat_tenacity")}');
+    }}
+    """
+
     html_content = f"""<!DOCTYPE html>
 <html lang="{get_text('html_lang_code', lang=lang)}">
 <head>
@@ -155,6 +177,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     <title>{browser_tab_title}</title>
     {favicon_link}
     <style>
+        {stat_vars}
         {css_styles}
     </style>
 </head>

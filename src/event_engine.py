@@ -550,6 +550,11 @@ class MatchAnalysis:
                             "name": a_p.get("riotIdGameName", "")
                         })
 
+                    # Extract championStats from frame
+                    p_frames = frame.get("participantFrames", {})
+                    k_stats = p_frames.get(str(killer), {}).get("championStats", {}) if (killer and killer != 0) else {}
+                    v_stats = p_frames.get(str(victim), {}).get("championStats", {}) if victim else {}
+
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
@@ -558,9 +563,11 @@ class MatchAnalysis:
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if not is_execution else "",
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
+                        "killer_stats": k_stats,
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
+                        "victim_stats": v_stats,
                         "is_solo": is_solo,
                         "is_first_blood": is_first_blood,
                         "assists_count": len(assisters),

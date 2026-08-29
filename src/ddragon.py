@@ -60,15 +60,19 @@ class DataDragon:
             except Exception:
                 cached_champs = {}
         self._champ_images: Dict[str, str] = {}
+        self._champ_ranges: Dict[str, int] = {}
         if cached_champs and "data" in cached_champs:
             for champ_id, details in cached_champs["data"].items():
                 key = str(details.get("key"))
                 name = details.get("name", champ_id)
                 img_full = details.get("image", {}).get("full", f"{champ_id}.png")
+                attack_range = int(details.get("stats", {}).get("attackrange", 125))
                 self._champions[key] = name
                 self._champions_by_id[champ_id.lower()] = name
                 self._champ_images[champ_id.lower()] = img_full
                 self._champ_images[name.lower().replace(" ", "").replace("'", "")] = img_full
+                self._champ_ranges[champ_id.lower()] = attack_range
+                self._champ_ranges[name.lower().replace(" ", "").replace("'", "")] = attack_range
 
         spells_cache = DDRAGON_CACHE_DIR / f"spells_{self.version}_{self.language}.json"
         cached_spells = load_json(spells_cache)
@@ -164,4 +168,10 @@ class DataDragon:
         if not item_id or item_id == 0:
             return ""
         return f"{BASE_CDN_URL}/{self.version}/img/item/{item_id}.png"
+
+    def get_champion_attack_range(self, champ_name: str) -> int:
+        if not champ_name:
+            return 125
+        lookup_key = champ_name.replace(" ", "").replace("'", "").lower()
+        return self._champ_ranges.get(lookup_key, 125)
 

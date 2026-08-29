@@ -68,13 +68,80 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             elif not is_exec:
                 assists_html = f"<span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
 
+            def render_stat_tooltip(champ_name, stats, is_killer=True):
+                if not stats:
+                    return f'<div class="event-avatar-wrap"><img class="event-avatar" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
+                
+                hp_max = stats.get("healthMax", stats.get("health", 0))
+                hp_regen = stats.get("healthRegen", 0)
+                ad = stats.get("attackDamage", 0)
+                ap = stats.get("abilityPower", 0)
+                armor = stats.get("armor", 0)
+                mr = stats.get("magicResist", 0)
+                as_val = stats.get("attackSpeed", 100) / 100.0 if stats.get("attackSpeed", 0) > 10 else stats.get("attackSpeed", 0)
+                ah = stats.get("abilityHaste", 0)
+                ms = stats.get("movementSpeed", 0)
+                lifesteal = stats.get("lifesteal", 0)
+                omnivamp = stats.get("omnivamp", 0) or stats.get("physicalVamp", 0)
+                
+                arm_pen_flat = stats.get("armorPen", 0)
+                arm_pen_pct = stats.get("armorPenPercent", 0) or stats.get("bonusArmorPenPercent", 0)
+                mag_pen_flat = stats.get("magicPen", 0)
+                mag_pen_pct = stats.get("magicPenPercent", 0) or stats.get("bonusMagicPenPercent", 0)
+                tenacity = stats.get("ccReduction", 0)
+                champ_range = dd.get_champion_attack_range(champ_name) if 'dd' in locals() else 125
+
+                avatar_src = ev["killer_icon"] if is_killer else ev["victim_icon"]
+                role_label = get_text("killer", lang=lang) if is_killer else get_text("victim", lang=lang)
+                border_color = "#38bdf8" if is_killer else "#ef4444"
+
+                # Calculate the exact minute snapshot frame
+                try:
+                    parts = t.split(":")
+                    kill_min = int(parts[0])
+                except Exception:
+                    kill_min = 0
+
+                return f"""
+                <div class="event-avatar-wrap stat-tooltip-trigger">
+                    <img class="event-avatar" src="{avatar_src}" alt="{champ_name}"/>
+                    <div class="stat-popup-card">
+                        <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:800; color:{border_color};">{champ_name}</span>
+                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;" title="Lance aos {t} • Snapshot do frame aos {kill_min}m">@ {kill_min}:00 <span style="opacity:0.6;">({t})</span></span>
+                        </div>
+                        <div class="stat-grid-2col">
+                            <div class="stat-cell"><i class="stat-ico ico-hp"></i> <span>{hp_max}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-hpregen"></i> <span>{hp_regen}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-ad"></i> <span>{ad}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-ap"></i> <span>{ap}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-armor"></i> <span>{armor}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-mr"></i> <span>{mr}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-as"></i> <span>{as_val:.2f}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-ah"></i> <span>{ah}</span></div>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-grid-2col">
+                            <div class="stat-cell"><i class="stat-ico ico-armpen"></i> <span>{arm_pen_flat} | {arm_pen_pct}%</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-mpen"></i> <span>{mag_pen_flat} | {mag_pen_pct}%</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-lifesteal"></i> <span>{lifesteal}%</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-omnivamp"></i> <span>{omnivamp}%</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-ms"></i> <span>{ms}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-range"></i> <span>{champ_range}</span></div>
+                            <div class="stat-cell" style="grid-column: span 2;"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
+                        </div>
+                    </div>
+                </div>
+                """
+
             if is_exec:
                 exec_text = get_text("was_executed", lang=lang)
+                v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), is_killer=False)
                 events_list_items.append(f"""
                 <li class="event-item event-kill event-execution {extra_class}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
-                        <div class="event-avatar-wrap"><img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/></div>
+                        {v_avatar}
                         <span class="event-arrow">💀</span>
                     </div>
                     <span class="event-desc">
@@ -85,14 +152,16 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             else:
                 killer_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
                 desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html}"
+                k_avatar = render_stat_tooltip(ev['killer_champ'], ev.get('killer_stats', {}), is_killer=True)
+                v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), is_killer=False)
 
                 events_list_items.append(f"""
                 <li class="event-item event-kill {streak_class} {extra_class}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
-                        <div class="event-avatar-wrap"><img class="event-avatar" src="{ev['killer_icon']}" title="{ev['killer_champ']}"/></div>
+                        {k_avatar}
                         <span class="event-arrow">⚔️</span>
-                        <div class="event-avatar-wrap"><img class="event-avatar" src="{ev['victim_icon']}" title="{ev['victim_champ']}"/></div>
+                        {v_avatar}
                     </div>
                     <span class="event-desc">
                         {desc_html}
