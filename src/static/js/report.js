@@ -215,6 +215,23 @@ function syncTimelineState() {
     }
 }
 
+function switchTimelineTab(tabName, btnEl) {
+    var tabs = document.querySelectorAll(".timeline-tab-btn");
+    tabs.forEach(function(b) { b.classList.remove("active"); });
+    if (btnEl) btnEl.classList.add("active");
+
+    var paneKills = document.getElementById("timelinePaneKills");
+    var paneItems = document.getElementById("timelinePaneItems");
+
+    if (tabName === "kills") {
+        if (paneKills) paneKills.classList.add("active");
+        if (paneItems) paneItems.classList.remove("active");
+    } else {
+        if (paneKills) paneKills.classList.remove("active");
+        if (paneItems) paneItems.classList.add("active");
+    }
+}
+
 function toggleTimeline() {
     var newState = !timelineExpanded;
     sessionStorage.setItem("blaze_timeline_expanded", String(newState));

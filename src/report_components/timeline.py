@@ -4,7 +4,8 @@ from ..i18n import get_text
 from ..event_engine import clean_monster_name
 
 def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[str, str, str]:
-    events_list_items = []
+    # 1. ABA 1: KILLS & OBJECTIVES
+    kills_list_items = []
     for idx, ev in enumerate(data.get("key_events", [])):
         t = ev.get("time", "00:00")
         ev_type = ev.get("type", "kill")
@@ -16,16 +17,14 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             m_sub = ev.get("monster_sub_type", "")
             obj_desc = clean_monster_name(m_type, m_sub, lang=lang) if m_type else ev.get("desc", "")
             
-            # Feminine objectives in PT-BR: Vastilarva
             is_fem = ("HORDE" in m_type.upper() or "GRUB" in m_type.upper())
             slain_key = "slain_by_f" if is_fem else "slain_by"
             slain_txt = get_text(slain_key, lang=lang)
 
-            # Distinguish Void trio (grubs, herald, baron) from Dragon
             is_void = any(w in m_type.upper() for w in ["HORDE", "GRUB", "HERALD", "BARON"])
             obj_theme_class = "event-obj-void" if is_void else "event-obj-dragon"
 
-            events_list_items.append(f"""
+            kills_list_items.append(f"""
             <li class="event-item event-obj {obj_theme_class} {extra_class}">
                 <span class="event-time">{t}</span>
                 <div class="event-avatar-wrap"><img class="event-avatar" src="{icon_uri}"/></div>
@@ -42,7 +41,6 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             elif streak == "quadra":
                 streak_class = "event-quadra"
                 streak_badge = '<span class="multi-badge badge-penta" style="background:linear-gradient(90deg, #c026d3, #db2777); box-shadow: 0 0 10px rgba(192, 38, 211, 0.5);">QUADRA KILL! 🔥</span>'
-
             elif streak == "triple":
                 streak_class = "event-multi"
                 streak_badge = '<span class="multi-badge badge-multi" style="background:linear-gradient(90deg, #ea580c, #f59e0b);">TRIPLE KILL! ⚔️</span>'
@@ -68,7 +66,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             elif not is_exec:
                 assists_html = f"<span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
 
-            def render_stat_tooltip(champ_name, stats, is_killer=True):
+            def render_stat_tooltip(champ_name, stats, items_snapshot=None, is_killer=True):
                 if not stats:
                     return f'<div class="event-avatar-wrap"><img class="event-avatar" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
                 
@@ -95,7 +93,70 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 role_label = get_text("killer", lang=lang) if is_killer else get_text("victim", lang=lang)
                 border_color = "#38bdf8" if is_killer else "#ef4444"
 
-                # Calculate the exact minute snapshot frame
+                # Items row inside tooltip: 6 main slots | Boot/Quest Slot | Trinket
+                items_row_html = ""
+                if items_snapshot:
+                    TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
+                    BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
+                    CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
+                    
+                    trinket_item = None
+                    boot_item = None
+                    raw_normal_items = []
+                    item_counts = {}
+                    item_objs = {}
+                    
+                    for it in items_snapshot:
+                        iid = it.get("id", 0)
+                        if iid in TRINKET_IDS and not trinket_item:
+                            trinket_item = it
+                        elif iid in BOOT_IDS and not boot_item:
+                            boot_item = it
+                        else:
+                            if iid in CONSUMABLE_STACKS:
+                                item_counts[iid] = item_counts.get(iid, 0) + 1
+                                item_objs[iid] = it
+                            else:
+                                raw_normal_items.append((it, 1))
+
+                    for iid, count in item_counts.items():
+                        raw_normal_items.append((item_objs[iid], count))
+                    
+                    main_slots = []
+                    for it, count in raw_normal_items[:6]:
+                        if it.get("icon"):
+                            count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
+                            main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" title="{it.get("name", "")}" />{count_badge}</div>')
+                    while len(main_slots) < 6:
+                        main_slots.append('<div class="stat-item-slot-empty"></div>')
+                    
+                    # 7th Slot: Boot or Quest
+                    boot_slot_html = ""
+                    if boot_item:
+                        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Boot/Role item)"/></div>'
+                    elif len(raw_normal_items) > 6:
+                        extra_it, extra_count = raw_normal_items[6]
+                        count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
+                        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{count_badge}</div>'
+                    else:
+                        boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Boot / Quest Slot"></div>'
+
+                    # Trinket Slot
+                    trinket_slot_html = ""
+                    if trinket_item:
+                        trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" title="{trinket_item.get("name", "")} (Trinket)"/></div>'
+                    else:
+                        trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
+                    
+                    items_row_html = f"""
+                    <div class="stat-divider"></div>
+                    <div class="stat-items-row">
+                        {''.join(main_slots)}
+                        {boot_slot_html}
+                        {trinket_slot_html}
+                    </div>
+                    """
+
                 try:
                     parts = t.split(":")
                     kill_min = int(parts[0])
@@ -130,14 +191,15 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                             <div class="stat-cell"><i class="stat-ico ico-range"></i> <span>{champ_range}</span></div>
                             <div class="stat-cell" style="grid-column: span 2;"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
                         </div>
+                        {items_row_html}
                     </div>
                 </div>
                 """
 
             if is_exec:
                 exec_text = get_text("was_executed", lang=lang)
-                v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), is_killer=False)
-                events_list_items.append(f"""
+                v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
+                kills_list_items.append(f"""
                 <li class="event-item event-kill event-execution {extra_class}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
@@ -152,10 +214,10 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             else:
                 killer_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
                 desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html}"
-                k_avatar = render_stat_tooltip(ev['killer_champ'], ev.get('killer_stats', {}), is_killer=True)
-                v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), is_killer=False)
+                k_avatar = render_stat_tooltip(ev['killer_champ'], ev.get('killer_stats', {}), ev.get('killer_items', []), is_killer=True)
+                v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
 
-                events_list_items.append(f"""
+                kills_list_items.append(f"""
                 <li class="event-item event-kill {streak_class} {extra_class}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
@@ -170,7 +232,121 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 </li>
                 """)
 
-    total_events_count = len(events_list_items)
+    # 2. ABA 2: ITEM PURCHASES
+    items_list_items = []
+    purchased_lbl = get_text("purchased_item", lang=lang)
+    for idx, ev in enumerate(data.get("item_events", [])):
+        t = ev.get("time", "00:00")
+        extra_class = "timeline-hidden" if idx >= 20 else ""
+        c_name = ev.get("champ", "")
+        c_icon = ev.get("champ_icon", "")
+        s_name = ev.get("summoner_name", "")
+        i_name = ev.get("item_name", "")
+        i_icon = ev.get("item_icon", "")
+        snapshot = ev.get("items_snapshot", [])
+
+        # Build snapshot slots on hover
+        TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
+        BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
+        CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
+        
+        trinket_item = None
+        boot_item = None
+        raw_normal_items = []
+        item_counts = {}
+        item_objs = {}
+        
+        for it in snapshot:
+            iid = it.get("id", 0)
+            if iid in TRINKET_IDS and not trinket_item:
+                trinket_item = it
+            elif iid in BOOT_IDS and not boot_item:
+                boot_item = it
+            else:
+                if iid in CONSUMABLE_STACKS:
+                    item_counts[iid] = item_counts.get(iid, 0) + 1
+                    item_objs[iid] = it
+                else:
+                    raw_normal_items.append((it, 1))
+
+        for iid, count in item_counts.items():
+            raw_normal_items.append((item_objs[iid], count))
+
+        main_slots = []
+        for it, count in raw_normal_items[:6]:
+            if it.get("icon"):
+                count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
+                main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" title="{it.get("name", "")}" />{count_badge}</div>')
+        while len(main_slots) < 6:
+            main_slots.append('<div class="stat-item-slot-empty"></div>')
+
+        # 7th Slot: Boot or Quest
+        boot_slot_html = ""
+        if boot_item:
+            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Boot/Role item)"/></div>'
+        elif len(raw_normal_items) > 6:
+            extra_it, extra_count = raw_normal_items[6]
+            count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
+            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{count_badge}</div>'
+        else:
+            boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Boot / Quest Slot"></div>'
+
+        # Trinket Slot
+        trinket_slot_html = ""
+        if trinket_item:
+            trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" title="{trinket_item.get("name", "")} (Trinket)"/></div>'
+        else:
+            trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
+
+        items_row = f'<div class="stat-items-row" style="margin-top:4px;">{"".join(main_slots)}{boot_slot_html}{trinket_slot_html}</div>'
+
+        avatar_html = f"""
+        <div class="event-avatar-wrap stat-tooltip-trigger">
+            <img class="event-avatar" src="{c_icon}" alt="{c_name}"/>
+            <div class="stat-popup-card">
+                <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:800; color:#38bdf8;">{c_name}</span>
+                    <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;">@ {t}</span>
+                </div>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; margin-bottom:4px;">Build @ {t}:</div>
+                {items_row}
+            </div>
+        </div>
+        """
+
+        items_list_items.append(f"""
+        <li class="event-item event-item-purchase {extra_class}">
+            <span class="event-time">{t}</span>
+            <div class="event-kill-duel">
+                {avatar_html}
+            </div>
+            <span class="event-desc">
+                <b>{c_name}</b> ({s_name}) {purchased_lbl} <span class="item-purchased-badge"><img src="{i_icon}" alt="{i_name}"/> <span style="font-size:0.78rem; font-weight:700; color:#e2e8f0;">{i_name}</span></span>
+            </span>
+        </li>
+        """)
+
+    tab_kills_txt = get_text("tab_kills_objectives", lang=lang)
+    tab_items_txt = get_text("tab_item_purchases", lang=lang)
+
+    combined_html = f"""
+    <div class="timeline-tabs-header">
+        <button class="timeline-tab-btn active" onclick="switchTimelineTab('kills', this)">{tab_kills_txt} ({len(kills_list_items)})</button>
+        <button class="timeline-tab-btn" onclick="switchTimelineTab('items', this)">{tab_items_txt} ({len(items_list_items)})</button>
+    </div>
+    <div id="timelinePaneKills" class="timeline-pane active">
+        <ul class="events-list">
+            {''.join(kills_list_items)}
+        </ul>
+    </div>
+    <div id="timelinePaneItems" class="timeline-pane">
+        <ul class="events-list">
+            {''.join(items_list_items)}
+        </ul>
+    </div>
+    """
+
+    total_events_count = max(len(kills_list_items), len(items_list_items))
     remaining_events = total_events_count - 20
     timeline_toggle_btn = ""
     timeline_top_toggle_btn = ""
@@ -185,6 +361,5 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         </div>
         """
 
-    events_html = "".join(events_list_items)
-    return events_html, timeline_top_toggle_btn, timeline_toggle_btn
+    return combined_html, timeline_top_toggle_btn, timeline_toggle_btn
 

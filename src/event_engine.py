@@ -245,6 +245,7 @@ class MatchAnalysis:
             "jungle_stats": jungle_stats,
             "all_objectives": self._extract_all_objectives(),
             "key_events": self._extract_key_events(),
+            "item_events": getattr(self, "_cached_item_events", []),
             "multikills": self._extract_multikill_sequences()
         }
         analysis_dict["raw_summary_text"] = self._generate_compact_raw_summary(analysis_dict)
@@ -493,11 +494,58 @@ class MatchAnalysis:
         kill_streaks = {}
         first_blood_awarded = False
 
+        # Track ongoing inventory snapshots per participant
+        inventories = {pid: [] for pid in range(1, 11)}
+        item_events_log = []
+
         for frame in frames:
             for ev in frame.get("events", []):
                 ev_type = ev.get("type")
                 ts = ev.get("timestamp", 0)
                 t_str = format_timestamp(ts)
+                pid = ev.get("participantId")
+                item_id = ev.get("itemId", 0)
+                after_id = ev.get("afterId", 0)
+                before_id = ev.get("beforeId", 0)
+
+                # Inventory tracking
+                if pid and pid in inventories:
+                    if ev_type == "ITEM_PURCHASED":
+                        inventories[pid].append(item_id)
+                        p_dict = self._get_part_dict(pid)
+                        raw_c = p_dict.get("championName", "")
+                        item_name = self.ddragon.get_item_name(item_id)
+                        item_icon = self.ddragon.get_item_icon_url(item_id)
+                        item_events_log.append({
+                            "type": "item_purchased",
+                            "time": t_str,
+                            "participant_id": pid,
+                            "champ": self.ddragon.get_clean_champion_name(raw_c),
+                            "champ_icon": self.ddragon.get_champion_icon_url(raw_c),
+                            "summoner_name": p_dict.get("riotIdGameName", ""),
+                            "item_id": item_id,
+                            "item_name": item_name,
+                            "item_icon": item_icon,
+                            "items_snapshot": [
+                                {
+                                    "id": iid,
+                                    "name": self.ddragon.get_item_name(iid),
+                                    "icon": self.ddragon.get_item_icon_url(iid)
+                                }
+                                for iid in inventories[pid] if iid
+                            ]
+                        })
+                    elif ev_type == "ITEM_SOLD":
+                        if item_id in inventories[pid]:
+                            inventories[pid].remove(item_id)
+                    elif ev_type == "ITEM_DESTROYED":
+                        if item_id in inventories[pid]:
+                            inventories[pid].remove(item_id)
+                    elif ev_type == "ITEM_UNDO":
+                        if before_id and before_id in inventories[pid]:
+                            inventories[pid].remove(before_id)
+                        if after_id:
+                            inventories[pid].append(after_id)
 
                 if ev_type == "CHAMPION_KILL":
                     victim = ev.get("victimId")
@@ -555,6 +603,16 @@ class MatchAnalysis:
                     k_stats = p_frames.get(str(killer), {}).get("championStats", {}) if (killer and killer != 0) else {}
                     v_stats = p_frames.get(str(victim), {}).get("championStats", {}) if victim else {}
 
+                    # Current items snapshot at kill moment
+                    k_items = [
+                        {"id": iid, "name": self.ddragon.get_item_name(iid), "icon": self.ddragon.get_item_icon_url(iid)}
+                        for iid in inventories.get(killer, []) if iid
+                    ] if killer and killer != 0 else []
+                    v_items = [
+                        {"id": iid, "name": self.ddragon.get_item_name(iid), "icon": self.ddragon.get_item_icon_url(iid)}
+                        for iid in inventories.get(victim, []) if iid
+                    ] if victim else []
+
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
@@ -564,10 +622,12 @@ class MatchAnalysis:
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
                         "killer_stats": k_stats,
+                        "killer_items": k_items,
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
                         "victim_stats": v_stats,
+                        "victim_items": v_items,
                         "is_solo": is_solo,
                         "is_first_blood": is_first_blood,
                         "assists_count": len(assisters),
@@ -604,6 +664,7 @@ class MatchAnalysis:
                         "killer_name": k_p.get("riotIdGameName", "")
                     })
 
+        self._cached_item_events = item_events_log
         return events_log
 
     def _extract_multikill_sequences(self) -> List[Dict[str, Any]]:
