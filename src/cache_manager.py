@@ -80,6 +80,25 @@ def cleanup_cache_if_needed():
     except Exception:
         pass
 
+TIMELINE_EVENT_BLACKLIST_KEYS = (
+    "victimDamageReceived",
+    "victimDamageDealt",
+    "victimTeamfightDamageReceived",
+    "victimTeamfightDamageDealt",
+)
+
+def sanitize_timeline(data: dict) -> dict:
+    """Removes verbose combat damage logs from timeline before caching to save disk."""
+    if not isinstance(data, dict):
+        return data
+    frames = data.get("info", {}).get("frames", [])
+    for frame in frames:
+        for ev in frame.get("events", []):
+            if ev.get("type") == "CHAMPION_KILL":
+                for key in TIMELINE_EVENT_BLACKLIST_KEYS:
+                    ev.pop(key, None)
+    return data
+
 def save_cached_match(match_id: str, data: dict, target_puuid: str = "") -> None:
     if target_puuid and "metadata" in data:
         data["metadata"]["target_puuid"] = target_puuid
@@ -90,7 +109,8 @@ def get_cached_timeline(match_id: str) -> Optional[dict]:
     return load_json(TIMELINE_CACHE_DIR / f"{match_id}.json.gz")
 
 def save_cached_timeline(match_id: str, data: dict) -> None:
-    save_json(TIMELINE_CACHE_DIR / f"{match_id}.json.gz", data, compress=True)
+    sanitized = sanitize_timeline(data)
+    save_json(TIMELINE_CACHE_DIR / f"{match_id}.json.gz", sanitized, compress=True)
     cleanup_cache_if_needed()
 
 def set_last_viewed(match_id: str, puuid: str, riot_id: str = ""):
