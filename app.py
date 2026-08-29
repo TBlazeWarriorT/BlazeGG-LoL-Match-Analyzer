@@ -18,30 +18,33 @@ HUB_JS_FILE = Path(__file__).parent / "src" / "static" / "js" / "report.js"
 ddragon = DataDragon(language="pt_BR")
 ddragon_en = DataDragon(language="en_US")
 
-def get_ddragon(lang: str = "pt_BR") -> DataDragon:
-    return ddragon_en if lang == "en_US" else ddragon
+def get_ddragon(lang: str = "en_US") -> DataDragon:
+    return ddragon if lang == "pt_BR" else ddragon_en
 
-def format_relative_time(creation_ms: int, lang: str = "pt_BR") -> str:
+def format_relative_time(creation_ms: int, lang: str = "en_US") -> str:
     import time
     if not creation_ms or creation_ms == 0:
         return ""
     diff_s = int(time.time() - (creation_ms / 1000))
     if diff_s < 60:
-        return "agora mesmo" if lang == "pt_BR" else "just now"
+        return get_text("time_just_now", lang=lang)
     elif diff_s < 3600:
         m = diff_s // 60
-        return f"há {m} min" if lang == "pt_BR" else f"{m}m ago"
+        return get_text("time_mins_ago", lang=lang, count=m)
     elif diff_s < 86400:
         h = diff_s // 3600
-        return f"há {h} hora{'s' if h > 1 else ''}" if lang == "pt_BR" else f"{h}h ago"
+        key = "time_hour_ago" if h == 1 else "time_hours_ago"
+        return get_text(key, lang=lang, count=h)
     elif diff_s < 604800:
         d = diff_s // 86400
-        return f"há {d} dia{'s' if d > 1 else ''}" if lang == "pt_BR" else f"{d}d ago"
+        key = "time_day_ago" if d == 1 else "time_days_ago"
+        return get_text(key, lang=lang, count=d)
     else:
         from datetime import datetime
-        return datetime.fromtimestamp(creation_ms / 1000).strftime("%d/%m/%Y")
+        fmt = "%d/%m/%Y" if lang == "pt_BR" else "%m/%d/%Y"
+        return datetime.fromtimestamp(creation_ms / 1000).strftime(fmt)
 
-def get_cached_matches_list(lang: str = "pt_BR"):
+def get_cached_matches_list(lang: str = "en_US"):
     matches = []
     if not MATCH_CACHE_DIR.exists():
         return matches
@@ -132,9 +135,9 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         
         ord_suffix = {1: "ST", 2: "ND", 3: "RD"}.get(placement, "TH")
         if is_effective_win:
-            win_txt = f"👑 {placement}º LUGAR" if lang == "pt_BR" else f"👑 {placement}{ord_suffix} PLACE"
+            win_txt = get_text("arena_place_win", lang=lang, place=placement, ord_suffix=ord_suffix)
         else:
-            win_txt = f"🪦 {placement}º LUGAR" if lang == "pt_BR" else f"🪦 {placement}{ord_suffix} PLACE"
+            win_txt = get_text("arena_place_loss", lang=lang, place=placement, ord_suffix=ord_suffix)
     else:
         win_class = "card-win" if win else "card-loss"
         win_txt = get_text("win", lang=lang) if win else get_text("loss", lang=lang)
@@ -179,7 +182,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         opp_gname = opp_champ.get('name', '')
         opp_tline = opp_champ.get('tag', '')
         opp_riot = f"{opp_gname}#{opp_tline}"
-        opp_title = f"Oponente Direto: {opp_champ['champion']} ({opp_riot})" if lang == "pt_BR" else f"Direct Opponent: {opp_champ['champion']} ({opp_riot})"
+        opp_title = get_text("direct_opponent_title", lang=lang, champ=opp_champ['champion'], riot_id=opp_riot)
         avatar_block = f"""
         <div class="h2h-avatar-duo">
             <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}')" title="{champ_name} ({riot_id})">
@@ -231,11 +234,11 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="pt_BR"):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US"):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
-    def_name = search_name or last_sess.get("game_name", "Noob Master 46")
-    def_tag = search_tag or last_sess.get("tag_line", "CWB")
+    def_name = search_name or last_sess.get("game_name", "")
+    def_tag = search_tag or last_sess.get("tag_line", "")
     
     curr_key = get_api_key()
     exp_val = get_key_expires_at()
@@ -251,8 +254,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     if key_configured:
         masked_key = f"{curr_key[:6]}...{curr_key[-4:]}" if len(curr_key) > 10 else "******"
         if prod_mode:
-            expiry_msg = "Chave de Produção Ativa" if lang == "pt_BR" else "Production Key Active"
-            key_status_badge = ""  # Em produção limpa, não precisa poluir o header
+            expiry_msg = get_text("prod_key_active", lang=lang)
+            key_status_badge = ""  # Clean header in production
         elif exp_val and str(exp_val).isdigit():
             exp_ts = int(exp_val)
             diff_s = exp_ts - time.time()
@@ -269,7 +272,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             expiry_msg = get_text("key_status_no_info", lang=lang)
             key_status_badge = f'<span style="color:#86efac; background:#166534; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_active_no_exp", lang=lang, masked=masked_key)}</span>'
     else:
-        masked_key = "Nenhuma" if lang == "pt_BR" else "None"
+        masked_key = get_text("none_label", lang=lang)
         expiry_msg = get_text("key_status_none", lang=lang)
         key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_missing", lang=lang)}</span>'
 
@@ -302,7 +305,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
             s_name = p.get("name", "")
             s_tag = p.get("tag", "")
-            s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else ("Global / Diversos" if lang == "pt_BR" else "Global / Other")
+            s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else get_text("global_other_tab", lang=lang)
             
             # Track group cards, wins and losses
             is_match_win = p.get("win", False)
@@ -403,10 +406,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </div>
                 """
 
-            del_prompt = "Deseja realmente apagar o cache deste invocador?" if lang == "pt_BR" else "Do you really want to delete this summoner cache?"
-            lbl_saved = "Partidas Salvas" if lang == "pt_BR" else "Saved Matches"
-            lbl_v = "Vitórias" if lang == "pt_BR" else "Victory"
-            lbl_d = "Derrotas" if lang == "pt_BR" else "Defeat"
+            del_prompt = get_text("del_summoner_prompt", lang=lang)
+            lbl_saved = get_text("lbl_saved_matches", lang=lang)
+            lbl_v = get_text("lbl_victories", lang=lang)
+            lbl_d = get_text("lbl_defeats", lang=lang)
             
             tab_tip_lines = [
                 f"<b>{s_label}</b>",
@@ -511,7 +514,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             """
 
         return f"""<!DOCTYPE html>
-<html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
+<html lang="{get_text('html_lang_code', lang=lang)}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1100">
@@ -650,7 +653,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 name = name.split("#")[0].strip()
 
             if not name or not tag:
-                err_msg = "Informe o Nome e a Tag do jogador." if lang == "pt_BR" else "Please provide Game Name and Tag."
+                err_msg = get_text("err_provide_name_tag", lang=lang)
                 self._send_html(render_home_html(error_msg=err_msg, lang=lang))
                 return
 
@@ -807,10 +810,11 @@ class AppHandler(BaseHTTPRequestHandler):
                 
                 self._send_html(content)
             except Exception as e:
-                self._send_html(render_home_html(error_msg=f"Erro ao analisar {match_id}: {e}", lang=lang))
+                err_text = get_text("err_analyze_match", lang=lang, match_id=match_id, err=str(e))
+                self._send_html(render_home_html(error_msg=err_text, lang=lang))
 
         else:
-            self._send_html(render_home_html(error_msg="Página não encontrada.", lang=lang))
+            self._send_html(render_home_html(error_msg=get_text("err_page_not_found", lang=lang), lang=lang))
 
     def do_POST(self):
         parsed = urlparse(self.path)

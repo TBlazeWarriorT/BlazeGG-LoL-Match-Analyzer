@@ -1,8 +1,9 @@
 from ..asset_cache import AssetManager
+from ..i18n import get_text
 
-def render_jungle_chronological(seq, lang: str = "pt_BR") -> str:
+def render_jungle_chronological(seq, lang: str = "en_US") -> str:
     if not seq:
-        empty_lbl = "Nenhum objetivo neutro" if lang == "pt_BR" else "No neutral objectives"
+        empty_lbl = get_text("no_neutral_objs", lang=lang)
         return f'<div class="empty-jungle-slot">{empty_lbl}</div>'
     items_html = []
     for item in seq:

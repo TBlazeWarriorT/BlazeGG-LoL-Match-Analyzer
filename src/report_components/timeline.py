@@ -69,7 +69,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 assists_html = f"<span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
 
             if is_exec:
-                exec_text = "foi executado(a)" if lang == "pt_BR" else "was executed"
+                exec_text = get_text("was_executed", lang=lang)
                 events_list_items.append(f"""
                 <li class="event-item event-kill event-execution {extra_class}">
                     <span class="event-time">{t}</span>

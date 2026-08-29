@@ -112,9 +112,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     if is_arena and target_placement:
         is_arena_win = (target_placement <= 4)
         h_outcome_cls = "badge-win" if is_arena_win else "badge-loss"
-        h_icon = "👑" if is_arena_win else "🪦"
         ord_suf = {1: "ST", 2: "ND", 3: "RD"}.get(target_placement, "TH")
-        h_outcome_txt = f"{h_icon} {target_placement}º LUGAR" if lang == "pt_BR" else f"{h_icon} {target_placement}{ord_suf} PLACE"
+        key_res = "arena_place_win" if is_arena_win else "arena_place_loss"
+        h_outcome_txt = get_text(key_res, lang=lang, place=target_placement, ord_suffix=ord_suf)
     else:
         h_outcome_cls = "badge-win" if target_win else "badge-loss"
         h_outcome_txt = get_text("win", lang=lang) if target_win else get_text("loss", lang=lang)
@@ -122,7 +122,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     header_outcome_badge = f'<span class="header-outcome-badge {h_outcome_cls}">{h_outcome_txt}</span>'
 
     html_content = f"""<!DOCTYPE html>
-<html lang="{ 'pt-BR' if lang == 'pt_BR' else 'en' }">
+<html lang="{get_text('html_lang_code', lang=lang)}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1100">

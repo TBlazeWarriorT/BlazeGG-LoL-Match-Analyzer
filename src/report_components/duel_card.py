@@ -250,7 +250,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         ally_jg_val = p.get("ally_jungle_monsters", 0)
         enemy_jg_val = p.get("enemy_jungle_monsters", 0)
 
-        gold_lbl = get_text('gold', lang=lang) if get_text('gold', lang=lang) else ('Ouro' if lang == 'pt_BR' else 'Gold')
+        gold_lbl = get_text('gold', lang=lang)
         gold_cs_tooltip_lines = [
             f"<b><img class='mini-icon' src='{icon_gold}'/> {gold_lbl}: {p['gold_total']:,}</b>",
             f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
@@ -395,7 +395,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 """
             duel_info_box = f"""
             <div class="duel-scores-wrapper">
-                <div class="duel-score-row" title="{'Mortes causadas pelo(s) oponente(s) de lane' if lang == 'pt_BR' else 'Deaths to enemy laner(s)'}">
+                <div class="duel-score-row" title="{get_text('deaths_to_laners_tt', lang=lang)}">
                     <span class="score-label">{get_text("solo_deaths", lang=lang)}</span>
                     <div class="score-pill-lg">
                         <b class="score-blue-lg">{solo_deaths_1}</b>
@@ -403,7 +403,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                         <b class="score-red-lg">{solo_deaths_2}</b>
                     </div>
                 </div>
-                <div class="duel-score-row" style="margin-top: 3px;" title="{'Mortes causadas por inimigos de outras rotas' if lang == 'pt_BR' else 'Deaths to enemies from other lanes'}">
+                <div class="duel-score-row" style="margin-top: 3px;" title="{get_text('deaths_to_others_tt', lang=lang)}">
                     <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
                     <div class="score-pill-sm">
                         <b class="score-blue-sm">{other_1}</b>
@@ -435,7 +435,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 """
             duel_info_box = f"""
             <div class="duel-scores-wrapper">
-                <div class="duel-score-row" title="{'Mortes causadas pelo(s) oponente(s) de lane' if lang == 'pt_BR' else 'Deaths to enemy laner(s)'}">
+                <div class="duel-score-row" title="{get_text('deaths_to_laners_tt', lang=lang)}">
                     <span class="score-label">{get_text("lane_deaths", lang=lang)}</span>
                     <div class="score-pill-lg">
                         <b class="score-blue-lg">{lane_d1}</b>
@@ -443,7 +443,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                         <b class="score-red-lg">{lane_d2}</b>
                     </div>
                 </div>
-                <div class="duel-score-row" style="margin-top: 3px;" title="{'Mortes causadas por inimigos de outras rotas' if lang == 'pt_BR' else 'Deaths to enemies from other lanes'}">
+                <div class="duel-score-row" style="margin-top: 3px;" title="{get_text('deaths_to_others_tt', lang=lang)}">
                     <span class="score-label">{get_text("other_deaths", lang=lang)}</span>
                     <div class="score-pill-sm">
                         <b class="score-blue-sm">{other_d1}</b>
@@ -514,7 +514,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             else:
                 lead_txt = "<b style='color:#94a3b8;'>50% / 50%</b>"
 
-            bar_tt = f"Proporção de Dano: {pct1:.1f}% ({d1:,}) vs {pct2:.1f}% ({d2:,})" if lang == "pt_BR" else f"Damage Share: {pct1:.1f}% ({d1:,}) vs {pct2:.1f}% ({d2:,})"
+            bar_tt = get_text("dmg_share_tt", lang=lang, pct1=pct1, d1=d1, pct2=pct2, d2=d2)
             
             delta_html = f"""
             <div class="duel-center" style="justify-content:center; gap:6px;">
@@ -619,8 +619,8 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             team_a_place, team_a_players = sorted_subteams[i]
             team_b_place, team_b_players = sorted_subteams[i+1] if i+1 < len(sorted_subteams) else (None, [])
             
-            label_a = f"🏆 #{team_a_place} Lugar" if lang == "pt_BR" else f"🏆 #{team_a_place} Place"
-            label_b = f"🏆 #{team_b_place} Lugar" if lang == "pt_BR" else f"🏆 #{team_b_place} Place"
+            label_a = get_text("arena_team_place", lang=lang, place=team_a_place)
+            label_b = get_text("arena_team_place", lang=lang, place=team_b_place)
             
             frame_header = f"""
             <div class="arena-matchup-header">
@@ -670,8 +670,8 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     icons_html = "".join([f'<img class="team-champ-mini" src="{p.get("champion_icon", "")}" title="{p.get("champion", "")}"/>' for p in t_players])
 
                     return {
-                        "summoner_name": f"Time #{place_num}" if lang == "pt_BR" else f"Team #{place_num}",
-                        "champion": f"{len(t_players)} Jogadores" if lang == "pt_BR" else f"{len(t_players)} Players",
+                        "summoner_name": get_text("arena_team_name", lang=lang, place=place_num),
+                        "champion": get_text("arena_players_cnt", lang=lang, count=len(t_players)),
                         "champion_icon": "",
                         "champ_level": "",
                         "is_team_combined": True,
@@ -701,7 +701,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                 comb_a = make_arena_team_combined(team_a_players, team_a_place)
                 comb_b = make_arena_team_combined(team_b_players, team_b_place)
                 
-                comb_title = f"TOTAL DO EMBATE ({len(team_a_players)}v{len(team_b_players)})" if lang == "pt_BR" else f"MATCHUP TOTAL ({len(team_a_players)}v{len(team_b_players)})"
+                comb_title = get_text("arena_matchup_total", lang=lang, t1=len(team_a_players), t2=len(team_b_players))
                 team_pair_rows.append(render_duel_row(
                     comb_a, comb_b, comb_title,
                     gold_d={}, xp_d={},
@@ -891,7 +891,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             ))
 
         if bot_group_cards:
-            bot_frame_title = "🏹 ROTA INFERIOR (BOT LANE & DUO)" if lang == "pt_BR" else "🏹 BOTTOM LANE & DUO"
+            bot_frame_title = get_text("bot_lane_frame_title", lang=lang)
             duels_html.append(f"""
             <div class="bot-lane-group">
                 <div class="bot-lane-group-title">{bot_frame_title}</div>
@@ -1048,7 +1048,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             t1_exec_list = [f"{p['champion']} ({p['executions']})" if p['executions'] > 1 else p['champion'] for p in t1_players if p.get("executions", 0) > 0]
             t2_exec_list = [f"{p['champion']} ({p['executions']})" if p['executions'] > 1 else p['champion'] for p in t2_players if p.get("executions", 0) > 0]
             
-            tt_lines = ["<b>💀 Execuções (Mortes neutras sem abate):</b>" if lang == "pt_BR" else "<b>💀 Executions (Neutral deaths):</b>"]
+            tt_lines = [get_text("executions_tt_title", lang=lang)]
             if t1_exec_list:
                 tt_lines.append(f"<span style='color:#60a5fa;'>🔵 Blue:</span> " + ", ".join(t1_exec_list))
             if t2_exec_list:

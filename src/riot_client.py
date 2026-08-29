@@ -9,7 +9,7 @@ class RiotAPIError(Exception):
     pass
 
 class RiotClient:
-    def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION, lang: str = "pt_BR"):
+    def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION, lang: str = "en_US"):
         self.api_key = api_key or get_api_key()
         self.routing = routing
         self.region = region
@@ -48,7 +48,7 @@ class RiotClient:
         url = f"https://{self.routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
         data = self._request(url)
         if not data or "puuid" not in data:
-            raise RiotAPIError(f"Jogador {game_name}#{tag_line} não encontrado.")
+            raise RiotAPIError(get_text("err_summoner_not_found", lang=self.lang, name=game_name, tag=tag_line))
         return data["puuid"]
 
     def get_recent_matches(self, puuid: str, count: int = 8, start: int = 0, queue: Optional[int] = None) -> List[str]:
@@ -69,7 +69,7 @@ class RiotClient:
         url = f"https://{self.routing}.api.riotgames.com/lol/match/v5/matches/{match_id}"
         data = self._request(url)
         if not data:
-            raise RiotAPIError(f"Partida {match_id} não encontrada.")
+            raise RiotAPIError(get_text("err_match_not_found", lang=self.lang, match_id=match_id))
         save_cached_match(match_id, data, target_puuid)
         return data
 
@@ -80,6 +80,7 @@ class RiotClient:
         url = f"https://{self.routing}.api.riotgames.com/lol/match/v5/matches/{match_id}/timeline"
         data = self._request(url)
         if not data:
-            raise RiotAPIError(f"Timeline para a partida {match_id} não encontrada.")
+            raise RiotAPIError(get_text("err_timeline_not_found", lang=self.lang, match_id=match_id))
         save_cached_timeline(match_id, data)
         return data
+
