@@ -234,7 +234,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=False):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
     def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
@@ -282,61 +282,83 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         # Group cached matches by target summoner
         summoner_groups = {}
         for m in cached_list:
-            p = None
+            # Find which participant matches target_puuid or user history
+            matched_summoners = []
             if m.get("target_puuid"):
                 for part in m["participants"]:
                     if part["puuid"] == m["target_puuid"]:
-                        p = part
-                        break
-            if not p and last_sess.get("puuid"):
+                        matched_summoners.append(part)
+            if not matched_summoners and user_history:
+                u_hist_lower = [h.strip().lower() for h in user_history if h.strip()]
                 for part in m["participants"]:
-                    if part["puuid"] == last_sess.get("puuid"):
-                        p = part
-                        break
-            if not p:
-                p = m["participants"][0] if m["participants"] else {}
+                    p_label = f"{part.get('name', '')}#{part.get('tag', '')}".lower()
+                    if p_label in u_hist_lower:
+                        matched_summoners.append(part)
+            if not matched_summoners and is_local:
+                if last_sess.get("puuid"):
+                    for part in m["participants"]:
+                        if part["puuid"] == last_sess.get("puuid"):
+                            matched_summoners.append(part)
+                if not matched_summoners and m["participants"]:
+                    matched_summoners.append(m["participants"][0])
 
-            card_html = render_match_card(
-                m["match_id"], p.get("champion", ""), p.get("icon", ""),
-                f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
-                p.get("win", False), m["duration"], m["game_mode"],
-                p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
-                team_100=m.get("team_100"), team_200=m.get("team_200"), placement=p.get("placement", 0)
-            )
+            if not matched_summoners:
+                continue
 
-            s_name = p.get("name", "")
-            s_tag = p.get("tag", "")
-            s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else get_text("global_other_tab", lang=lang)
-            
-            # Track group cards, wins and losses
-            is_match_win = p.get("win", False)
-            place_val = p.get("placement", 0)
-            if "CHERRY" in str(m.get("game_mode", "")).upper() or "ARENA" in str(m.get("game_mode", "")).upper():
-                if place_val:
-                    is_match_win = (place_val <= 4)
-            
-            group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0})
-            group_entry["cards"].append(card_html)
-            if is_match_win:
-                group_entry["wins"] += 1
-            else:
-                group_entry["losses"] += 1
+            for p in matched_summoners:
+                card_html = render_match_card(
+                    m["match_id"], p.get("champion", ""), p.get("icon", ""),
+                    f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
+                    p.get("win", False), m["duration"], m["game_mode"],
+                    p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
+                    team_100=m.get("team_100"), team_200=m.get("team_200"), placement=p.get("placement", 0)
+                )
+
+                s_name = p.get("name", "")
+                s_tag = p.get("tag", "")
+                s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else get_text("global_other_tab", lang=lang)
+                
+                # Track group cards, wins and losses
+                is_match_win = p.get("win", False)
+                place_val = p.get("placement", 0)
+                if "CHERRY" in str(m.get("game_mode", "")).upper() or "ARENA" in str(m.get("game_mode", "")).upper():
+                    if place_val:
+                        is_match_win = (place_val <= 4)
+                
+                group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0})
+                group_entry["cards"].append(card_html)
+                if is_match_win:
+                    group_entry["wins"] += 1
+                else:
+                    group_entry["losses"] += 1
 
         # In remote/production, filter visible tabs to only summoners searched by THIS user
-        if not is_local and user_history is not None:
-            user_history_lower = [h.strip().lower() for h in user_history if h.strip()]
+        if not is_local:
+            user_hist_list = user_history if user_history is not None else []
+            user_history_lower = [h.strip().lower() for h in user_hist_list if h.strip()]
             filtered_groups = {k: v for k, v in summoner_groups.items() if k.lower() in user_history_lower}
             summoner_groups = filtered_groups
 
-        # Build tabs
+        # Build tabs: Order by user's recent search order (user_history) so newest is always first on the left
         tab_buttons = []
         tab_panes = []
-        sorted_groups = sorted(summoner_groups.items(), key=lambda x: len(x[1]["cards"]), reverse=True)
         
-        # Decide initial active tab (prefer search summoner, then session summoner, then highest count)
+        # Sort function: if summoner in user_history, use its index; otherwise fallback to negative match count
+        def get_group_sort_key(item):
+            s_lbl = item[0].lower()
+            if user_history:
+                for h_idx, h in enumerate(user_history):
+                    if h.lower() == s_lbl:
+                        return (0, h_idx)
+            return (1, -len(item[1]["cards"]))
+
+        sorted_groups = sorted(summoner_groups.items(), key=get_group_sort_key)
+
+        # Decide initial active tab (prefer search summoner, then user's most recent search, then first tab 0)
         searched_label = f"{search_name}#{search_tag}" if (search_name and search_tag) else ""
-        sess_label = f"{last_sess.get('game_name', '')}#{last_sess.get('tag_line', '')}"
-        target_focus = searched_label or sess_label
+        user_recent_label = user_history[0] if (user_history and len(user_history) > 0) else ""
+        sess_label = f"{last_sess.get('game_name', '')}#{last_sess.get('tag_line', '')}" if is_local else ""
+        target_focus = searched_label or user_recent_label or sess_label
         
         active_tab_idx = 0
         for idx, (s_label, s_data) in enumerate(sorted_groups):
@@ -452,23 +474,27 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         </form>
         """ if is_local else ""
 
-        c_title = get_text("cached_matches_title", lang=lang, count=len(cached_list))
-        cached_html = f"""
-        <div class="section-card" style="margin-top: 24px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;">{c_title}</h3>
-                {clear_cache_btn}
-            </div>
-            
-            <div class="cache-tabs-nav">
-                {"".join(tab_buttons)}
-            </div>
+        if tab_buttons:
+            title_key = "cached_matches_title" if is_local else "recent_summoners_title"
+            c_title = get_text(title_key, lang=lang, count=sum(len(v["cards"]) for v in summoner_groups.values()))
+            cached_html = f"""
+            <div class="section-card" style="margin-top: 24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0;">{c_title}</h3>
+                    {clear_cache_btn}
+                </div>
+                
+                <div class="cache-tabs-nav">
+                    {"".join(tab_buttons)}
+                </div>
 
-            <div class="cache-tabs-container">
-                {"".join(tab_panes)}
+                <div class="cache-tabs-container">
+                    {"".join(tab_panes)}
+                </div>
             </div>
-        </div>
-        """
+            """
+        else:
+            cached_html = ""
 
 
 
@@ -633,21 +659,29 @@ class AppHandler(BaseHTTPRequestHandler):
         qs = parse_qs(parsed.query)
         lang = qs.get("lang", ["en_US"])[0].strip() or "en_US"
 
+        host_header = self.headers.get("Host", "").lower()
+        x_forwarded_for = self.headers.get("X-Forwarded-For", "")
         client_ip = self.client_address[0]
-        is_local = client_ip in ("127.0.0.1", "::1", "localhost") or self.headers.get("Host", "").startswith("localhost")
+        
+        # In production or behind public reverse proxy, consider non-local
+        if os.getenv("BLAZE_ENV") == "production" or x_forwarded_for:
+            is_local = False
+        else:
+            is_local = (client_ip in ("127.0.0.1", "::1")) and ("localhost" in host_header or "127.0.0.1" in host_header)
 
         cookies_raw = self.headers.get("Cookie", "")
         import http.cookies
+        import urllib.parse
         cookie_obj = http.cookies.SimpleCookie()
         if cookies_raw:
             try:
                 cookie_obj.load(cookies_raw)
             except Exception:
                 pass
-        sess_key = cookie_obj.get("blaze_dev_key").value if "blaze_dev_key" in cookie_obj else ""
-        sess_exp = cookie_obj.get("blaze_dev_exp").value if "blaze_dev_exp" in cookie_obj else ""
+        sess_key = urllib.parse.unquote(cookie_obj.get("blaze_dev_key").value) if "blaze_dev_key" in cookie_obj else ""
+        sess_exp = urllib.parse.unquote(cookie_obj.get("blaze_dev_exp").value) if "blaze_dev_exp" in cookie_obj else ""
         
-        hist_cookie = cookie_obj.get("blaze_history").value if "blaze_history" in cookie_obj else ""
+        hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_history").value) if "blaze_history" in cookie_obj else ""
         user_history = [h.strip() for h in hist_cookie.split("|") if h.strip()] if hist_cookie else []
 
         if path in ("", "/"):
@@ -754,7 +788,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 new_hist = [h for h in user_history if h.lower() != searched_riot_id.lower()]
                 new_hist.insert(0, searched_riot_id)
                 new_hist = new_hist[:10]  # Store up to 10 recent summoners
-                hist_cookie_val = "|".join(new_hist)
+                import urllib.parse
+                hist_cookie_val = urllib.parse.quote("|".join(new_hist))
                 
                 # Send HTML with Set-Cookie header for history
                 self.send_response(200)
@@ -891,21 +926,27 @@ class AppHandler(BaseHTTPRequestHandler):
             s_label = form_data.get("summoner_label", [""])[0].strip()
             lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
             
+            host_header = self.headers.get("Host", "").lower()
+            x_forwarded_for = self.headers.get("X-Forwarded-For", "")
             client_ip = self.client_address[0]
-            is_local = client_ip in ("127.0.0.1", "::1", "localhost") or self.headers.get("Host", "").startswith("localhost")
+            if os.getenv("BLAZE_ENV") == "production" or x_forwarded_for:
+                is_local = False
+            else:
+                is_local = (client_ip in ("127.0.0.1", "::1")) and ("localhost" in host_header or "127.0.0.1" in host_header)
             
             cookies_raw = self.headers.get("Cookie", "")
             import http.cookies
+            import urllib.parse
             cookie_obj = http.cookies.SimpleCookie()
             if cookies_raw:
                 try:
                     cookie_obj.load(cookies_raw)
                 except Exception:
                     pass
-            hist_cookie = cookie_obj.get("blaze_history").value if "blaze_history" in cookie_obj else ""
+            hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_history").value) if "blaze_history" in cookie_obj else ""
             user_history = [h.strip() for h in hist_cookie.split("|") if h.strip()] if hist_cookie else []
             new_hist = [h for h in user_history if h.lower() != s_label.lower()]
-            hist_cookie_val = "|".join(new_hist)
+            hist_cookie_val = urllib.parse.quote("|".join(new_hist))
 
             if s_label and is_local:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
