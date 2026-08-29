@@ -746,7 +746,6 @@ body {
     align-items: center;
     gap: 8px;
     min-width: 0;
-    overflow: hidden;
 }
 .award-name {
     overflow: hidden;
@@ -1230,6 +1229,7 @@ body {
 .ico-mr { background-image: var(--ico-mr); }
 .ico-as { background-image: var(--ico-as); }
 .ico-ah { background-image: var(--ico-ah); }
+.ico-crit { background-image: var(--ico-crit); }
 .ico-armpen { background-image: var(--ico-armpen); }
 .ico-mpen { background-image: var(--ico-mpen); }
 .ico-lifesteal { background-image: var(--ico-lifesteal); }

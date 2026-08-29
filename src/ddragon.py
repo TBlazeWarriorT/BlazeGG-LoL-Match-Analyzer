@@ -44,9 +44,13 @@ class DataDragon:
                     save_json(items_cache, cached_items)
             except Exception:
                 cached_items = {}
+        self._item_crit: Dict[int, int] = {}
         if cached_items and "data" in cached_items:
             for item_id, details in cached_items["data"].items():
                 self._items[str(item_id)] = details.get("name", f"Item {item_id}")
+                crit = details.get("stats", {}).get("FlatCritChanceMod", 0)
+                if crit > 0:
+                    self._item_crit[int(item_id)] = round(crit * 100)
 
         champs_cache = DDRAGON_CACHE_DIR / f"champions_{self.version}_{self.language}.json"
         cached_champs = load_json(champs_cache)
@@ -143,6 +147,11 @@ class DataDragon:
         if not item_id or item_id == 0:
             return "Vazio"
         return self._items.get(str(item_id), f"Item {item_id}")
+
+    def get_item_crit_chance(self, item_id: int) -> int:
+        if not item_id or item_id == 0:
+            return 0
+        return self._item_crit.get(int(item_id), 0)
 
     def get_champion_name(self, key: int, fallback: str = "") -> str:
         return self._champions.get(str(key), fallback or f"Champ {key}")

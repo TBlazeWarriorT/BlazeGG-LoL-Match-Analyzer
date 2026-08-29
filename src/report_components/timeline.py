@@ -2,8 +2,10 @@ from typing import Dict, Any, Tuple
 from ..asset_cache import AssetManager
 from ..i18n import get_text
 from ..event_engine import clean_monster_name
+from ..ddragon import DataDragon
 
 def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[str, str, str]:
+    dd = DataDragon(language=lang)
     # 1. ABA 1: KILLS & OBJECTIVES
     kills_list_items = []
     for idx, ev in enumerate(data.get("key_events", [])):
@@ -28,7 +30,21 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             icon_uri = AssetManager.get_asset_uri(ev.get("asset_key", ""))
             m_type = ev.get("monster_type", "")
             m_sub = ev.get("monster_sub_type", "")
+            is_soul = ev.get("is_soul", False)
+            asset_key = str(ev.get("asset_key", ""))
+            name_str = str(m_type + "_" + m_sub).upper()
+
+            glow_class = ""
+            if is_soul:
+                glow_class = "soul-dragon-badge"
+            elif "BARON" in asset_key.upper() or "BARON" in name_str:
+                glow_class = "baron-badge"
+            elif "ELDER" in asset_key.upper() or "ELDER" in name_str or "ANCIÃO" in name_str:
+                glow_class = "elder-badge"
+
             obj_desc = clean_monster_name(m_type, m_sub, lang=lang) if m_type else ev.get("desc", "")
+            if is_soul:
+                obj_desc = f"{obj_desc} (SOUL 🐉)"
             
             is_fem = ("HORDE" in m_type.upper() or "GRUB" in m_type.upper())
             slain_key = "slain_by_f" if is_fem else "slain_by"
@@ -40,14 +56,16 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             kills_list_items.append(f"""
             <li class="event-item event-obj {obj_theme_class}" data-phase="{ev_phase}">
                 <span class="event-time">{t}</span>
-                <img class="event-obj-icon" src="{icon_uri}" alt="{obj_desc}"/>
+                <img class="event-obj-icon {glow_class}" src="{icon_uri}" alt="{obj_desc}"/>
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)
         else:
             streak = ev.get("streak", "normal")
+            life_streak = ev.get("life_streak", "none")
             streak_class = ""
             streak_badge = ""
+
             if streak == "penta":
                 streak_class = "event-penta"
                 streak_badge = '<span class="multi-badge badge-penta">PENTAKILL! 👑</span>'
@@ -60,6 +78,25 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             elif streak == "double":
                 streak_class = "event-multi"
                 streak_badge = '<span class="multi-badge badge-multi">DOUBLE KILL! ⚔️</span>'
+
+            # Life kill streaks (Outline + text only, perfectly distinct from solid multikills)
+            life_badge = ""
+            if life_streak == "legendary":
+                life_badge = '<span class="multi-badge" style="background:transparent; color:#fbbf24; border:1px solid #fbbf24; font-weight:800;">LENDÁRIO</span>'
+            elif life_streak == "godlike":
+                life_badge = '<span class="multi-badge" style="background:transparent; color:#f87171; border:1px solid #ef4444; font-weight:800;">INVENCÍVEL</span>'
+            elif life_streak == "dominating":
+                life_badge = '<span class="multi-badge" style="background:transparent; color:#c084fc; border:1px solid #a855f7; font-weight:700;">DOMINANDO</span>'
+            elif life_streak == "unstoppable":
+                life_badge = '<span class="multi-badge" style="background:transparent; color:#60a5fa; border:1px solid #3b82f6; font-weight:700;">IMPLACÁVEL</span>'
+            elif life_streak == "rampage":
+                life_badge = '<span class="multi-badge" style="background:transparent; color:#38bdf8; border:1px solid #06b6d4; font-weight:700;">ENFURECIDO</span>'
+            elif life_streak == "spree":
+                life_badge = '<span class="multi-badge" style="background:transparent; color:#94a3b8; border:1px solid #475569; font-weight:600;">KILLING SPREE</span>'
+
+            # Multikills always take precedence on the right
+            if life_badge:
+                streak_badge = f"{life_badge} {streak_badge}" if streak_badge else life_badge
 
             if ev.get("is_first_blood"):
                 streak_badge = f'<span class="multi-badge badge-first-blood">FIRST BLOOD! 🩸</span> {streak_badge}'
@@ -185,6 +222,20 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 except Exception:
                     kill_min = 0
 
+                # Estimated Critical Strike Chance calculation from items snapshot
+                crit_est = 0
+                if items_snapshot:
+                    for it in items_snapshot:
+                        iid = it.get("id", 0)
+                        if 'dd' in locals():
+                            crit_est += dd.get_item_crit_chance(iid)
+                clean_lower = champ_name.lower()
+                if "yasuo" in clean_lower or "yone" in clean_lower:
+                    crit_est *= 2
+                crit_est = min(crit_est, 100)
+                crit_label = "(itens)" if lang == "pt_BR" else "(items)"
+                crit_str = f'<span title="Estimativa via itens">{crit_est}% <small style="opacity:0.7; font-size:0.7em;">{crit_label}</small></span>' if crit_est > 0 else "0%"
+
                 return f"""
                 <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
                     <div class="team-champ-mini-wrap" style="margin-right:0;">
@@ -204,6 +255,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                             <div class="stat-cell"><i class="stat-ico ico-mr"></i> <span>{mr}</span></div>
                             <div class="stat-cell"><i class="stat-ico ico-as"></i> <span>{as_val:.2f}</span></div>
                             <div class="stat-cell"><i class="stat-ico ico-ah"></i> <span>{ah}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-crit"></i> <span>{crit_str}</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-ms"></i> <span>{ms}</span></div>
                         </div>
                         <div class="stat-divider"></div>
                         <div class="stat-grid-2col">
@@ -211,9 +264,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                             <div class="stat-cell"><i class="stat-ico ico-mpen"></i> <span>{mag_pen_flat} | {mag_pen_pct}%</span></div>
                             <div class="stat-cell"><i class="stat-ico ico-lifesteal"></i> <span>{lifesteal}%</span></div>
                             <div class="stat-cell"><i class="stat-ico ico-omnivamp"></i> <span>{omnivamp}%</span></div>
-                            <div class="stat-cell"><i class="stat-ico ico-ms"></i> <span>{ms}</span></div>
                             <div class="stat-cell"><i class="stat-ico ico-range"></i> <span>{champ_range}</span></div>
-                            <div class="stat-cell" style="grid-column: span 2;"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
+                            <div class="stat-cell"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
                         </div>
                         {items_row_html}
                     </div>
@@ -531,6 +583,19 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         tenacity = stats.get("ccReduction", 0)
         champ_range = stats.get("attackRange", 125)
 
+        # Estimated Critical Strike Chance calculation from items snapshot
+        crit_est = 0
+        for it in (p_items or []):
+            iid = it.get("id", 0)
+            if 'dd' in locals():
+                crit_est += dd.get_item_crit_chance(iid)
+        clean_lower = c_name.lower()
+        if "yasuo" in clean_lower or "yone" in clean_lower:
+            crit_est *= 2
+        crit_est = min(crit_est, 100)
+        crit_label = "(itens)" if lang == "pt_BR" else "(items)"
+        crit_str = f'<span title="Estimativa via itens">{crit_est}% <small style="opacity:0.7; font-size:0.7em;">{crit_label}</small></span>' if crit_est > 0 else "0%"
+
         return f"""
         <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
             <div class="team-champ-mini-wrap" style="border-color:{border_c}; margin-right:0;">
@@ -550,6 +615,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     <div class="stat-cell"><i class="stat-ico ico-mr"></i> <span>{mr}</span></div>
                     <div class="stat-cell"><i class="stat-ico ico-as"></i> <span>{as_val:.2f}</span></div>
                     <div class="stat-cell"><i class="stat-ico ico-ah"></i> <span>{ah}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-crit"></i> <span>{crit_str}</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-ms"></i> <span>{ms}</span></div>
                 </div>
                 <div class="stat-divider"></div>
                 <div class="stat-grid-2col">
@@ -557,9 +624,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     <div class="stat-cell"><i class="stat-ico ico-mpen"></i> <span>{mag_pen_flat} | {mag_pen_pct}%</span></div>
                     <div class="stat-cell"><i class="stat-ico ico-lifesteal"></i> <span>{lifesteal}%</span></div>
                     <div class="stat-cell"><i class="stat-ico ico-omnivamp"></i> <span>{omnivamp}%</span></div>
-                    <div class="stat-cell"><i class="stat-ico ico-ms"></i> <span>{ms}</span></div>
                     <div class="stat-cell"><i class="stat-ico ico-range"></i> <span>{champ_range}</span></div>
-                    <div class="stat-cell" style="grid-column: span 2;"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
+                    <div class="stat-cell"><i class="stat-ico ico-tenacity"></i> <span>{tenacity}%</span></div>
                 </div>
                 {items_row_html}
             </div>

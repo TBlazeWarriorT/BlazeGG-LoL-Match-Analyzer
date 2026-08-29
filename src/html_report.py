@@ -163,6 +163,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         --ico-mr: url('{AssetManager.get_asset_uri("stat_mr")}');
         --ico-as: url('{AssetManager.get_asset_uri("stat_as")}');
         --ico-ah: url('{AssetManager.get_asset_uri("stat_ah")}');
+        --ico-crit: url('{AssetManager.get_asset_uri("stat_crit")}');
         --ico-armpen: url('{AssetManager.get_asset_uri("stat_armpen")}');
         --ico-mpen: url('{AssetManager.get_asset_uri("stat_mpen")}');
         --ico-lifesteal: url('{AssetManager.get_asset_uri("stat_lifesteal")}');

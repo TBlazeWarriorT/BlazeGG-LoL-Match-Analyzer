@@ -499,6 +499,8 @@ class MatchAnalysis:
         events_log = []
         frames = self.timeline.get("info", {}).get("frames", [])
         kill_streaks = {}
+        life_streaks = {}
+        timeline_drake_count = {100: 0, 200: 0}
         first_blood_awarded = False
 
         # Track ongoing inventory snapshots per participant
@@ -576,19 +578,17 @@ class MatchAnalysis:
                         is_first_blood = True
                         first_blood_awarded = True
 
+                    # Multikill tracking (Double, Triple, Quadra, Penta within time window)
                     streak_type = "normal"
                     killer_streak = kill_streaks.get(killer, {"count": 0, "last_ts": 0})
                     current_count = killer_streak["count"]
                     last_ts = killer_streak["last_ts"]
 
-                    # Janela padrão de 10s entre abates; se for Quadra Kill (4 kills), a janela para Pentakill sobe para 30s
                     allowed_window = 30000 if current_count == 4 else 10000
-
                     if current_count > 0 and (ts - last_ts) <= allowed_window:
                         new_count = current_count + 1
                     else:
                         new_count = 1
-
                     kill_streaks[killer] = {"count": new_count, "last_ts": ts}
 
                     if new_count >= 5:
@@ -599,6 +599,28 @@ class MatchAnalysis:
                         streak_type = "triple"
                     elif new_count == 2:
                         streak_type = "double"
+
+                    # Life streak tracking (Killing spree 3+, Rampage 4, Unstoppable 5, Dominating 6, Godlike 7, Legendary 8+)
+                    life_streak_type = "none"
+                    if killer and killer != 0:
+                        life_streaks[killer] = life_streaks.get(killer, 0) + 1
+                        l_count = life_streaks[killer]
+                        if l_count >= 8:
+                            life_streak_type = "legendary"
+                        elif l_count == 7:
+                            life_streak_type = "godlike"
+                        elif l_count == 6:
+                            life_streak_type = "dominating"
+                        elif l_count == 5:
+                            life_streak_type = "unstoppable"
+                        elif l_count == 4:
+                            life_streak_type = "rampage"
+                        elif l_count == 3:
+                            life_streak_type = "spree"
+
+                    # Reset victim's life streak on death
+                    if victim:
+                        life_streaks[victim] = 0
 
                     is_solo = len(assisters) == 0
                     is_execution = (killer == 0)
@@ -634,6 +656,7 @@ class MatchAnalysis:
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
+                        "life_streak": life_streak_type,
                         "time": t_str,
                         "is_execution": is_execution,
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if not is_execution else "",
@@ -664,7 +687,14 @@ class MatchAnalysis:
                     desc = clean_monster_name(m_type, m_sub)
                     
                     asset_key = "dragon_circle"
+                    is_soul = False
+                    killer_team = k_p.get("teamId") or ev.get("killerTeamId")
                     if "DRAGON" in m_type:
+                        if "ELDER" not in str(m_sub).upper():
+                            if killer_team in timeline_drake_count:
+                                timeline_drake_count[killer_team] += 1
+                                if timeline_drake_count[killer_team] == 4:
+                                    is_soul = True
                         asset_key = get_dragon_asset_key(m_sub)
                     elif "HORDE" in m_type or "GRUB" in m_type:
                         asset_key = "sru_voidgrub_circle"
@@ -681,6 +711,7 @@ class MatchAnalysis:
                         "monster_sub_type": m_sub,
                         "desc": desc,
                         "asset_key": asset_key,
+                        "is_soul": is_soul,
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw),
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw),
                         "killer_name": k_p.get("riotIdGameName", "")
