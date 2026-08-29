@@ -316,7 +316,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                         if part["puuid"] == last_sess.get("puuid"):
                             matched_summoners.append(part)
                 if not matched_summoners and m["participants"]:
-                    matched_summoners.append(m["participants"][0])
+                    # Generic / Neutral match searched by Match ID (assign to Global tab with 1st participant perspective)
+                    first_p = dict(m["participants"][0])
+                    first_p["_is_global_tab"] = True
+                    matched_summoners.append(first_p)
 
             if not matched_summoners:
                 continue
@@ -332,7 +335,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
                 s_name = p.get("name", "")
                 s_tag = p.get("tag", "")
-                s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else get_text("global_other_tab", lang=lang)
+                if p.get("_is_global_tab"):
+                    s_label = get_text("global_other_tab", lang=lang)
+                else:
+                    s_label = f"{s_name}#{s_tag}" if (s_name and s_tag) else get_text("global_other_tab", lang=lang)
                 
                 # Track group cards, wins and losses
                 is_match_win = p.get("win", False)
