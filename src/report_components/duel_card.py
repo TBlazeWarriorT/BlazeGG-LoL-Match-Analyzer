@@ -61,11 +61,14 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             lvl2 = p.get("lvl2", "")
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl1} &amp; {lvl2}</span>" if lvl1 and lvl2 else ""
             header_html = f"""
-
             <div class="p-header">
                 <div class="duo-avatar-stack">
-                    <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
-                    <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
+                    <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ1']}">
+                        <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
+                    </div>
+                    <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ2']}">
+                        <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
+                    </div>
                 </div>
                 <div class="p-meta">
                     <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
@@ -667,7 +670,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     
                     ratio = (t_kills + t_assists) / max(t_deaths, 1)
                     csm = round(t_cs / dur_min_calc, 1)
-                    icons_html = "".join([f'<img class="team-champ-mini" src="{p.get("champion_icon", "")}" title="{p.get("champion", "")}"/>' for p in t_players])
+                    icons_html = "".join([f'<div class="team-champ-mini-wrap" title="{p.get("champion", "")}"><img class="team-champ-mini" src="{p.get("champion_icon", "")}" alt="{p.get("champion", "")}"/></div>' for p in t_players])
 
                     return {
                         "summoner_name": get_text("arena_team_name", lang=lang, place=place_num),
@@ -953,8 +956,8 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
         csm_t1 = round(t1_cs / dur_min_calc, 1)
         csm_t2 = round(t2_cs / dur_min_calc, 1)
 
-        t1_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t1_players])
-        t2_icons_html = "".join([f'<img class="team-champ-mini" src="{p["champion_icon"]}" title="{p["champion"]}"/>' for p in t2_players])
+        t1_icons_html = "".join([f'<div class="team-champ-mini-wrap" title="{p["champion"]}"><img class="team-champ-mini" src="{p["champion_icon"]}" alt="{p["champion"]}"/></div>' for p in t1_players])
+        t2_icons_html = "".join([f'<div class="team-champ-mini-wrap" title="{p["champion"]}"><img class="team-champ-mini" src="{p["champion_icon"]}" alt="{p["champion"]}"/></div>' for p in t2_players])
 
         raw_team_gold = {}
         for m in matchups:

@@ -117,9 +117,9 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         header_main_info = f"""
         <div style="flex:1;">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <h1 style="margin:0; font-size: 1.35rem; font-weight:900; color:#fff; display:flex; align-items:center; gap:8px;">
+                <h1 style="margin:0; font-size: 1.35rem; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
                     {rc.get_region_flag_badge(data.get('match_id', ''))}
-                    <span style="font-family:monospace; color:#38bdf8;">{data.get('match_id')}</span>
+                    <span style="font-family:monospace; color:#f1f5f9; letter-spacing:0.5px;">{data.get('match_id')}</span>
                 </h1>
                 <span style="background:#1e293b; color:#cbd5e1; font-weight:700; font-size:0.85rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">{full_mode_display}</span>
                 <span style="background:#090d16; color:#94a3b8; font-weight:600; font-size:0.85rem; padding:3px 10px; border-radius:6px; border:1px solid #1e293b;">{get_text('duration', lang=lang)}: <b>{data.get('duration')}</b></span>

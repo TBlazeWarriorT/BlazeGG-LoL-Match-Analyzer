@@ -84,10 +84,10 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         found_p = next((p for p in all_players if p.get("champion") == k_champ), None)
         icon_src = found_p.get("champion_icon", "") if found_p else ""
         jungle_items_list.append(f"""
-        <div class="award-item {rank_cls}">
+        <div class="award-item {rank_cls}" title="{k_name} • {k_champ} ({count} obj{'s' if count > 1 else ''})">
             <div class="award-champ-info">
-                <img class="award-avatar" src="{icon_src}" alt="{k_champ}"/>
-                <span class="award-name">{k_name} ({k_champ})</span>
+                <div class="award-avatar-wrap" title="{k_champ}"><img class="award-avatar" src="{icon_src}" alt="{k_champ}"/></div>
+                <span class="award-name">{k_name}</span>
             </div>
             <span class="award-val">{count} obj{'s' if count > 1 else ''}</span>
         </div>
@@ -98,10 +98,10 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     mayhem_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("damage_to_champions", 0), max_items=3)
     mayhem_items = "".join([
         f"""
-        <div class="award-item {rank_cls}">
+        <div class="award-item {rank_cls}" title="{p['riot_id']} • {p['champion']} ({p.get('damage_to_champions', 0):,} DMG)">
             <div class="award-champ-info">
-                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
-                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+                <div class="award-avatar-wrap" title="{p['champion']}"><img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/></div>
+                <span class="award-name">{p['riot_id']}</span>
             </div>
             <span class="award-val">{p.get('damage_to_champions', 0):,} DMG</span>
         </div>
@@ -112,10 +112,10 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     greed_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("gold_total", 0), max_items=3)
     greed_items = "".join([
         f"""
-        <div class="award-item {rank_cls}">
+        <div class="award-item {rank_cls}" title="{p['riot_id']} • {p['champion']} ({p.get('gold_total', 0):,} Gold)">
             <div class="award-champ-info">
-                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
-                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+                <div class="award-avatar-wrap" title="{p['champion']}"><img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/></div>
+                <span class="award-name">{p['riot_id']}</span>
             </div>
             <span class="award-val">{p.get('gold_total', 0):,} <img class="mini-icon" src="{icon_gold}"/></span>
         </div>
@@ -126,10 +126,10 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     might_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("damage_taken", 0) + x.get("damage_mitigated", 0), max_items=3)
     might_items = "".join([
         f"""
-        <div class="award-item {rank_cls}">
+        <div class="award-item {rank_cls}" title="{p['riot_id']} • {p['champion']} ({(p.get('damage_taken', 0) + p.get('damage_mitigated', 0)):,} Soaked/Mitigated)">
             <div class="award-champ-info">
-                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
-                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+                <div class="award-avatar-wrap" title="{p['champion']}"><img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/></div>
+                <span class="award-name">{p['riot_id']}</span>
             </div>
             <span class="award-val">{(p.get('damage_taken', 0) + p.get('damage_mitigated', 0)):,}</span>
         </div>
@@ -140,10 +140,10 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     vision_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("vision_score", 0), max_items=3)
     visionary_items = "".join([
         f"""
-        <div class="award-item {rank_cls}">
+        <div class="award-item {rank_cls}" title="{p['riot_id']} • {p['champion']} ({p.get('vision_score', 0)} Vision Score)">
             <div class="award-champ-info">
-                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
-                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+                <div class="award-avatar-wrap" title="{p['champion']}"><img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/></div>
+                <span class="award-name">{p['riot_id']}</span>
             </div>
             <span class="award-val">{p.get('vision_score', 0)} score ({p.get('detector_wards', 0)} <img class='mini-icon mini-icon-round' src='https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png' title='Control Wards'/>)</span>
         </div>
@@ -154,10 +154,10 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     turret_ranked = assign_competition_ranks(all_players, key_fn=lambda x: x.get("damage_to_turrets", 0), max_items=3)
     demolisher_items = "".join([
         f"""
-        <div class="award-item {rank_cls}">
+        <div class="award-item {rank_cls}" title="{p['riot_id']} • {p['champion']} ({p.get('damage_to_turrets', 0):,} Turret DMG)">
             <div class="award-champ-info">
-                <img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/>
-                <span class="award-name">{p['riot_id']} ({p['champion']})</span>
+                <div class="award-avatar-wrap" title="{p['champion']}"><img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/></div>
+                <span class="award-name">{p['riot_id']}</span>
             </div>
             <span class="award-val">{p.get('damage_to_turrets', 0):,} DMG</span>
         </div>
