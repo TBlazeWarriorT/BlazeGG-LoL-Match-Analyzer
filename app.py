@@ -234,11 +234,11 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry=""):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=False):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
-    def_name = search_name or last_sess.get("game_name", "")
-    def_tag = search_tag or last_sess.get("tag_line", "")
+    def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
+    def_tag = search_tag or (last_sess.get("tag_line", "") if is_local else "")
     
     curr_key = get_api_key(session_key=session_key)
     exp_val = get_key_expires_at(session_expiry=session_expiry)
@@ -321,6 +321,12 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 group_entry["wins"] += 1
             else:
                 group_entry["losses"] += 1
+
+        # In remote/production, filter visible tabs to only summoners searched by THIS user
+        if not is_local and user_history is not None:
+            user_history_lower = [h.strip().lower() for h in user_history if h.strip()]
+            filtered_groups = {k: v for k, v in summoner_groups.items() if k.lower() in user_history_lower}
+            summoner_groups = filtered_groups
 
         # Build tabs
         tab_buttons = []
@@ -440,14 +446,18 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             """)
 
 
+        clear_cache_btn = f"""
+        <form action="/clear_cache" method="POST" onsubmit="return confirm('{get_text('confirm_clear_cache', lang=lang)}');">
+            <button type="submit" class="btn btn-clear-cache">{get_text('btn_clear_cache', lang=lang)}</button>
+        </form>
+        """ if is_local else ""
+
         c_title = get_text("cached_matches_title", lang=lang, count=len(cached_list))
         cached_html = f"""
         <div class="section-card" style="margin-top: 24px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0;">{c_title}</h3>
-                <form action="/clear_cache" method="POST" onsubmit="return confirm('{get_text('confirm_clear_cache', lang=lang)}');">
-                    <button type="submit" class="btn btn-clear-cache">{get_text('btn_clear_cache', lang=lang)}</button>
-                </form>
+                {clear_cache_btn}
             </div>
             
             <div class="cache-tabs-nav">
@@ -618,6 +628,14 @@ class AppHandler(BaseHTTPRequestHandler):
         importlib.reload(src.i18n)
         importlib.reload(src.riot_client)
 
+        parsed = urlparse(self.path)
+        path = parsed.path
+        qs = parse_qs(parsed.query)
+        lang = qs.get("lang", ["en_US"])[0].strip() or "en_US"
+
+        client_ip = self.client_address[0]
+        is_local = client_ip in ("127.0.0.1", "::1", "localhost") or self.headers.get("Host", "").startswith("localhost")
+
         cookies_raw = self.headers.get("Cookie", "")
         import http.cookies
         cookie_obj = http.cookies.SimpleCookie()
@@ -628,9 +646,12 @@ class AppHandler(BaseHTTPRequestHandler):
                 pass
         sess_key = cookie_obj.get("blaze_dev_key").value if "blaze_dev_key" in cookie_obj else ""
         sess_exp = cookie_obj.get("blaze_dev_exp").value if "blaze_dev_exp" in cookie_obj else ""
+        
+        hist_cookie = cookie_obj.get("blaze_history").value if "blaze_history" in cookie_obj else ""
+        user_history = [h.strip() for h in hist_cookie.split("|") if h.strip()] if hist_cookie else []
 
         if path in ("", "/"):
-            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp))
+            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local))
 
         elif path == "/search_match":
             mid_input = qs.get("match_id", [""])[0].strip()
@@ -728,7 +749,22 @@ class AppHandler(BaseHTTPRequestHandler):
                     except Exception:
                         continue
 
-                self._send_html(render_home_html(search_results=results, search_name=name, search_tag=tag, lang=lang))
+                # Add summoner to user's history list
+                searched_riot_id = f"{name}#{tag}"
+                new_hist = [h for h in user_history if h.lower() != searched_riot_id.lower()]
+                new_hist.insert(0, searched_riot_id)
+                new_hist = new_hist[:10]  # Store up to 10 recent summoners
+                hist_cookie_val = "|".join(new_hist)
+                
+                # Send HTML with Set-Cookie header for history
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Set-Cookie", f"blaze_history={hist_cookie_val}; Path=/; SameSite=Lax; Max-Age=31536000")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.end_headers()
+                
+                rendered_html = render_home_html(search_results=results, search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=new_hist, is_local=is_local)
+                self.wfile.write(rendered_html.encode("utf-8"))
 
             except RiotAPIError as e:
                 self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))
@@ -855,7 +891,23 @@ class AppHandler(BaseHTTPRequestHandler):
             s_label = form_data.get("summoner_label", [""])[0].strip()
             lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
             
-            if s_label:
+            client_ip = self.client_address[0]
+            is_local = client_ip in ("127.0.0.1", "::1", "localhost") or self.headers.get("Host", "").startswith("localhost")
+            
+            cookies_raw = self.headers.get("Cookie", "")
+            import http.cookies
+            cookie_obj = http.cookies.SimpleCookie()
+            if cookies_raw:
+                try:
+                    cookie_obj.load(cookies_raw)
+                except Exception:
+                    pass
+            hist_cookie = cookie_obj.get("blaze_history").value if "blaze_history" in cookie_obj else ""
+            user_history = [h.strip() for h in hist_cookie.split("|") if h.strip()] if hist_cookie else []
+            new_hist = [h for h in user_history if h.lower() != s_label.lower()]
+            hist_cookie_val = "|".join(new_hist)
+
+            if s_label and is_local:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
                 if MATCH_CACHE_DIR.exists():
                     for f in MATCH_CACHE_DIR.glob("*.json"):
@@ -884,7 +936,9 @@ class AppHandler(BaseHTTPRequestHandler):
                                     (TIMELINE_CACHE_DIR / f"{m_id}.json").unlink(missing_ok=True)
                         except Exception:
                             continue
-            self._redirect(f"/?lang={lang}")
+            
+            del_cookie = [f"blaze_history={hist_cookie_val}; Path=/; SameSite=Lax; Max-Age=31536000"]
+            self._redirect(f"/?lang={lang}", cookies=del_cookie)
         elif parsed.path == "/clear_cache":
             from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
             for d in [MATCH_CACHE_DIR, TIMELINE_CACHE_DIR]:
