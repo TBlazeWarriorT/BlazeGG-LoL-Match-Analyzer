@@ -188,30 +188,133 @@ function switchCacheTab(tabIndex) {
     });
 }
 
-function syncTimelineState() {
-    var isExpanded = sessionStorage.getItem("blaze_timeline_expanded") === "true";
-    timelineExpanded = isExpanded;
-    var hiddenItems = document.querySelectorAll(".events-list .timeline-hidden, .events-list .timeline-visible-expanded");
-    var btn = document.getElementById("toggleTimelineBtn");
-    var topBtn = document.getElementById("toggleTimelineTopBtn");
-    if (!btn && !topBtn) return;
+var currentTimelinePhase = sessionStorage.getItem("blaze_timeline_phase") || "early";
+var PHASES_ORDER = ["early", "mid", "late"];
+var PHASE_NAMES = {
+    "early": "Early Game (0-14m)",
+    "mid": "Mid Game (14-25m)",
+    "late": "Late Game (25m+)"
+};
 
-    if (timelineExpanded) {
-        hiddenItems.forEach(function(el) {
+function syncTimelineState() {
+    var activePane = document.querySelector(".timeline-pane.active") || document.getElementById("timelinePaneKills");
+    var paneItems = activePane ? activePane.querySelectorAll(".events-list .event-item") : document.querySelectorAll(".events-list .event-item");
+    
+    // Count events per phase in current active tab
+    var phaseCounts = { "early": 0, "mid": 0, "late": 0 };
+    paneItems.forEach(function(el) {
+        var p = el.getAttribute("data-phase") || "early";
+        if (phaseCounts[p] !== undefined) {
+            phaseCounts[p]++;
+        }
+        var matchesPhase = (p === currentTimelinePhase);
+        if (!matchesPhase) {
+            el.style.display = "none";
+        } else {
+            el.style.display = "";
             el.classList.remove("timeline-hidden");
-            el.classList.add("timeline-visible-expanded");
-        });
-        var lessTxt = window.REPORT_I18N ? window.REPORT_I18N.show_less : "Mostrar menos";
-        if (btn) btn.innerText = lessTxt;
-        if (topBtn) topBtn.innerText = lessTxt;
+        }
+    });
+
+    // If current selected phase is empty but another has events, don't leave blank if possible
+    var i18n = window.REPORT_I18N || {};
+
+    // Update Phase Filter Buttons (Disable/Gray-out if empty)
+    var filterBtns = document.querySelectorAll(".phase-filter-btn");
+    filterBtns.forEach(function(b) {
+        var onclickAttr = b.getAttribute("onclick") || "";
+        var phaseMatch = onclickAttr.match(/'(early|mid|late)'/);
+        if (phaseMatch) {
+            var ph = phaseMatch[1];
+            var count = phaseCounts[ph];
+            if (count === 0) {
+                b.classList.add("phase-disabled");
+                b.style.opacity = "0.35";
+                b.style.cursor = "not-allowed";
+                b.style.pointerEvents = "none";
+            } else {
+                b.classList.remove("phase-disabled");
+                b.style.opacity = "";
+                b.style.cursor = "pointer";
+                b.style.pointerEvents = "";
+            }
+            if (ph === currentTimelinePhase) {
+                b.classList.add("active");
+            } else {
+                b.classList.remove("active");
+            }
+        }
+    });
+
+    // Update Next / Prev Phase Footer Buttons with i18n and empty phase checks
+    var currIdx = PHASES_ORDER.indexOf(currentTimelinePhase);
+    var prevBtn = document.getElementById("timelinePrevPhaseBtn");
+    var nextBtn = document.getElementById("timelineNextPhaseBtn");
+
+    if (prevBtn) {
+        var hasValidPrev = false;
+        var prevTargetIdx = -1;
+        for (var i = currIdx - 1; i >= 0; i--) {
+            if (phaseCounts[PHASES_ORDER[i]] > 0) {
+                hasValidPrev = true;
+                prevTargetIdx = i;
+                break;
+            }
+        }
+        if (hasValidPrev) {
+            prevBtn.style.display = "inline-flex";
+            prevBtn.innerText = prevTargetIdx === 0 ? (i18n.nav_prev_early || "⬅ Early Game") : (i18n.nav_prev_mid || "⬅ Mid Game");
+            prevBtn.setAttribute("data-target-idx", String(prevTargetIdx));
+        } else {
+            prevBtn.style.display = "none";
+        }
+    }
+
+    if (nextBtn) {
+        var hasValidNext = false;
+        var nextTargetIdx = -1;
+        for (var j = currIdx + 1; j < PHASES_ORDER.length; j++) {
+            if (phaseCounts[PHASES_ORDER[j]] > 0) {
+                hasValidNext = true;
+                nextTargetIdx = j;
+                break;
+            }
+        }
+        if (hasValidNext) {
+            nextBtn.style.display = "inline-flex";
+            nextBtn.innerText = nextTargetIdx === 1 ? (i18n.nav_next_mid || "Avançar para Mid Game ➡") : (i18n.nav_next_late || "Avançar para Late Game ➡");
+            nextBtn.setAttribute("data-target-idx", String(nextTargetIdx));
+        } else {
+            nextBtn.style.display = "none";
+        }
+    }
+}
+
+function filterTimelinePhase(phase, btnEl) {
+    currentTimelinePhase = phase;
+    sessionStorage.setItem("blaze_timeline_phase", phase);
+    syncTimelineState();
+}
+
+function navigateTimelinePhase(dir, btnEl) {
+    var targetIdx = btnEl && btnEl.getAttribute("data-target-idx");
+    var newIdx;
+    if (targetIdx !== null && targetIdx !== undefined && targetIdx !== "") {
+        newIdx = parseInt(targetIdx, 10);
     } else {
-        hiddenItems.forEach(function(el) {
-            el.classList.add("timeline-hidden");
-            el.classList.remove("timeline-visible-expanded");
-        });
-        var moreTxt = window.REPORT_I18N ? window.REPORT_I18N.show_more : "Mostrar mais eventos";
-        if (btn) btn.innerText = moreTxt;
-        if (topBtn) topBtn.innerText = moreTxt;
+        var currIdx = PHASES_ORDER.indexOf(currentTimelinePhase);
+        newIdx = currIdx + dir;
+    }
+    if (newIdx >= 0 && newIdx < PHASES_ORDER.length) {
+        currentTimelinePhase = PHASES_ORDER[newIdx];
+        sessionStorage.setItem("blaze_timeline_phase", currentTimelinePhase);
+        syncTimelineState();
+        
+        // Smooth scroll to top of timeline controls bar
+        var bar = document.querySelector(".timeline-controls-bar");
+        if (bar) {
+            bar.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
     }
 }
 
@@ -230,6 +333,7 @@ function switchTimelineTab(tabName, btnEl) {
         if (paneKills) paneKills.classList.remove("active");
         if (paneItems) paneItems.classList.add("active");
     }
+    syncTimelineState();
 }
 
 function toggleTimeline() {

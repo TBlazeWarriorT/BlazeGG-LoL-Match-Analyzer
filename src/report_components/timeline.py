@@ -9,7 +9,20 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
     for idx, ev in enumerate(data.get("key_events", [])):
         t = ev.get("time", "00:00")
         ev_type = ev.get("type", "kill")
-        extra_class = "timeline-hidden" if idx >= 20 else ""
+        
+        # Phase calculation (0-14m = early, 14-25m = mid, 25m+ = late)
+        try:
+            p_parts = t.split(":")
+            ev_min = int(p_parts[0])
+        except Exception:
+            ev_min = 0
+
+        if ev_min < 14:
+            ev_phase = "early"
+        elif ev_min < 25:
+            ev_phase = "mid"
+        else:
+            ev_phase = "late"
         
         if ev_type == "objective":
             icon_uri = AssetManager.get_asset_uri(ev.get("asset_key", ""))
@@ -25,7 +38,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             obj_theme_class = "event-obj-void" if is_void else "event-obj-dragon"
 
             kills_list_items.append(f"""
-            <li class="event-item event-obj {obj_theme_class} {extra_class}">
+            <li class="event-item event-obj {obj_theme_class}" data-phase="{ev_phase}">
                 <span class="event-time">{t}</span>
                 <div class="event-avatar-wrap"><img class="event-avatar" src="{icon_uri}"/></div>
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
@@ -201,11 +214,27 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 </div>
                 """
 
+            # Phase calculation (0-14m = early, 14-25m = mid, 25m+ = late)
+            try:
+                p_parts = t.split(":")
+                ev_min = int(p_parts[0])
+            except Exception:
+                ev_min = 0
+
+            if ev_min < 14:
+                ev_phase = "early"
+            elif ev_min < 25:
+                ev_phase = "mid"
+            else:
+                ev_phase = "late"
+
+            extra_class = "timeline-hidden" if idx >= 10 else ""
+
             if is_exec:
                 exec_text = get_text("was_executed", lang=lang)
                 v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
                 kills_list_items.append(f"""
-                <li class="event-item event-kill event-execution {extra_class}">
+                <li class="event-item event-kill event-execution {extra_class}" data-phase="{ev_phase}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
                         {v_avatar}
@@ -223,7 +252,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 v_avatar = render_stat_tooltip(ev['victim_champ'], ev.get('victim_stats', {}), ev.get('victim_items', []), is_killer=False)
 
                 kills_list_items.append(f"""
-                <li class="event-item event-kill {streak_class} {extra_class}">
+                <li class="event-item event-kill {streak_class} {extra_class}" data-phase="{ev_phase}">
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
                         {k_avatar}
@@ -242,7 +271,20 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
     purchased_lbl = get_text("purchased_item", lang=lang)
     for idx, ev in enumerate(data.get("item_events", [])):
         t = ev.get("time", "00:00")
-        extra_class = "timeline-hidden" if idx >= 20 else ""
+        try:
+            p_parts = t.split(":")
+            ev_min = int(p_parts[0])
+        except Exception:
+            ev_min = 0
+
+        if ev_min < 14:
+            ev_phase = "early"
+        elif ev_min < 25:
+            ev_phase = "mid"
+        else:
+            ev_phase = "late"
+
+        extra_class = "timeline-hidden" if idx >= 10 else ""
         c_name = ev.get("champ", "")
         c_icon = ev.get("champ_icon", "")
         s_name = ev.get("summoner_name", "")
@@ -324,7 +366,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         """
 
         items_list_items.append(f"""
-        <li class="event-item event-item-purchase {extra_class}">
+        <li class="event-item event-item-purchase {extra_class}" data-phase="{ev_phase}">
             <span class="event-time">{t}</span>
             <div class="event-kill-duel">
                 {avatar_html}
@@ -339,11 +381,27 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
     tab_kills_txt = get_text("tab_kills_objectives", lang=lang)
     tab_items_txt = get_text("tab_item_purchases", lang=lang)
+    f_early_txt = get_text("filter_early", lang=lang)
+    f_mid_txt = get_text("filter_mid", lang=lang)
+    f_late_txt = get_text("filter_late", lang=lang)
 
     combined_html = f"""
-    <div class="timeline-tabs-header">
-        <button class="timeline-tab-btn active" onclick="switchTimelineTab('kills', this)">{tab_kills_txt} ({len(kills_list_items)})</button>
-        <button class="timeline-tab-btn" onclick="switchTimelineTab('items', this)">{tab_items_txt} ({len(items_list_items)})</button>
+    <div class="timeline-controls-bar">
+        <div class="timeline-tabs-header">
+            <button class="timeline-tab-btn active" onclick="switchTimelineTab('kills', this)">
+                <span>{tab_kills_txt}</span>
+                <span class="timeline-tab-count">{len(kills_list_items)}</span>
+            </button>
+            <button class="timeline-tab-btn" onclick="switchTimelineTab('items', this)">
+                <span>{tab_items_txt}</span>
+                <span class="timeline-tab-count">{len(items_list_items)}</span>
+            </button>
+        </div>
+        <div class="timeline-phase-filters">
+            <button class="phase-filter-btn active" onclick="filterTimelinePhase('early', this)">{f_early_txt}</button>
+            <button class="phase-filter-btn" onclick="filterTimelinePhase('mid', this)">{f_mid_txt}</button>
+            <button class="phase-filter-btn" onclick="filterTimelinePhase('late', this)">{f_late_txt}</button>
+        </div>
     </div>
     <div id="timelinePaneKills" class="timeline-pane active">
         <ul class="events-list">
@@ -355,22 +413,14 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             {''.join(items_list_items)}
         </ul>
     </div>
+    <div class="timeline-phase-nav-footer" style="display:flex; justify-content:center; gap:10px; margin-top:14px;">
+        <button id="timelinePrevPhaseBtn" class="phase-nav-btn" style="display:none;" onclick="navigateTimelinePhase(-1, this)">{get_text('nav_prev_early', lang=lang)}</button>
+        <button id="timelineNextPhaseBtn" class="phase-nav-btn" onclick="navigateTimelinePhase(1, this)">{get_text('nav_next_mid', lang=lang)}</button>
+    </div>
     """
 
-    total_events_count = max(len(kills_list_items), len(items_list_items))
-    remaining_events = total_events_count - 20
-    timeline_toggle_btn = ""
     timeline_top_toggle_btn = ""
-    if remaining_events > 0:
-        btn_text = get_text("show_more_events", lang=lang, count=remaining_events)
-        timeline_top_toggle_btn = f"""
-        <button id="toggleTimelineTopBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.78rem; padding:4px 12px; border-radius:6px; cursor:pointer;" onclick="toggleTimeline()">{btn_text}</button>
-        """
-        timeline_toggle_btn = f"""
-        <div style="text-align:center; margin-top:14px;">
-            <button id="toggleTimelineBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.85rem; padding:8px 18px; border-radius:8px; cursor:pointer;" onclick="toggleTimeline()">{btn_text}</button>
-        </div>
-        """
+    timeline_toggle_btn = ""
 
     return combined_html, timeline_top_toggle_btn, timeline_toggle_btn
 

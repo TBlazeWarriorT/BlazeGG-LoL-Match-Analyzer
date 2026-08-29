@@ -136,13 +136,15 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     css_styles, js_scripts = _load_static_assets()
 
     # Client-side i18n object for JS
-    remaining_events = max(0, len(data.get("key_events", [])) - 20)
     js_i18n = f"""
     <script>
         window.REPORT_I18N = {{
-            show_less: "{get_text('show_less_events', lang=lang)}",
-            show_more: "{get_text('show_more_events', lang=lang, count=remaining_events)}",
-            copied: "Copiado! ✓"
+            copied: "{get_text('copied_btn', lang=lang)}",
+            nav_prev_early: "{get_text('nav_prev_early', lang=lang)}",
+            nav_prev_mid: "{get_text('nav_prev_mid', lang=lang)}",
+            nav_next_mid: "{get_text('nav_next_mid', lang=lang)}",
+            nav_next_late: "{get_text('nav_next_late', lang=lang)}",
+            no_events: "{get_text('no_events_in_phase', lang=lang)}"
         }};
     </script>
     """
