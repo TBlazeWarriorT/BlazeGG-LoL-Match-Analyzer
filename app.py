@@ -449,7 +449,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             ]
             tab_tip_html = "<br/>".join(tab_tip_lines).replace('"', '&quot;')
 
-            onsubmit_str = f"event.stopPropagation(); return confirm('{del_prompt}');" if is_local else "event.stopPropagation();"
+            onsubmit_str = f"event.stopPropagation(); return confirmDeleteSummonerModal(this, '{s_label}');" if is_local else "event.stopPropagation();"
 
             tab_buttons.append(f"""
             <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})" data-tooltip="{tab_tip_html}">
@@ -472,7 +472,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
 
         clear_cache_btn = f"""
-        <form action="/clear_cache" method="POST" onsubmit="return confirm('{get_text('confirm_clear_cache', lang=lang)}');">
+        <form action="/clear_cache" method="POST" onsubmit="return confirmClearAllCacheModal(this);">
             <button type="submit" class="btn btn-clear-cache">{get_text('btn_clear_cache', lang=lang)}</button>
         </form>
         """ if is_local else ""
@@ -552,6 +552,20 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             {cached_html}
             {config_card_html}
             """
+
+        js_i18n = f"""
+        <script>
+            window.REPORT_I18N = {{
+                lang: "{lang}",
+                search_modal_title: "{get_text('search_title', lang=lang)}",
+                search_modal_confirm: "{get_text('search_btn', lang=lang)}",
+                delete_modal_title: "{get_text('tooltip_delete_tab', lang=lang)}",
+                delete_modal_confirm: "{get_text('btn_clear_cache', lang=lang)}",
+                clear_all_title: "{get_text('confirm_clear_cache', lang=lang)}",
+                cancel: "{'Cancelar' if lang == 'pt_BR' else 'Cancel'}"
+            }};
+        </script>
+        """
 
         return f"""<!DOCTYPE html>
 <html lang="{get_text('html_lang_code', lang=lang)}">
@@ -639,6 +653,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
         </div>
     </div>
+    {js_i18n}
     <script>
         {hub_js}
     </script>

@@ -1,49 +1,119 @@
-var timelineExpanded = false;
-
-function promptSearchSummoner(name, tag) {
-    if (!name || !tag) return;
-    
-    var existingModal = document.getElementById("searchPromptModal");
+function showCustomConfirmModal(options) {
+    var existingModal = document.getElementById("customBlazeModal");
     if (existingModal) existingModal.remove();
 
-    var isPt = document.documentElement.lang.includes("pt") || (window.REPORT_I18N && window.REPORT_I18N.lang === "pt_BR");
-    var titleText = isPt ? "🔍 Buscar Invocador" : "🔍 Search Summoner";
-    var bodyText = isPt 
-        ? "Deseja buscar as partidas recentes de <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?" 
-        : "Do you want to search recent matches for <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?";
-    var confirmText = isPt ? "Buscar Partidas ➔" : "Search Matches ➔";
-    var cancelText = isPt ? "Cancelar" : "Cancel";
-    var lang = isPt ? "pt_BR" : "en_US";
+    var i18n = window.REPORT_I18N || {};
+    var title = options.title || "Confirmation";
+    var body = options.body || "";
+    var confirmText = options.confirmText || "Confirm";
+    var cancelText = options.cancelText || i18n.cancel || "Cancel";
+    var confirmColor = options.confirmColor || "#ea580c";
+    var confirmBorder = options.confirmBorder || "#f97316";
 
-    var modalHtml = '<div id="searchPromptModal" class="modal-backdrop">' +
+    var modalHtml = '<div id="customBlazeModal" class="modal-backdrop">' +
         '<div class="modal-card">' +
-            '<div class="modal-title">' + titleText + '</div>' +
-            '<div class="modal-body">' + bodyText + '</div>' +
+            '<div class="modal-title">' + title + '</div>' +
+            '<div class="modal-body">' + body + '</div>' +
             '<div class="modal-actions">' +
-                '<button type="button" class="modal-btn modal-btn-cancel" onclick="closeSearchPromptModal()">' + cancelText + '</button>' +
-                '<button type="button" class="modal-btn modal-btn-confirm" onclick="confirmSearchSummoner(\'' + encodeURIComponent(name) + '\', \'' + encodeURIComponent(tag) + '\', \'' + lang + '\')">' + confirmText + '</button>' +
+                '<button type="button" class="modal-btn modal-btn-cancel" id="customModalCancelBtn">' + cancelText + '</button>' +
+                '<button type="button" class="modal-btn modal-btn-confirm" id="customModalConfirmBtn" style="background:' + confirmColor + '; border-color:' + confirmBorder + ';">' + confirmText + '</button>' +
             '</div>' +
         '</div>' +
     '</div>';
 
     document.body.insertAdjacentHTML("beforeend", modalHtml);
+    var modalEl = document.getElementById("customBlazeModal");
+
+    function closeModal() {
+        if (modalEl) {
+            modalEl.classList.remove("active");
+            setTimeout(function() { modalEl.remove(); }, 200);
+        }
+    }
+
+    document.getElementById("customModalCancelBtn").onclick = closeModal;
+    document.getElementById("customModalConfirmBtn").onclick = function() {
+        closeModal();
+        if (typeof options.onConfirm === "function") {
+            options.onConfirm();
+        }
+    };
+
     setTimeout(function() {
-        var m = document.getElementById("searchPromptModal");
-        if (m) m.classList.add("active");
+        if (modalEl) modalEl.classList.add("active");
     }, 10);
 }
 
-function closeSearchPromptModal() {
-    var m = document.getElementById("searchPromptModal");
+function promptSearchSummoner(name, tag) {
+    if (!name || !tag) return;
+    var i18n = window.REPORT_I18N || {};
+    var lang = i18n.lang || "en_US";
+    var isPt = lang === "pt_BR";
+    showCustomConfirmModal({
+        title: isPt ? "🔍 Buscar Invocador" : "🔍 Search Summoner",
+        body: isPt 
+            ? "Deseja buscar as partidas recentes de <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?" 
+            : "Do you want to search recent matches for <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?",
+        confirmText: i18n.search_modal_confirm || "Search Matches ➔",
+        confirmColor: "#ea580c",
+        confirmBorder: "#f97316",
+        onConfirm: function() {
+            window.location.href = "/search?game_name=" + encodeURIComponent(name) + "&tag_line=" + encodeURIComponent(tag) + "&lang=" + lang;
+        }
+    });
+}
+
+function confirmDeleteSummonerModal(formEl, summonerLabel) {
+    var i18n = window.REPORT_I18N || {};
+    var isPt = (i18n.lang === "pt_BR");
+    showCustomConfirmModal({
+        title: i18n.delete_modal_title || "Delete Saved Matches",
+        body: isPt 
+            ? "Deseja realmente apagar as partidas de <span class='modal-summoner-highlight'>" + summonerLabel + "</span> do disco local?" 
+            : "Do you really want to delete saved matches for <span class='modal-summoner-highlight'>" + summonerLabel + "</span> from local disk?",
+        confirmText: isPt ? "Sim, Excluir" : "Yes, Delete",
+        confirmColor: "#dc2626",
+        confirmBorder: "#ef4444",
+        onConfirm: function() {
+            if (formEl) formEl.submit();
+        }
+    });
+    return false;
+}
+
+function confirmClearAllCacheModal(formEl) {
+    var i18n = window.REPORT_I18N || {};
+    var isPt = (i18n.lang === "pt_BR");
+    showCustomConfirmModal({
+        title: "⚠️ " + (i18n.clear_all_title || "Clear All Cache"),
+        body: isPt 
+            ? "Deseja realmente apagar <b>todas</b> as partidas salvas no disco local? Esta ação é irreversível." 
+            : "Do you really want to delete <b>all</b> cached matches from local disk? This action cannot be undone.",
+        confirmText: isPt ? "Apagar Tudo" : "Clear All",
+        confirmColor: "#dc2626",
+        confirmBorder: "#ef4444",
+        onConfirm: function() {
+            if (formEl) formEl.submit();
+        }
+    });
+    return false;
+}
+
+function closeClearAllModal() {
+    var m = document.getElementById("clearAllPromptModal");
     if (m) {
         m.classList.remove("active");
         setTimeout(function() { m.remove(); }, 200);
     }
+    window._pendingClearAllForm = null;
 }
 
-function confirmSearchSummoner(name, tag, lang) {
-    closeSearchPromptModal();
-    window.location.href = "/search?game_name=" + name + "&tag_line=" + tag + "&lang=" + lang;
+function executeClearAll() {
+    var form = window._pendingClearAllForm;
+    closeClearAllModal();
+    if (form) {
+        form.submit();
+    }
 }
 
 var tabExpandedState = {};
