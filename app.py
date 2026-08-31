@@ -719,6 +719,14 @@ class AppHandler(BaseHTTPRequestHandler):
         hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_history").value) if "blaze_history" in cookie_obj else ""
         user_history = [h.strip() for h in hist_cookie.split("|") if h.strip()] if hist_cookie else []
 
+        if path in ("/ping", "/health"):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"OK")
+            return
+
         if path in ("", "/"):
             self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local))
 
