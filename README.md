@@ -21,7 +21,7 @@ Instead of broad macro summaries, it focuses on lane matchups, damage breakdowns
   Highlights top performers across key metrics (damage, gold, mitigation) and lists multikills with timestamps and victims.
 
 - **Event Timeline**  
-  Chronological feed of match events, including solo kills, objectives, shutdowns, and multikills.
+  Chronological feed of match events, including solo kills, objectives, shutdowns, and multikills AND detailed stats at the approx. time of each kill.
 
 ---
 
