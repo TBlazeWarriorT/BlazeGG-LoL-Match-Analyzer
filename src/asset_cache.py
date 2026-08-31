@@ -3,7 +3,12 @@ import base64
 import io
 from pathlib import Path
 from typing import Dict
-from PIL import Image
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    Image = None
+    HAS_PIL = False
 from .config import CACHE_DIR
 
 CDRAGON_CACHE_DIR = CACHE_DIR / "cdragon"
