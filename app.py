@@ -727,6 +727,17 @@ class AppHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"OK")
             return
 
+        if path == "/riot.txt":
+            riot_file = BASE_DIR / "riot.txt"
+            content = riot_file.read_text(encoding="utf-8").strip() if riot_file.exists() else "da8c9e97-f726-47bc-9a8c-cf96fbe8f0ac"
+            data_bytes = content.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(data_bytes)))
+            self.end_headers()
+            self.wfile.write(data_bytes)
+            return
+
         if path in ("", "/"):
             self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local))
 
