@@ -500,6 +500,7 @@ class MatchAnalysis:
         frames = self.timeline.get("info", {}).get("frames", [])
         kill_streaks = {}
         life_streaks = {}
+        ongoing_kda = {pid: {"k": 0, "d": 0, "a": 0} for pid in range(1, 11)}
         timeline_drake_count = {100: 0, 200: 0}
         first_blood_awarded = False
 
@@ -638,10 +639,31 @@ class MatchAnalysis:
                             "team_id": a_p.get("teamId", 100)
                         })
 
-                    # Extract championStats from frame
+                    # Extract participant frame data (stats, level, gold)
                     p_frames = frame.get("participantFrames", {})
-                    k_stats = p_frames.get(str(killer), {}).get("championStats", {}) if (killer and killer != 0) else {}
-                    v_stats = p_frames.get(str(victim), {}).get("championStats", {}) if victim else {}
+                    k_pframe = p_frames.get(str(killer), {}) if (killer and killer != 0) else {}
+                    v_pframe = p_frames.get(str(victim), {}) if victim else {}
+
+                    k_stats = k_pframe.get("championStats", {})
+                    v_stats = v_pframe.get("championStats", {})
+
+                    k_lvl = k_pframe.get("level", 1)
+                    v_lvl = v_pframe.get("level", 1)
+
+                    k_gold = k_pframe.get("totalGold", 0)
+                    v_gold = v_pframe.get("totalGold", 0)
+
+                    # Update ongoing KDA for killer, victim, assisters
+                    if killer and killer != 0 and killer in ongoing_kda:
+                        ongoing_kda[killer]["k"] += 1
+                    if victim and victim in ongoing_kda:
+                        ongoing_kda[victim]["d"] += 1
+                    for aid in assisters:
+                        if aid in ongoing_kda:
+                            ongoing_kda[aid]["a"] += 1
+
+                    k_kda_str = f"{ongoing_kda[killer]['k']}/{ongoing_kda[killer]['d']}/{ongoing_kda[killer]['a']}" if (killer and killer in ongoing_kda) else "0/0/0"
+                    v_kda_str = f"{ongoing_kda[victim]['k']}/{ongoing_kda[victim]['d']}/{ongoing_kda[victim]['a']}" if (victim and victim in ongoing_kda) else "0/0/0"
 
                     # Current items snapshot at kill moment
                     k_items = [
@@ -664,6 +686,9 @@ class MatchAnalysis:
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
                         "killer_role": str(k_p.get("teamPosition") or k_p.get("individualPosition", "")).upper() if not is_execution else "",
                         "killer_team": k_p.get("teamId", 100) if not is_execution else 0,
+                        "killer_level": k_lvl,
+                        "killer_gold": k_gold,
+                        "killer_kda": k_kda_str,
                         "killer_stats": k_stats,
                         "killer_items": k_items,
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
@@ -671,6 +696,9 @@ class MatchAnalysis:
                         "victim_name": v_p.get("riotIdGameName", ""),
                         "victim_role": str(v_p.get("teamPosition") or v_p.get("individualPosition", "")).upper(),
                         "victim_team": v_p.get("teamId", 200),
+                        "victim_level": v_lvl,
+                        "victim_gold": v_gold,
+                        "victim_kda": v_kda_str,
                         "victim_stats": v_stats,
                         "victim_items": v_items,
                         "is_solo": is_solo,

@@ -171,6 +171,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         --ico-ms: url('{AssetManager.get_asset_uri("stat_ms")}');
         --ico-range: url('{AssetManager.get_asset_uri("stat_range")}');
         --ico-tenacity: url('{AssetManager.get_asset_uri("stat_tenacity")}');
+        --ico-gold: url('{AssetManager.get_asset_uri("gold_icon")}');
     }}
     """
 
