@@ -13,7 +13,7 @@ from src.event_engine import MatchAnalysis
 from src.ddragon import DataDragon
 from src.i18n import get_text
 
-PORT = 8000
+PORT = int(os.environ.get("PORT", 8000))
 HUB_CSS_FILE = Path(__file__).parent / "src" / "static" / "css" / "hub.css"
 HUB_JS_FILE = Path(__file__).parent / "src" / "static" / "js" / "report.js"
 ddragon = DataDragon(language="pt_BR")
@@ -522,162 +522,162 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 
 
 
-        key_card_cls = "section-card key-card-urgent" if (is_expired or not key_configured or "expir" in str(error_msg).lower()) else "section-card"
-        error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
+    key_card_cls = "section-card key-card-urgent" if (is_expired or not key_configured or "expir" in str(error_msg).lower()) else "section-card"
+    error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
-        hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
-        hub_js = HUB_JS_FILE.read_text(encoding="utf-8") if HUB_JS_FILE.exists() else ""
+    hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
+    hub_js = HUB_JS_FILE.read_text(encoding="utf-8") if HUB_JS_FILE.exists() else ""
 
-        config_card_html = f"""
-        <!-- CONFIGURAR API KEY -->
-        <div class="{key_card_cls}" style="margin-top: 16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;">{get_text('key_config_title', lang=lang)}</h3>
-                <a href="https://developer.riotgames.com" target="_blank" style="color:var(--accent); font-size:0.85rem; font-weight:700; text-decoration:none;">{get_text('key_portal_link', lang=lang)}</a>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 14px 0;">
-                {get_text('key_current', lang=lang, masked=masked_key, status=expiry_msg)}
-            </p>
-            <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;">
-                <input type="hidden" name="lang" value="{lang}"/>
-                <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                    <div class="form-group" style="flex: 1.2;">
-                        <label class="form-label">{get_text('key_label', lang=lang)}</label>
-                        <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required/>
-                    </div>
-                    <div class="form-group" style="flex: 1.8;">
-                        <label class="form-label">{get_text('key_exp_label', lang=lang)}</label>
-                        <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes"/>
-                    </div>
+    config_card_html = f"""
+    <!-- CONFIGURAR API KEY -->
+    <div class="{key_card_cls}" style="margin-top: 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0;">{get_text('key_config_title', lang=lang)}</h3>
+            <a href="https://developer.riotgames.com" target="_blank" style="color:var(--accent); font-size:0.85rem; font-weight:700; text-decoration:none;">{get_text('key_portal_link', lang=lang)}</a>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 14px 0;">
+            {get_text('key_current', lang=lang, masked=masked_key, status=expiry_msg)}
+        </p>
+        <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;">
+            <input type="hidden" name="lang" value="{lang}"/>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <div class="form-group" style="flex: 1.2;">
+                    <label class="form-label">{get_text('key_label', lang=lang)}</label>
+                    <input type="password" name="api_key" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required/>
                 </div>
-                <div>
-                    <button type="submit" class="btn" style="background:#16a34a; border-color:#22c55e;">{get_text('btn_save_config', lang=lang)}</button>
+                <div class="form-group" style="flex: 1.8;">
+                    <label class="form-label">{get_text('key_exp_label', lang=lang)}</label>
+                    <input type="text" name="expires_text" placeholder="Ex: Expires: Wed, Aug 26th, 2026 @ 9:57pm (PT) in 21 hours and 26 minutes"/>
+                </div>
+            </div>
+            <div>
+                <button type="submit" class="btn" style="background:#16a34a; border-color:#22c55e;">{get_text('btn_save_config', lang=lang)}</button>
+            </div>
+        </form>
+    </div>
+    """
+
+    # Dynamic positioning: if expired/invalid or has API error, put config above cached matches
+    # If in production mode with no error, hide configuration box completely
+    if has_api_error or is_expired or not key_configured:
+        body_sections_html = f"""
+        {config_card_html}
+        {cached_html}
+        """
+    elif prod_mode:
+        body_sections_html = f"""
+        {cached_html}
+        """
+    else:
+        body_sections_html = f"""
+        {cached_html}
+        {config_card_html}
+        """
+
+    js_i18n = f"""
+    <script>
+        window.REPORT_I18N = {{
+            lang: "{lang}",
+            search_modal_title: "{get_text('search_title', lang=lang)}",
+            search_modal_confirm: "{get_text('search_btn', lang=lang)}",
+            delete_modal_title: "{get_text('tooltip_delete_tab', lang=lang)}",
+            delete_modal_confirm: "{get_text('btn_clear_cache', lang=lang)}",
+            clear_all_title: "{get_text('confirm_clear_cache', lang=lang)}",
+            cancel: "{'Cancelar' if lang == 'pt_BR' else 'Cancel'}"
+        }};
+    </script>
+    """
+
+    return f"""<!DOCTYPE html>
+<html lang="{get_text('html_lang_code', lang=lang)}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1100">
+<title>Blaze GG - LoL Analytics</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+<style>
+{hub_css}
+</style>
+</head>
+<body>
+<div class="top-nav-bar">
+    <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
+        <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
+    </div>
+    <div class="lang-picker">
+        <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
+            <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
+        </a>
+        <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
+            <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
+        </a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <a href="/?lang={lang}" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
+                <div style="display:inline-flex; align-items:baseline; gap:16px;">
+                    <h1 class="logo-title" style="font-size:2.35rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:10px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
+                    <span class="logo-author-badge">by TBlazeWarriorT</span>
+                </div>
+            </a>
+            <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">{get_text('app_sub', lang=lang)}</div>
+        </div>
+        <div>{key_status_badge}</div>
+    </div>
+
+
+    {error_html}
+
+    <!-- BUSCADORES (INVOCADOR & MATCH ID) -->
+    <div class="search-cards-grid">
+        <!-- BUSCADOR DE INVOCADOR -->
+        <div class="section-card search-card-glow">
+            <div class="search-card-header">
+                <span class="search-card-title">{get_text('search_title', lang=lang)}</span>
+            </div>
+            <form action="/search" method="GET" class="search-form-layout">
+                <input type="hidden" name="lang" value="{lang}"/>
+                <div class="search-inputs-group">
+                    <input type="text" name="game_name" class="input-game-name" placeholder="{get_text('search_game_name_ph', lang=lang)}" value="{def_name}" required/>
+                    <span class="tag-hash-separator">#</span>
+                    <input type="text" name="tag_line" class="input-tag-line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required/>
+                </div>
+                <div class="search-btn-container">
+                    <button type="submit" class="btn btn-search-action" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
                 </div>
             </form>
         </div>
-        """
 
-        # Dynamic positioning: if expired/invalid or has API error, put config above cached matches
-        # If in production mode with no error, hide configuration box completely
-        if has_api_error or is_expired or not key_configured:
-            body_sections_html = f"""
-            {config_card_html}
-            {cached_html}
-            """
-        elif prod_mode:
-            body_sections_html = f"""
-            {cached_html}
-            """
-        else:
-            body_sections_html = f"""
-            {cached_html}
-            {config_card_html}
-            """
-
-        js_i18n = f"""
-        <script>
-            window.REPORT_I18N = {{
-                lang: "{lang}",
-                search_modal_title: "{get_text('search_title', lang=lang)}",
-                search_modal_confirm: "{get_text('search_btn', lang=lang)}",
-                delete_modal_title: "{get_text('tooltip_delete_tab', lang=lang)}",
-                delete_modal_confirm: "{get_text('btn_clear_cache', lang=lang)}",
-                clear_all_title: "{get_text('confirm_clear_cache', lang=lang)}",
-                cancel: "{'Cancelar' if lang == 'pt_BR' else 'Cancel'}"
-            }};
-        </script>
-        """
-
-        return f"""<!DOCTYPE html>
-<html lang="{get_text('html_lang_code', lang=lang)}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=1100">
-    <title>Blaze GG - LoL Analytics</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
-    <style>
-{hub_css}
-    </style>
-</head>
-<body>
-    <div class="top-nav-bar">
-        <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
-            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
-        </div>
-        <div class="lang-picker">
-            <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
-                <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
-            </a>
-            <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
-                <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
-            </a>
+        <!-- BUSCADOR DE MATCH ID -->
+        <div class="section-card search-card-glow">
+            <div class="search-card-header">
+                <span class="search-card-title">{get_text('search_match_id_title', lang=lang)}</span>
+            </div>
+            <form action="/search_match" method="GET" class="search-form-layout">
+                <input type="hidden" name="lang" value="{lang}"/>
+                <div class="search-inputs-group">
+                    <input type="text" name="match_id" class="input-match-id" placeholder="{get_text('search_match_id_ph', lang=lang)}" required/>
+                </div>
+                <div class="search-btn-container">
+                    <button type="submit" class="btn btn-search-action btn-search-match-id">{get_text('search_match_id_btn', lang=lang)}</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="container">
-        <div class="header">
-            <div>
-                <a href="/?lang={lang}" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
-                    <div style="display:inline-flex; align-items:baseline; gap:16px;">
-                        <h1 class="logo-title" style="font-size:2.35rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:10px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
-                        <span class="logo-author-badge">by TBlazeWarriorT</span>
-                    </div>
-                </a>
-                <div style="color: var(--text-muted); margin-top: 4px; font-size:0.95rem;">{get_text('app_sub', lang=lang)}</div>
-            </div>
-            <div>{key_status_badge}</div>
-        </div>
+    {body_sections_html}
 
-
-        {error_html}
-
-        <!-- BUSCADORES (INVOCADOR & MATCH ID) -->
-        <div class="search-cards-grid">
-            <!-- BUSCADOR DE INVOCADOR -->
-            <div class="section-card search-card-glow">
-                <div class="search-card-header">
-                    <span class="search-card-title">{get_text('search_title', lang=lang)}</span>
-                </div>
-                <form action="/search" method="GET" class="search-form-layout">
-                    <input type="hidden" name="lang" value="{lang}"/>
-                    <div class="search-inputs-group">
-                        <input type="text" name="game_name" class="input-game-name" placeholder="{get_text('search_game_name_ph', lang=lang)}" value="{def_name}" required/>
-                        <span class="tag-hash-separator">#</span>
-                        <input type="text" name="tag_line" class="input-tag-line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required/>
-                    </div>
-                    <div class="search-btn-container">
-                        <button type="submit" class="btn btn-search-action" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- BUSCADOR DE MATCH ID -->
-            <div class="section-card search-card-glow">
-                <div class="search-card-header">
-                    <span class="search-card-title">{get_text('search_match_id_title', lang=lang)}</span>
-                </div>
-                <form action="/search_match" method="GET" class="search-form-layout">
-                    <input type="hidden" name="lang" value="{lang}"/>
-                    <div class="search-inputs-group">
-                        <input type="text" name="match_id" class="input-match-id" placeholder="{get_text('search_match_id_ph', lang=lang)}" required/>
-                    </div>
-                    <div class="search-btn-container">
-                        <button type="submit" class="btn btn-search-action btn-search-match-id">{get_text('search_match_id_btn', lang=lang)}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        {body_sections_html}
-
-        <div class="legal-footer">
-            Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
-        </div>
+    <div class="legal-footer">
+        Blaze.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
     </div>
-    {js_i18n}
-    <script>
-        {hub_js}
-    </script>
+</div>
+{js_i18n}
+<script>
+    {hub_js}
+</script>
 </body>
 </html>
 """
