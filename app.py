@@ -899,8 +899,11 @@ class AppHandler(BaseHTTPRequestHandler):
 
             try:
                 client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
-                m = client.get_match_detail(match_id)
-                t = client.get_match_timeline(match_id)
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                    f_match = executor.submit(client.get_match_detail, match_id)
+                    f_timeline = executor.submit(client.get_match_timeline, match_id)
+                    m = f_match.result()
+                    t = f_timeline.result()
                 
                 if not puuid:
                     last_sess = get_last_session() or {}
