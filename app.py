@@ -1115,7 +1115,10 @@ def run_app():
                 proc.wait()
                 print("\nServer stopped.")
                 break
-        return
+    # Start background asset preloading to guarantee instant analysis without cold-start timeouts
+    import threading
+    from src.asset_cache import AssetManager
+    threading.Thread(target=AssetManager.preload_all_assets, daemon=True).start()
 
     # Child server worker
     server = ThreadingHTTPServer(("0.0.0.0", PORT), AppHandler)

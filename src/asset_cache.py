@@ -223,6 +223,16 @@ class AssetManager:
 
         return fallback_url
 
+    @classmethod
+    def preload_all_assets(cls):
+        """Pre-downloads and crops all icons in background to eliminate latency on first match analysis."""
+        keys = list(ASSETS.keys()) + ["gold_icon", "xp_icon", "cs_icon"]
+        for k in keys:
+            try:
+                cls.get_asset_uri(k)
+            except Exception:
+                pass
+
     @staticmethod
     def _download_bytes(url: str) -> bytes:
         try:
