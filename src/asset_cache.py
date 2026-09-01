@@ -225,13 +225,24 @@ class AssetManager:
 
     @classmethod
     def preload_all_assets(cls):
-        """Pre-downloads and crops all icons in background to eliminate latency on first match analysis."""
+        """Pre-downloads and crops all icons in background and warms up analysis engine."""
         keys = list(ASSETS.keys()) + ["gold_icon", "xp_icon", "cs_icon"]
         for k in keys:
             try:
                 cls.get_asset_uri(k)
             except Exception:
                 pass
+
+        # Warm up DataDragon dictionaries and template engines
+        try:
+            from .ddragon import DataDragon
+            dd_pt = DataDragon(language="pt_BR")
+            dd_en = DataDragon(language="en_US")
+            import src.event_engine
+            import src.html_report
+            import src.report_components
+        except Exception:
+            pass
 
     @staticmethod
     def _download_bytes(url: str) -> bytes:
