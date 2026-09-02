@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Thu gọn",
   "tab_show_more": "▼ Xem thêm ({count} trận)",
   "spells_used_label": "Phép:",
-  "eliminated_ult": "dùng Chiêu Cuối hạ"
+  "eliminated_ult": "dùng Chiêu Cuối hạ",
+  "streak_spree": "ĐANG XANH",
+  "streak_rampage": "HOÀNH HÀNH",
+  "streak_unstoppable": "BẤT KHẢ CẢN PHÁ",
+  "streak_dominating": "THỐNG TRỊ",
+  "streak_godlike": "THẦN THÁNH",
+  "streak_legendary": "HUYỀN THOẠI",
+  "first_blood": "CHIẾN CÔNG ĐẦU! 🩸"
 }

@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Mostrar menos",
   "tab_show_more": "▼ Mostrar más ({count} restantes)",
   "spells_used_label": "Hechizos:",
-  "eliminated_ult": "ultó a"
+  "eliminated_ult": "ultó a",
+  "streak_spree": "EN RACHA",
+  "streak_rampage": "DESPIADADO",
+  "streak_unstoppable": "IMPARABLE",
+  "streak_dominating": "DOMINANDO",
+  "streak_godlike": "DIVINO",
+  "streak_legendary": "LEGENDARIO",
+  "first_blood": "¡PRIMERA SANGRE! 🩸"
 }

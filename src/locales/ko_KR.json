@@ -290,5 +290,12 @@
   "tab_show_less": "▲ 접기",
   "tab_show_more": "▼ 더 보기 ({count}개 남음)",
   "spells_used_label": "스펠:",
-  "eliminated_ult": "궁극기로 처치"
+  "eliminated_ult": "궁극기로 처치",
+  "streak_spree": "연속 킬",
+  "streak_rampage": "폭주",
+  "streak_unstoppable": "막을 수 없음",
+  "streak_dominating": "지배하는 자",
+  "streak_godlike": "신의 영역",
+  "streak_legendary": "전설의 탄생",
+  "first_blood": "퍼스트 블러드! 🩸"
 }

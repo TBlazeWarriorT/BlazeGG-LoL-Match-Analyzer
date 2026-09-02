@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Mostrar menos",
   "tab_show_more": "▼ Mostrar mais ({count} restantes)",
   "spells_used_label": "Feitiços:",
-  "eliminated_ult": "ultou"
+  "eliminated_ult": "ultou",
+  "streak_spree": "EM SÉRIE",
+  "streak_rampage": "ENFURECIDO",
+  "streak_unstoppable": "IMPLACÁVEL",
+  "streak_dominating": "DOMINANDO",
+  "streak_godlike": "INVENCÍVEL",
+  "streak_legendary": "LENDÁRIO",
+  "first_blood": "FIRST BLOOD! 🩸"
 }

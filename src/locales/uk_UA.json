@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Показати менше",
   "tab_show_more": "▼ Показати більше (ще {count})",
   "spells_used_label": "Заклинання:",
-  "eliminated_ult": "ультом знищив(ла)"
+  "eliminated_ult": "ультом знищив(ла)",
+  "streak_spree": "СЕРІЯ ВБИВСТВ",
+  "streak_rampage": "НЕВГАМОВНИЙ",
+  "streak_unstoppable": "НЕСТРИМНИЙ",
+  "streak_dominating": "ДОМІНУВАННЯ",
+  "streak_godlike": "БОЖЕСТВЕННИЙ",
+  "streak_legendary": "ЛЕГЕНДАРНИЙ",
+  "first_blood": "ПЕРША КРОВ! 🩸"
 }

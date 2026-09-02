@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Afficher moins",
   "tab_show_more": "▼ Afficher plus ({count} restants)",
   "spells_used_label": "Sorts:",
-  "eliminated_ult": "a ulté"
+  "eliminated_ult": "a ulté",
+  "streak_spree": "CARNAGE",
+  "streak_rampage": "FORCENÉ",
+  "streak_unstoppable": "IMPARABLE",
+  "streak_dominating": "DOMINATEUR",
+  "streak_godlike": "LÉGENDAIRE",
+  "streak_legendary": "LÉGENDAIRE",
+  "first_blood": "PREMIER SANG ! 🩸"
 }

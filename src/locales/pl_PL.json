@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Pokaż mniej",
   "tab_show_more": "▼ Pokaż więcej ({count} pozostało)",
   "spells_used_label": "Czary:",
-  "eliminated_ult": "zultował(a)"
+  "eliminated_ult": "zultował(a)",
+  "streak_spree": "W AMOKU",
+  "streak_rampage": "SZAŁ",
+  "streak_unstoppable": "NIE DO ZATRZYMANIA",
+  "streak_dominating": "DOMINACJA",
+  "streak_godlike": "BOSKI",
+  "streak_legendary": "LEGENDARNY",
+  "first_blood": "PIERWSZA KREW! 🩸"
 }

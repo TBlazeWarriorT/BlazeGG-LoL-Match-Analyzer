@@ -88,7 +88,11 @@ def get_cached_matches_list(lang: str = "en_US"):
                     "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),
                     "puuid": p.get("puuid"),
                     "team_id": p.get("teamId", 100),
-                    "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN")
+                    "role": p.get("teamPosition") or p.get("individualPosition", "UNKNOWN"),
+                    "largest_multikill": p.get("largestMultiKill", 0),
+                    "penta_kills": p.get("pentaKills", 0),
+                    "quadra_kills": p.get("quadraKills", 0),
+                    "triple_kills": p.get("tripleKills", 0)
                 }
                 parts.append(part_dict)
                 if p.get("teamId", 100) == 100:
@@ -119,7 +123,7 @@ def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US", player_co
     from src.report_components.utils import format_full_mode_display
     return format_full_mode_display(mode, queue_id=queue_id, lang=lang, player_count=player_count)
 
-def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0):
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0, largest_multikill=0, penta_kills=0, quadra_kills=0):
     m_upper = str(mode).upper()
     is_arena = ("CHERRY" in m_upper or "ARENA" in m_upper or queue_id in (1700, 1710))
     all_parts = (team_100 or []) + (team_200 or [])
@@ -229,6 +233,14 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         """
 
 
+    multikill_badge = ""
+    is_penta = (penta_kills > 0 or largest_multikill >= 5)
+    is_quadra = (quadra_kills > 0 or largest_multikill == 4)
+    if is_penta:
+        multikill_badge = '<span class="m-badge badge-penta" title="Pentakill!">PENTAKILL 💥</span>'
+    elif is_quadra:
+        multikill_badge = '<span class="m-badge badge-quadra" title="Quadrakill!">QUADRA KILL ⚔️</span>'
+
     return f"""
     <div class="match-item {win_class}">
         <div class="m-left">
@@ -237,6 +249,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                 <div class="m-champ-name">
                     {champ_name} 
                     <a href="{search_link}" class="summoner-link" title="{get_text('tooltip_search_matches', lang=lang)}">({riot_id})</a>
+                    {multikill_badge}
                 </div>
                 <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang, player_count=player_count)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
             </div>
@@ -334,7 +347,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     f"{p.get('name', '')}#{p.get('tag', '')}", p.get("kda", ""),
                     p.get("win", False), m["duration"], m["game_mode"],
                     p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
-                    team_100=m.get("team_100"), team_200=m.get("team_200"), placement=p.get("placement", 0)
+                    team_100=m.get("team_100"), team_200=m.get("team_200"), placement=p.get("placement", 0),
+                    largest_multikill=p.get("largest_multikill", 0), penta_kills=p.get("penta_kills", 0), quadra_kills=p.get("quadra_kills", 0)
                 )
 
                 s_name = p.get("name", "")

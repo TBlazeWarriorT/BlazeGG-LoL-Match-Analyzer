@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Show less",
   "tab_show_more": "▼ Show more ({count} remaining)",
   "spells_used_label": "Spells:",
-  "eliminated_ult": "ulted"
+  "eliminated_ult": "ulted",
+  "streak_spree": "KILLING SPREE",
+  "streak_rampage": "RAMPAGE",
+  "streak_unstoppable": "UNSTOPPABLE",
+  "streak_dominating": "DOMINATING",
+  "streak_godlike": "GODLIKE",
+  "streak_legendary": "LEGENDARY",
+  "first_blood": "FIRST BLOOD! 🩸"
 }

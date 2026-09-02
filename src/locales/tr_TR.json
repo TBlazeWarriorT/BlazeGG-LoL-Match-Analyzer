@@ -290,5 +290,12 @@
   "tab_show_less": "▲ Daha az göster",
   "tab_show_more": "▼ Daha fazla göster ({count} kaldı)",
   "spells_used_label": "Büyüler:",
-  "eliminated_ult": "ultiledi"
+  "eliminated_ult": "ultiledi",
+  "streak_spree": "KATLİAM",
+  "streak_rampage": "ÇILGIN",
+  "streak_unstoppable": "DURDURULAMAZ",
+  "streak_dominating": "HÂKİM",
+  "streak_godlike": "EFSANEVİ",
+  "streak_legendary": "DESTANSI",
+  "first_blood": "İLK KAN! 🩸"
 }

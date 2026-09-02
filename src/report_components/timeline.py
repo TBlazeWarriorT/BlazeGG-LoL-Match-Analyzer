@@ -82,24 +82,31 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             # Life kill streaks (Outline + text only, perfectly distinct from solid multikills)
             life_badge = ""
             if life_streak == "legendary":
-                life_badge = '<span class="multi-badge" style="background:transparent; color:#fbbf24; border:1px solid #fbbf24; font-weight:800;">LENDÁRIO</span>'
+                s_txt = get_text("streak_legendary", lang=lang)
+                life_badge = f'<span class="multi-badge" style="background:transparent; color:#fbbf24; border:1px solid #fbbf24; font-weight:800;">{s_txt}</span>'
             elif life_streak == "godlike":
-                life_badge = '<span class="multi-badge" style="background:transparent; color:#f87171; border:1px solid #ef4444; font-weight:800;">INVENCÍVEL</span>'
+                s_txt = get_text("streak_godlike", lang=lang)
+                life_badge = f'<span class="multi-badge" style="background:transparent; color:#f87171; border:1px solid #ef4444; font-weight:800;">{s_txt}</span>'
             elif life_streak == "dominating":
-                life_badge = '<span class="multi-badge" style="background:transparent; color:#c084fc; border:1px solid #a855f7; font-weight:700;">DOMINANDO</span>'
+                s_txt = get_text("streak_dominating", lang=lang)
+                life_badge = f'<span class="multi-badge" style="background:transparent; color:#c084fc; border:1px solid #a855f7; font-weight:700;">{s_txt}</span>'
             elif life_streak == "unstoppable":
-                life_badge = '<span class="multi-badge" style="background:transparent; color:#60a5fa; border:1px solid #3b82f6; font-weight:700;">IMPLACÁVEL</span>'
+                s_txt = get_text("streak_unstoppable", lang=lang)
+                life_badge = f'<span class="multi-badge" style="background:transparent; color:#60a5fa; border:1px solid #3b82f6; font-weight:700;">{s_txt}</span>'
             elif life_streak == "rampage":
-                life_badge = '<span class="multi-badge" style="background:transparent; color:#38bdf8; border:1px solid #06b6d4; font-weight:700;">ENFURECIDO</span>'
+                s_txt = get_text("streak_rampage", lang=lang)
+                life_badge = f'<span class="multi-badge" style="background:transparent; color:#38bdf8; border:1px solid #06b6d4; font-weight:700;">{s_txt}</span>'
             elif life_streak == "spree":
-                life_badge = '<span class="multi-badge" style="background:transparent; color:#94a3b8; border:1px solid #475569; font-weight:600;">KILLING SPREE</span>'
+                s_txt = get_text("streak_spree", lang=lang)
+                life_badge = f'<span class="multi-badge" style="background:transparent; color:#94a3b8; border:1px solid #475569; font-weight:600;">{s_txt}</span>'
 
             # Multikills always take precedence on the right
             if life_badge:
                 streak_badge = f"{life_badge} {streak_badge}" if streak_badge else life_badge
 
             if ev.get("is_first_blood"):
-                streak_badge = f'<span class="multi-badge badge-first-blood">FIRST BLOOD! 🩸</span> {streak_badge}'
+                fb_txt = get_text("first_blood", lang=lang)
+                streak_badge = f'<span class="multi-badge badge-first-blood">{fb_txt}</span> {streak_badge}'
 
             is_ult = ev.get("is_ult_kill", False)
             elim_txt = get_text("eliminated_ult", lang=lang) if is_ult else get_text("eliminated", lang=lang)

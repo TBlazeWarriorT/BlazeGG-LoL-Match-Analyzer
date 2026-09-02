@@ -290,5 +290,12 @@
   "tab_show_less": "▲ 顯示較少",
   "tab_show_more": "▼ 顯示更多 (尚有 {count} 場)",
   "spells_used_label": "技能:",
-  "eliminated_ult": "大絕擊殺了"
+  "eliminated_ult": "大絕擊殺了",
+  "streak_spree": "大殺特殺",
+  "streak_rampage": "無人能擋",
+  "streak_unstoppable": "主宰比賽",
+  "streak_dominating": "萬人敬仰",
+  "streak_godlike": "如神一般",
+  "streak_legendary": "超神",
+  "first_blood": "第一滴血！🩸"
 }
