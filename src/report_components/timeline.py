@@ -188,7 +188,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     for it, count in raw_normal_items[:6]:
                         if it.get("icon"):
                             count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
-                            main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" title="{it.get("name", "")}" />{count_badge}</div>')
+                            main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{count_badge}</div>')
                     while len(main_slots) < 6:
                         main_slots.append('<div class="stat-item-slot-empty"></div>')
                     
@@ -196,18 +196,18 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     boot_slot_html = ""
                     if has_adc_role_slot:
                         if boot_item:
-                            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Role Quest Boot)"/></div>'
+                            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" data-tooltip="{boot_item.get("tooltip") or boot_item.get("name", "")}"/></div>'
                         else:
                             boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
                     elif len(raw_normal_items) > 6:
                         extra_it, extra_count = raw_normal_items[6]
                         count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
-                        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{count_badge}</div>'
+                        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{count_badge}</div>'
 
                     # Trinket Slot
                     trinket_slot_html = ""
                     if trinket_item:
-                        trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" title="{trinket_item.get("name", "")} (Trinket)"/></div>'
+                        trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" data-tooltip="{trinket_item.get("tooltip") or trinket_item.get("name", "")}"/></div>'
                     else:
                         trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
                     
@@ -393,8 +393,9 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             pit_name = pit.get("item_name", "")
             pit_icon = pit.get("item_icon", "")
             pit_count = pit.get("count", 1)
+            pit_tooltip = pit.get("tooltip") or pit_name
             count_b = f'<span class="slot-stack-badge">{pit_count}</span>' if pit_count > 1 else ""
-            items_strip_html.append(f'<div class="slot-wrap" style="display:inline-block; margin-right:3px;"><img class="item-icon" src="{pit_icon}" alt="{pit_name}" title="{pit_name}"/>{count_b}</div>')
+            items_strip_html.append(f'<div class="slot-wrap" style="display:inline-block; margin-right:3px;"><img class="item-icon" src="{pit_icon}" alt="{pit_name}" data-tooltip="{pit_tooltip}"/>{count_b}</div>')
             label_cnt = f" (x{pit_count})" if pit_count > 1 else ""
             item_labels.append(f"<b>{pit_name}</b>{label_cnt}")
         
@@ -436,7 +437,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         for it, count in raw_normal_items[:6]:
             if it.get("icon"):
                 count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
-                main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" title="{it.get("name", "")}" />{count_badge}</div>')
+                main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{count_badge}</div>')
         while len(main_slots) < 6:
             main_slots.append('<div class="stat-item-slot-empty"></div>')
 
@@ -444,18 +445,18 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         boot_slot_html = ""
         if has_adc_role_slot:
             if boot_item:
-                boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" title="{boot_item.get("name", "")} (Role Quest Boot)"/></div>'
+                boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" data-tooltip="{boot_item.get("tooltip") or boot_item.get("name", "")}"/></div>'
             else:
                 boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
         elif len(raw_normal_items) > 6:
             extra_it, extra_count = raw_normal_items[6]
             count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
-            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{count_badge}</div>'
+            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{count_badge}</div>'
 
         # Trinket Slot
         trinket_slot_html = ""
         if trinket_item:
-            trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" title="{trinket_item.get("name", "")} (Trinket)"/></div>'
+            trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" data-tooltip="{trinket_item.get("tooltip") or trinket_item.get("name", "")}"/></div>'
         else:
             trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
 
@@ -575,20 +576,20 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         for it, count in norm_its[:6]:
             if it.get("icon"):
                 b_tag = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
-                m_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" title="{it.get("name", "")}" />{b_tag}</div>')
+                m_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{b_tag}</div>')
         while len(m_slots) < 6:
             m_slots.append('<div class="stat-item-slot-empty"></div>')
 
         b_slot_html = ""
         if has_adc_role:
             if boot_it:
-                b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_it["icon"]}" title="{boot_it.get("name", "")} (Role Quest Boot)"/></div>'
+                b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_it["icon"]}" data-tooltip="{boot_it.get("tooltip") or boot_it.get("name", "")}"/></div>'
             else:
                 b_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
         elif len(norm_its) > 6:
             extra_it, extra_count = norm_its[6]
             b_tag = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
-            b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{b_tag}</div>'
+            b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{b_tag}</div>'
 
         lvl_val = p.get("champ_level", 1)
         lvl_prefix = get_text("level_prefix", lang=lang)
@@ -597,7 +598,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         gold_fmt = f"{gold_val:,}".replace(",", ".")
         gold_badge_html = f'<div style="margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:0.75rem; font-weight:700; color:#fbbf24; white-space:nowrap;" title="Ouro total ao fim da partida">{gold_fmt} <i class="stat-ico ico-gold" style="width:13px; height:13px;"></i></div>'
 
-        t_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_it["icon"]}" title="{trinket_it.get("name", "")} (Trinket)"/></div>' if trinket_it else '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
+        t_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_it["icon"]}" data-tooltip="{trinket_it.get("tooltip") or trinket_it.get("name", "")}"/></div>' if trinket_it else '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
         
         items_row_html = f"""
         <div class="stat-divider"></div>

@@ -374,9 +374,15 @@ function navigateTimelinePhase(dir, btnEl) {
 }
 
 function switchTimelineTab(tabName, btnEl) {
+    sessionStorage.setItem("blaze_timeline_tab", tabName);
     var tabs = document.querySelectorAll(".timeline-tab-btn");
     tabs.forEach(function(b) { b.classList.remove("active"); });
-    if (btnEl) btnEl.classList.add("active");
+    if (btnEl) {
+        btnEl.classList.add("active");
+    } else {
+        var targetBtn = document.querySelector(".timeline-tab-btn[onclick*=\"'" + tabName + "'\"]");
+        if (targetBtn) targetBtn.classList.add("active");
+    }
 
     var paneKills = document.getElementById("timelinePaneKills");
     var paneItems = document.getElementById("timelinePaneItems");
@@ -416,7 +422,12 @@ function initSmartTooltips() {
 }
 
 window.addEventListener("DOMContentLoaded", function() {
-    syncTimelineState();
+    var savedTab = sessionStorage.getItem("blaze_timeline_tab");
+    if (savedTab && (savedTab === "kills" || savedTab === "items")) {
+        switchTimelineTab(savedTab);
+    } else {
+        syncTimelineState();
+    }
     initSmartTooltips();
 });
 

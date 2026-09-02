@@ -1832,8 +1832,8 @@ body {
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 0.15s ease, transform 0.15s ease;
-    white-space: pre-line;
-    max-width: 320px;
+    white-space: normal;
+    max-width: 340px;
     backdrop-filter: blur(8px);
 }
 .custom-tooltip.visible {

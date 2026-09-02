@@ -92,6 +92,7 @@ class MatchAnalysis:
                     "id": iid,
                     "name": self.ddragon.get_item_name(iid),
                     "icon": self.ddragon.get_item_icon_url(iid),
+                    "tooltip": self.ddragon.get_item_tooltip(iid),
                     "is_role_bound": False
                 })
 
@@ -102,6 +103,7 @@ class MatchAnalysis:
                 "id": role_bound_iid,
                 "name": self.ddragon.get_item_name(role_bound_iid),
                 "icon": self.ddragon.get_item_icon_url(role_bound_iid),
+                "tooltip": self.ddragon.get_item_tooltip(role_bound_iid),
                 "is_role_bound": True
             })
 
@@ -541,7 +543,8 @@ class MatchAnalysis:
                             {
                                 "id": iid,
                                 "name": self.ddragon.get_item_name(iid),
-                                "icon": self.ddragon.get_item_icon_url(iid)
+                                "icon": self.ddragon.get_item_icon_url(iid),
+                                "tooltip": self.ddragon.get_item_tooltip(iid)
                             }
                             for iid in inventories[pid] if iid
                         ]
@@ -563,6 +566,7 @@ class MatchAnalysis:
                                     "item_id": item_id,
                                     "item_name": item_name,
                                     "item_icon": item_icon,
+                                    "tooltip": self.ddragon.get_item_tooltip(item_id),
                                     "count": 1
                                 })
                         else:
@@ -580,6 +584,7 @@ class MatchAnalysis:
                                         "item_id": item_id,
                                         "item_name": item_name,
                                         "item_icon": item_icon,
+                                        "tooltip": self.ddragon.get_item_tooltip(item_id),
                                         "count": 1
                                     }
                                 ],
@@ -697,11 +702,11 @@ class MatchAnalysis:
 
                     # Current items snapshot at kill moment
                     k_items = [
-                        {"id": iid, "name": self.ddragon.get_item_name(iid), "icon": self.ddragon.get_item_icon_url(iid)}
+                        {"id": iid, "name": self.ddragon.get_item_name(iid), "icon": self.ddragon.get_item_icon_url(iid), "tooltip": self.ddragon.get_item_tooltip(iid)}
                         for iid in inventories.get(killer, []) if iid
                     ] if killer and killer != 0 else []
                     v_items = [
-                        {"id": iid, "name": self.ddragon.get_item_name(iid), "icon": self.ddragon.get_item_icon_url(iid)}
+                        {"id": iid, "name": self.ddragon.get_item_name(iid), "icon": self.ddragon.get_item_icon_url(iid), "tooltip": self.ddragon.get_item_tooltip(iid)}
                         for iid in inventories.get(victim, []) if iid
                     ] if victim else []
 

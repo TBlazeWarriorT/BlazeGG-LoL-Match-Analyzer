@@ -132,13 +132,13 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
 
             spells_html = "".join([
-                f'<img class="spell-icon" src="{s["icon"]}" title="{s["name"]}" alt="{s["name"]}"/>'
+                f'<img class="spell-icon" src="{s["icon"]}" data-tooltip="{s.get("tooltip") or s.get("name", "")}" alt="{s.get("name", "")}"/>'
                 for s in p.get("spells", []) if s.get("icon")
             ])
             rune_info = p.get("rune", {})
             sub_rune_info = p.get("sub_rune", {})
-            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" title="{rune_info["name"]}" alt="{rune_info["name"]}"/>' if rune_info.get("icon") else ""
-            sub_rune_html = f'<img class="sub-rune-icon" src="{sub_rune_info["icon"]}" title="{sub_rune_info["name"]}" alt="{sub_rune_info["name"]}"/>' if sub_rune_info.get("icon") else ""
+            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" data-tooltip="{rune_info.get("tooltip") or rune_info.get("name", "")}" alt="{rune_info.get("name", "")}"/>' if rune_info.get("icon") else ""
+            sub_rune_html = f'<img class="sub-rune-icon" src="{sub_rune_info["icon"]}" data-tooltip="{sub_rune_info.get("tooltip") or sub_rune_info.get("name", "")}" alt="{sub_rune_info.get("name", "")}"/>' if sub_rune_info.get("icon") else ""
 
             spells_runes_strip = f"""
             <div class="spells-runes-strip">
@@ -151,7 +151,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             """ if (spells_html or rune_html or sub_rune_html) else ""
 
             items_html = "".join([
-                f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" title="{it["name"]} (Quest/Role)" alt="{it["name"]}"/>' if it.get("is_role_bound") else f'<img class="item-icon" src="{it["icon"]}" title="{it["name"]}" alt="{it["name"]}"/>'
+                f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" alt="{it.get("name", "")}"/>'
                 for it in p.get("items", [])
             ])
 
