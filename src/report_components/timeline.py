@@ -379,8 +379,27 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         c_name = ev.get("champ", "")
         c_icon = ev.get("champ_icon", "")
         s_name = ev.get("summoner_name", "")
-        i_name = ev.get("item_name", "")
-        i_icon = ev.get("item_icon", "")
+        purchased_items = ev.get("items", [])
+        if not purchased_items:
+            # Fallback for older cached payload structures
+            i_name = ev.get("item_name", "")
+            i_icon = ev.get("item_icon", "")
+            purchased_items = [{"item_id": ev.get("item_id", 0), "item_name": i_name, "item_icon": i_icon, "count": 1}]
+        
+        # Build purchased items badge strip
+        items_strip_html = []
+        item_labels = []
+        for pit in purchased_items:
+            pit_name = pit.get("item_name", "")
+            pit_icon = pit.get("item_icon", "")
+            pit_count = pit.get("count", 1)
+            count_b = f'<span class="slot-stack-badge">{pit_count}</span>' if pit_count > 1 else ""
+            items_strip_html.append(f'<div class="slot-wrap" style="display:inline-block; margin-right:3px;"><img class="item-icon" src="{pit_icon}" alt="{pit_name}" title="{pit_name}"/>{count_b}</div>')
+            label_cnt = f" (x{pit_count})" if pit_count > 1 else ""
+            item_labels.append(f"<b>{pit_name}</b>{label_cnt}")
+        
+        items_strip_rendered = "".join(items_strip_html)
+        items_desc_rendered = ", ".join(item_labels)
         snapshot = ev.get("items_snapshot", [])
 
         # Build snapshot slots on hover
@@ -464,10 +483,10 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             <div class="event-kill-duel">
                 {avatar_html}
             </div>
-            <span class="event-desc" style="display:flex; align-items:center; gap:8px;">
+            <span class="event-desc" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span><b>{c_name}</b> ({s_name}) {purchased_lbl}</span>
-                <img class="item-icon" src="{i_icon}" alt="{i_name}" title="{i_name}"/>
-                <b>{i_name}</b>
+                <div style="display:inline-flex; align-items:center; gap:3px;">{items_strip_rendered}</div>
+                <span>{items_desc_rendered}</span>
             </span>
         </li>
         """)

@@ -537,26 +537,54 @@ class MatchAnalysis:
                         raw_c = p_dict.get("championName", "")
                         item_name = self.ddragon.get_item_name(item_id)
                         item_icon = self.ddragon.get_item_icon_url(item_id)
-                        item_events_log.append({
-                            "type": "item_purchased",
-                            "time": t_str,
-                            "participant_id": pid,
-                            "role": str(p_dict.get("teamPosition") or p_dict.get("individualPosition", "")).upper(),
-                            "champ": self.ddragon.get_clean_champion_name(raw_c),
-                            "champ_icon": self.ddragon.get_champion_icon_url(raw_c),
-                            "summoner_name": p_dict.get("riotIdGameName", ""),
-                            "item_id": item_id,
-                            "item_name": item_name,
-                            "item_icon": item_icon,
-                            "items_snapshot": [
-                                {
-                                    "id": iid,
-                                    "name": self.ddragon.get_item_name(iid),
-                                    "icon": self.ddragon.get_item_icon_url(iid)
-                                }
-                                for iid in inventories[pid] if iid
-                            ]
-                        })
+                        snap = [
+                            {
+                                "id": iid,
+                                "name": self.ddragon.get_item_name(iid),
+                                "icon": self.ddragon.get_item_icon_url(iid)
+                            }
+                            for iid in inventories[pid] if iid
+                        ]
+                        # Group consecutive purchases by the same participant within ~60s window
+                        if item_events_log and item_events_log[-1]["participant_id"] == pid and (ts - item_events_log[-1].get("ts", 0)) <= 60000:
+                            last_group = item_events_log[-1]
+                            last_group["time"] = t_str
+                            last_group["ts"] = ts
+                            last_group["items_snapshot"] = snap
+                            # Update items list in group
+                            found_item = False
+                            for it_entry in last_group["items"]:
+                                if it_entry["item_id"] == item_id:
+                                    it_entry["count"] += 1
+                                    found_item = True
+                                    break
+                            if not found_item:
+                                last_group["items"].append({
+                                    "item_id": item_id,
+                                    "item_name": item_name,
+                                    "item_icon": item_icon,
+                                    "count": 1
+                                })
+                        else:
+                            item_events_log.append({
+                                "type": "item_purchased",
+                                "time": t_str,
+                                "ts": ts,
+                                "participant_id": pid,
+                                "role": str(p_dict.get("teamPosition") or p_dict.get("individualPosition", "")).upper(),
+                                "champ": self.ddragon.get_clean_champion_name(raw_c),
+                                "champ_icon": self.ddragon.get_champion_icon_url(raw_c),
+                                "summoner_name": p_dict.get("riotIdGameName", ""),
+                                "items": [
+                                    {
+                                        "item_id": item_id,
+                                        "item_name": item_name,
+                                        "item_icon": item_icon,
+                                        "count": 1
+                                    }
+                                ],
+                                "items_snapshot": snap
+                            })
                     elif ev_type == "ITEM_SOLD":
                         if item_id in inventories[pid]:
                             inventories[pid].remove(item_id)
