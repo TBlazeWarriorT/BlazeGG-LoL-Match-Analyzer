@@ -10,17 +10,18 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
     is_t1 = p1.get("puuid") == target_puuid
     is_t2 = p2.get("puuid") == target_puuid
 
+    is_team_comb = p1.get("is_team_combined", False) or p2.get("is_team_combined", False)
 
     dmg_delta = p1.get("damage_to_champions", 0) - p2.get("damage_to_champions", 0)
     gold_delta_final = p1.get("gold_total", 0) - p2.get("gold_total", 0)
 
-    bar_threshold = 8000.0 if is_bot_duo else 5000.0
+    bar_threshold = 15000.0 if is_team_comb else (8000.0 if is_bot_duo else 5000.0)
     p1_share = calculate_gold_bar_share(gold_delta_final, max_delta=bar_threshold)
     p2_share = 100.0 - p1_share
 
     gap_limit = 3500 if is_bot_duo else 2000
-    gap_badge_left = '<span class="gap-seal gap-left">GAP! 🔥</span>' if gold_delta_final >= gap_limit else ""
-    gap_badge_right = '<span class="gap-seal gap-right">GAP! 🔥</span>' if gold_delta_final <= -gap_limit else ""
+    gap_badge_left = "" if is_team_comb else ('<span class="gap-seal gap-left">GAP! 🔥</span>' if gold_delta_final >= gap_limit else "")
+    gap_badge_right = "" if is_team_comb else ('<span class="gap-seal gap-right">GAP! 🔥</span>' if gold_delta_final <= -gap_limit else "")
 
     icon_gold = AssetManager.get_asset_uri("gold_icon")
     icon_xp = AssetManager.get_asset_uri("xp_icon")
@@ -50,37 +51,68 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
         if p.get("is_team_combined"):
             icons_render = p.get("team_icons_html", "")
-            header_html = f"""
-            <div class="p-header">
-                <div class="duo-avatar-stack">
-                    {icons_render}
+            if is_left:
+                header_html = f"""
+                <div class="p-header">
+                    <div class="team-avatar-stack">
+                        {icons_render}
+                    </div>
+                    <div class="p-meta">
+                        <div class="p-name">{p.get('summoner_name', '')} {target_badge}</div>
+                        <div class="p-champ">KDA: <b>{p.get('kda', '')}</b> {kda_ratio_tag}</div>
+                    </div>
                 </div>
-                <div class="p-meta">
-                    <div class="p-name">{p.get('summoner_name', '')} {target_badge}</div>
-                    <div class="p-champ">{p.get('champion', '')} • KDA: <b>{p.get('kda', '')}</b> {kda_ratio_tag}</div>
+                """
+            else:
+                header_html = f"""
+                <div class="p-header" style="justify-content: flex-end;">
+                    <div class="p-meta" style="text-align: right;">
+                        <div class="p-name">{p.get('summoner_name', '')} {target_badge}</div>
+                        <div class="p-champ">KDA: <b>{p.get('kda', '')}</b> {kda_ratio_tag}</div>
+                    </div>
+                    <div class="team-avatar-stack">
+                        {icons_render}
+                    </div>
                 </div>
-            </div>
-            """
+                """
         elif is_bot_duo:
             lvl1 = p.get("lvl1", "")
             lvl2 = p.get("lvl2", "")
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl1} &amp; {lvl2}</span>" if lvl1 and lvl2 else ""
-            header_html = f"""
-            <div class="p-header">
-                <div class="duo-avatar-stack">
-                    <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ1']}">
-                        <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
+            if is_left:
+                header_html = f"""
+                <div class="p-header">
+                    <div class="duo-avatar-stack">
+                        <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ1']}">
+                            <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
+                        </div>
+                        <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ2']}">
+                            <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
+                        </div>
                     </div>
-                    <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ2']}">
-                        <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
+                    <div class="p-meta">
+                        <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
+                        <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
                     </div>
                 </div>
-                <div class="p-meta">
-                    <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
-                    <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
+                """
+            else:
+                header_html = f"""
+                <div class="p-header" style="justify-content: flex-end;">
+                    <div class="p-meta" style="text-align: right;">
+                        <div class="p-name">{p['champ1']} &amp; {p['champ2']} {target_badge}</div>
+                        <div class="p-champ">KDA: <b>{p['kda']}</b> {kda_ratio_tag}{lvl_display}</div>
+                    </div>
+                    <div class="duo-avatar-stack">
+                        <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ1']}">
+                            <img class="champ-icon duo-icon-1" src="{p['icon1']}" alt="{p['champ1']}"/>
+                        </div>
+                        <div class="avatar-glint-wrapper" style="width:34px; height:34px;" title="{p['champ2']}">
+                            <img class="champ-icon duo-icon-2" src="{p['icon2']}" alt="{p['champ2']}"/>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            """
+                """
         else:
             lvl_val = p.get("champ_level", 1)
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl_val}</span>" if lvl_val else ""
@@ -443,7 +475,23 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         solo_deaths_2 = stats_2.get("solo_deaths", 0) if stats_2 else 0
 
         duel_info_box = ""
-        if not is_bot_duo:
+        if is_team_comb:
+            exec_1 = p1.get("executions", 0)
+            exec_2 = p2.get("executions", 0)
+            if exec_1 > 0 or exec_2 > 0:
+                duel_info_box = f"""
+                <div class="duel-scores-wrapper" style="margin-top: 6px;">
+                    <div class="duel-score-row" title="{get_text('executions_tt_title', lang=lang)}">
+                        <span class="score-label" style="color:#94a3b8; cursor:help;">💀 {get_text("executions", lang=lang)}</span>
+                        <div class="score-pill-sm" style="background:#1e293b; border-color:#334155; cursor:help;">
+                            <b class="score-blue-sm" style="color:#cbd5e1;">{exec_1}</b>
+                            <span class="score-x-sm">x</span>
+                            <b class="score-red-sm" style="color:#cbd5e1;">{exec_2}</b>
+                        </div>
+                    </div>
+                </div>
+                """
+        elif not is_bot_duo:
             other_1 = stats_1.get("other_deaths", 0) if stats_1 else 0
             other_2 = stats_2.get("other_deaths", 0) if stats_2 else 0
             exec_1 = stats_1.get("executions", 0) if stats_1 else 0
@@ -525,13 +573,17 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
 
 
+        badge_style = 'background:#3730a3; color:#c7d2fe;' if is_team_comb else ''
+        badge_html = f'<div class="role-badge-lg" style="{badge_style}">{role_title}</div>' if badge_style else f'<div class="role-badge-lg">{role_title}</div>'
+        bar_tt = get_text("gold_dist_team_tt", lang=lang) if is_team_comb else (get_text("gold_dist_duo_tt", lang=lang) if is_bot_duo else get_text("gold_dist_duel_tt", lang=lang))
+
         delta_html = f"""
         <div class="duel-center">
-            <div class="role-badge-lg">{role_title}</div>
+            {badge_html}
             
             <div class="lane-bar-wrapper">
                 {gap_badge_left}
-                <div class="lane-bar-container" title="{get_text('gold_dist_duel_tt', lang=lang)}">
+                <div class="lane-bar-container" title="{bar_tt}">
                     <div class="lane-bar-blue" style="width: {p1_share:.1f}%;"></div>
                     <div class="lane-bar-red" style="width: {p2_share:.1f}%;"></div>
                 </div>
@@ -611,7 +663,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
 
     return f"""
-    <div class="duel-row {'bot-duo-row' if is_bot_duo else ''}">
+    <div class="duel-row {'bot-duo-row' if is_bot_duo else ''} {'team-combined-row' if is_team_comb else ''}">
         {p1_html}
         {delta_html}
         {p2_html}

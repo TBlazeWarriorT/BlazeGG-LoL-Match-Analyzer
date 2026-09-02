@@ -233,82 +233,111 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                 target_puuid=target_puuid, lang=lang
             ))
 
+        def make_combined_player_dict(players: List[Dict[str, Any]], team_name: str, target_puuid: str = "", is_5v5: bool = False, lang: str = "pt_BR") -> Dict[str, Any]:
+            kills = sum(p.get("kills", 0) for p in players)
+            deaths = sum(p.get("deaths", 0) for p in players)
+            assists = sum(p.get("assists", 0) for p in players)
+            cs = sum(p.get("cs", 0) for p in players)
+            csm = round(sum(p.get("cs_per_min", 0) for p in players), 1)
+            dmg = sum(p.get("damage_to_champions", 0) for p in players)
+            gold = sum(p.get("gold_total", 0) or p.get("gold_earned", 0) for p in players)
+            ratio = (kills + assists) / max(deaths, 1)
+
+            if is_5v5:
+                def make_mini_avatar(p):
+                    c_name = p.get("champion", "")
+                    r_id = p.get("riot_id") or p.get("summoner_name") or c_name
+                    kda = p.get("kda", "0/0/0")
+                    p_dmg = p.get("damage_to_champions", 0)
+                    p_gold = p.get("gold_total", 0) or p.get("gold_earned", 0)
+                    p_cs = p.get("cs", 0)
+                    r_raw = str(p.get("role", "")).upper()
+                    role_str = "SUPPORT" if r_raw == "UTILITY" else r_raw
+                    role_label = f" ({role_str})" if role_str else ""
+                    tt_lines = [
+                        f"<b>{c_name}</b>{role_label} - <i>{r_id}</i>",
+                        f"• KDA: <b>{kda}</b>",
+                        f"• {get_text('dmg_dealt', lang=lang)}: <b>{p_dmg:,}</b>",
+                        f"• {get_text('gold', lang=lang)}: <b>{p_gold:,}</b>",
+                        f"• CS: <b>{p_cs}</b>"
+                    ]
+                    tt_html = "<br/>".join(tt_lines).replace('"', '&quot;')
+                    return f'<div class="team-champ-mini-wrap" data-tooltip="{tt_html}"><img class="team-champ-mini" src="{p.get("champion_icon", "")}" alt="{c_name}"/></div>'
+
+                team_icons_html = "".join([make_mini_avatar(p) for p in players])
+                champion_label = team_name
+                champ_icon = ""
+            else:
+                team_icons_html = ""
+                champion_label = " & ".join(p.get("champion", "") for p in players)
+                champ_icon = players[0].get("champion_icon", "") if players else ""
+
+            p1_first = players[0] if len(players) > 0 else {}
+            p2_second = players[1] if len(players) > 1 else {}
+
+            return {
+                "champion": champion_label,
+                "champion_icon": champ_icon,
+                "champ1": p1_first.get("champion", ""),
+                "icon1": p1_first.get("champion_icon", ""),
+                "lvl1": p1_first.get("champ_level", 1),
+                "champ2": p2_second.get("champion", ""),
+                "icon2": p2_second.get("champion_icon", ""),
+                "lvl2": p2_second.get("champ_level", 1),
+                "summoner_name": team_name,
+                "riot_id": team_name,
+                "is_team_combined": is_5v5,
+                "team_icons_html": team_icons_html,
+                "kills": kills,
+                "deaths": deaths,
+                "assists": assists,
+                "kda": f"{kills}/{deaths}/{assists}",
+                "kda_ratio": f"{ratio:.2f}:1" if deaths > 0 else "Perfect",
+                "cs": cs,
+                "cs_per_min": csm,
+                "damage_to_champions": dmg,
+                "damage_physical": sum(p.get("damage_physical", 0) for p in players),
+                "damage_magic": sum(p.get("damage_magic", 0) for p in players),
+                "damage_true": sum(p.get("damage_true", 0) for p in players),
+                "damage_total_all": sum(p.get("damage_total_all", 0) for p in players),
+                "damage_to_objectives": sum(p.get("damage_to_objectives", 0) for p in players),
+                "damage_to_turrets": sum(p.get("damage_to_turrets", 0) or p.get("damage_to_buildings", 0) for p in players),
+                "turret_kills": sum(p.get("turret_kills", 0) for p in players),
+                "inhibitor_kills": sum(p.get("inhibitor_kills", 0) for p in players),
+                "damage_taken": sum(p.get("damage_taken", 0) for p in players),
+                "damage_taken_physical": sum(p.get("damage_taken_physical", 0) for p in players),
+                "damage_taken_magic": sum(p.get("damage_taken_magic", 0) for p in players),
+                "damage_taken_true": sum(p.get("damage_taken_true", 0) for p in players),
+                "damage_mitigated": sum(p.get("damage_mitigated", 0) for p in players),
+                "total_heal": sum(p.get("total_heal", 0) for p in players),
+                "vision_score": sum(p.get("vision_score", 0) for p in players),
+                "detector_wards": sum(p.get("detector_wards", 0) for p in players),
+                "vision_wards_bought": sum(p.get("vision_wards_bought", 0) for p in players),
+                "wards_placed": sum(p.get("wards_placed", 0) for p in players),
+                "wards_killed": sum(p.get("wards_killed", 0) for p in players),
+                "enemy_jungle_monsters": sum(p.get("enemy_jungle_monsters", 0) for p in players),
+                "minions_killed": sum(p.get("minions_killed", 0) for p in players),
+                "neutral_monsters_killed": sum(p.get("neutral_monsters_killed", 0) for p in players),
+                "gold_earned": gold,
+                "gold_total": gold,
+                "damage_per_gold": round(dmg / max(gold, 1), 2),
+                "executions": sum(p.get("executions", 0) for p in players),
+                "spells": [],
+                "rune": {},
+                "items": [],
+                "puuid": target_puuid if any(p.get("puuid") == target_puuid for p in players) else ""
+            }
+
         # BOT DUO (2v2)
         if m_bot and m_sup:
             p1_bot, p2_bot = m_bot["player1"], m_bot["player2"]
             p1_sup, p2_sup = m_sup["player1"], m_sup["player2"]
 
-            d1_dmg = p1_bot["damage_to_champions"] + p1_sup["damage_to_champions"]
-            d2_dmg = p2_bot["damage_to_champions"] + p2_sup["damage_to_champions"]
-            d1_gold = p1_bot["gold_total"] + p1_sup["gold_total"]
-            d2_gold = p2_bot["gold_total"] + p2_sup["gold_total"]
-            d1_taken = p1_bot["damage_taken"] + p1_sup["damage_taken"]
-            d2_taken = p2_bot["damage_taken"] + p2_sup["damage_taken"]
-            d1_cs = p1_bot["cs"] + p1_sup["cs"]
-            d2_cs = p2_bot["cs"] + p2_sup["cs"]
-            d1_kills = p1_bot["kills"] + p1_sup["kills"]
-            d1_deaths = p1_bot["deaths"] + p1_sup["deaths"]
-            d1_assists = p1_bot["assists"] + p1_sup["assists"]
-            d2_kills = p2_bot["kills"] + p2_bot["kills"]
-            d2_deaths = p2_bot["deaths"] + p2_sup["deaths"]
-            d2_assists = p2_bot["assists"] + p2_sup["assists"]
-
-            ratio_d1 = (d1_kills + d1_assists) / max(d1_deaths, 1)
-            ratio_d2 = (d2_kills + d2_assists) / max(d2_deaths, 1)
-
-            csm_d1 = round(d1_cs / dur_min_calc, 1)
-            csm_d2 = round(d2_cs / dur_min_calc, 1)
-
-            duo_p1 = {
-                "champ1": p1_bot["champion"], "icon1": p1_bot["champion_icon"], "lvl1": p1_bot.get("champ_level", 1),
-                "champ2": p1_sup["champion"], "icon2": p1_sup["champion_icon"], "lvl2": p1_sup.get("champ_level", 1),
-                "kda": f"{d1_kills}/{d1_deaths}/{d1_assists}",
-                "kda_ratio": f"{ratio_d1:.2f}:1" if d1_deaths > 0 else "Perfect",
-                "cs": d1_cs,
-                "cs_per_min": csm_d1,
-                "damage_to_champions": d1_dmg,
-                "damage_physical": p1_bot.get("damage_physical", 0) + p1_sup.get("damage_physical", 0),
-                "damage_magic": p1_bot.get("damage_magic", 0) + p1_sup.get("damage_magic", 0),
-                "damage_true": p1_bot.get("damage_true", 0) + p1_sup.get("damage_true", 0),
-                "damage_per_gold": round(d1_dmg / max(d1_gold, 1), 2),
-                "damage_taken": d1_taken,
-                "damage_mitigated": p1_bot.get("damage_mitigated", 0) + p1_sup.get("damage_mitigated", 0),
-                "total_heal": p1_bot.get("total_heal", 0) + p1_sup.get("total_heal", 0),
-                "vision_score": p1_bot.get("vision_score", 0) + p1_sup.get("vision_score", 0),
-                "detector_wards": p1_bot.get("detector_wards", 0) + p1_sup.get("detector_wards", 0),
-                "enemy_jungle_monsters": p1_bot.get("enemy_jungle_monsters", 0) + p1_sup.get("enemy_jungle_monsters", 0),
-                "gold_total": d1_gold,
-                "puuid": p1_bot["puuid"] if target_puuid in (p1_bot["puuid"], p1_sup["puuid"]) else ""
-            }
-
-            duo_p2 = {
-                "champ1": p2_bot["champion"], "icon1": p2_bot["champion_icon"], "lvl1": p2_bot.get("champ_level", 1),
-                "champ2": p2_sup["champion"], "icon2": p2_sup["champion_icon"], "lvl2": p2_sup.get("champ_level", 1),
-                "kda": f"{d2_kills}/{d2_deaths}/{d2_assists}",
-                "kda_ratio": f"{ratio_d2:.2f}:1" if d2_deaths > 0 else "Perfect",
-                "cs": d2_cs,
-                "cs_per_min": csm_d2,
-                "damage_to_champions": d2_dmg,
-                "damage_physical": p2_bot.get("damage_physical", 0) + p2_sup.get("damage_physical", 0),
-                "damage_magic": p2_bot.get("damage_magic", 0) + p2_sup.get("damage_magic", 0),
-                "damage_true": p2_bot.get("damage_true", 0) + p2_sup.get("damage_true", 0),
-                "damage_per_gold": round(d2_dmg / max(d2_gold, 1), 2),
-                "damage_taken": d2_taken,
-                "damage_mitigated": p2_bot.get("damage_mitigated", 0) + p2_sup.get("damage_mitigated", 0),
-                "total_heal": p2_bot.get("total_heal", 0) + p2_sup.get("total_heal", 0),
-                "vision_score": p2_bot.get("vision_score", 0) + p2_sup.get("vision_score", 0),
-                "detector_wards": p2_bot.get("detector_wards", 0) + p2_sup.get("detector_wards", 0),
-                "enemy_jungle_monsters": p2_bot.get("enemy_jungle_monsters", 0) + p2_sup.get("enemy_jungle_monsters", 0),
-                "gold_total": d2_gold,
-                "puuid": p2_bot["puuid"] if target_puuid in (p2_bot["puuid"], p2_sup["puuid"]) else ""
-            }
-
-            duo_delta_gold = {}
-            duo_delta_xp = {}
+            duo_p1 = make_combined_player_dict([p1_bot, p1_sup], "", target_puuid=target_puuid, is_5v5=False, lang=lang)
+            duo_p2 = make_combined_player_dict([p2_bot, p2_sup], "", target_puuid=target_puuid, is_5v5=False, lang=lang)
 
             def combine_deltas(d_bot, d_sup):
                 combined = {}
-                # Sort keys chronologically (5m, 10m, 15m, 20m)
                 all_keys = sorted(
                     list(set(list(d_bot.keys()) + list(d_sup.keys()))),
                     key=lambda x: int(x.replace("m", "")) if x.replace("m", "").isdigit() else 999
@@ -319,14 +348,14 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     if isinstance(v_bot, dict) or isinstance(v_sup, dict):
                         diff_bot = v_bot.get("diff", 0) if isinstance(v_bot, dict) else int(v_bot)
                         diff_sup = v_sup.get("diff", 0) if isinstance(v_sup, dict) else int(v_sup)
-                        p1_bot = v_bot.get("p1_val", 0) if isinstance(v_bot, dict) else 0
-                        p1_sup = v_sup.get("p1_val", 0) if isinstance(v_sup, dict) else 0
-                        p2_bot = v_bot.get("p2_val", 0) if isinstance(v_bot, dict) else 0
-                        p2_sup = v_sup.get("p2_val", 0) if isinstance(v_sup, dict) else 0
+                        p1_bot_val = v_bot.get("p1_val", 0) if isinstance(v_bot, dict) else 0
+                        p1_sup_val = v_sup.get("p1_val", 0) if isinstance(v_sup, dict) else 0
+                        p2_bot_val = v_bot.get("p2_val", 0) if isinstance(v_bot, dict) else 0
+                        p2_sup_val = v_sup.get("p2_val", 0) if isinstance(v_sup, dict) else 0
                         combined[k] = {
                             "diff": diff_bot + diff_sup,
-                            "p1_val": p1_bot + p1_sup,
-                            "p2_val": p2_bot + p2_sup
+                            "p1_val": p1_bot_val + p1_sup_val,
+                            "p2_val": p2_bot_val + p2_sup_val
                         }
                     else:
                         combined[k] = int(v_bot) + int(v_sup)
@@ -355,10 +384,6 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             </div>
             """)
 
-
-
-
-
     # TEAM COMBINED (5v5 TOTAL)
     t1_players = team_100.get("players", [])
     t2_players = team_200.get("players", [])
@@ -366,52 +391,6 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
     is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
 
     if t1_players and t2_players and not is_arena:
-        t1_dmg = sum(p.get("damage_to_champions", 0) for p in t1_players)
-        t2_dmg = sum(p.get("damage_to_champions", 0) for p in t2_players)
-        t1_gold = sum(p.get("gold_total", 0) for p in t1_players)
-        t2_gold = sum(p.get("gold_total", 0) for p in t2_players)
-        t1_taken = sum(p.get("damage_taken", 0) for p in t1_players)
-        t2_taken = sum(p.get("damage_taken", 0) for p in t2_players)
-        t1_mit = sum(p.get("damage_mitigated", 0) for p in t1_players)
-        t2_mit = sum(p.get("damage_mitigated", 0) for p in t2_players)
-        t1_hl = sum(p.get("total_heal", 0) for p in t1_players)
-        t2_hl = sum(p.get("total_heal", 0) for p in t2_players)
-
-        t1_phys = sum(p.get("damage_physical", 0) for p in t1_players)
-        t2_phys = sum(p.get("damage_physical", 0) for p in t2_players)
-        t1_mag = sum(p.get("damage_magic", 0) for p in t1_players)
-        t2_mag = sum(p.get("damage_magic", 0) for p in t2_players)
-        t1_tru = sum(p.get("damage_true", 0) for p in t1_players)
-        t2_tru = sum(p.get("damage_true", 0) for p in t2_players)
-
-        t1_cs = sum(p.get("cs", 0) for p in t1_players)
-        t2_cs = sum(p.get("cs", 0) for p in t2_players)
-        t1_kills = sum(p.get("kills", 0) for p in t1_players)
-        t1_deaths = sum(p.get("deaths", 0) for p in t1_players)
-        t1_assists = sum(p.get("assists", 0) for p in t1_players)
-        t2_kills = sum(p.get("kills", 0) for p in t2_players)
-        t2_deaths = sum(p.get("deaths", 0) for p in t2_players)
-        t2_assists = sum(p.get("assists", 0) for p in t2_players)
-
-        t1_vis = sum(p.get("vision_score", 0) for p in t1_players)
-        t2_vis = sum(p.get("vision_score", 0) for p in t2_players)
-        t1_pinks = sum(p.get("detector_wards", 0) for p in t1_players)
-        t2_pinks = sum(p.get("detector_wards", 0) for p in t2_players)
-        t1_execs = sum(p.get("executions", 0) for p in t1_players)
-        t2_execs = sum(p.get("executions", 0) for p in t2_players)
-
-        t1_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t1_players)
-        t2_camps = sum(p.get("enemy_jungle_monsters", 0) for p in t2_players)
-
-        ratio_t1 = (t1_kills + t1_assists) / max(t1_deaths, 1)
-        ratio_t2 = (t2_kills + t2_assists) / max(t2_deaths, 1)
-
-        csm_t1 = round(t1_cs / dur_min_calc, 1)
-        csm_t2 = round(t2_cs / dur_min_calc, 1)
-
-        t1_icons_html = "".join([f'<div class="team-champ-mini-wrap" title="{p["champion"]}"><img class="team-champ-mini" src="{p["champion_icon"]}" alt="{p["champion"]}"/></div>' for p in t1_players])
-        t2_icons_html = "".join([f'<div class="team-champ-mini-wrap" title="{p["champion"]}"><img class="team-champ-mini" src="{p["champion_icon"]}" alt="{p["champion"]}"/></div>' for p in t2_players])
-
         raw_team_gold = {}
         for m in matchups:
             for k, v in m.get("gold_delta", {}).items():
@@ -424,7 +403,6 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                 else:
                     raw_team_gold[k]["diff"] += int(v)
 
-        # Sort team deltas chronologically (5m, 10m, 15m, 20m)
         team_delta_gold = {
             k: raw_team_gold[k]
             for k in sorted(
@@ -433,189 +411,19 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             )
         }
 
+        team_p1 = make_combined_player_dict(t1_players, get_text("blue_team", lang=lang), target_puuid, is_5v5=True, lang=lang)
+        team_p2 = make_combined_player_dict(t2_players, get_text("red_team", lang=lang), target_puuid, is_5v5=True, lang=lang)
 
-        def format_team_badge(time_label: str, item: Any) -> str:
-            diff = item.get("diff", 0) if isinstance(item, dict) else int(item)
-            v1 = item.get("p1_val", None) if isinstance(item, dict) else None
-            v2 = item.get("p2_val", None) if isinstance(item, dict) else None
-
-            lead_lbl = get_text("lead_label", lang=lang)
-            even_lbl = get_text("even_label", lang=lang)
-            blue_team_lbl = get_text("blue_team", lang=lang)
-            red_team_lbl = get_text("red_team", lang=lang)
-
-            if diff > 0:
-                lead_txt = f"<b style='color:#60a5fa;'>+{diff:,} gold ({blue_team_lbl})</b>"
-                cls_name = "delta-blue"
-                display_val = f"{diff:,}"
-            elif diff < 0:
-                lead_txt = f"<b style='color:#f87171;'>+{abs(diff):,} gold ({red_team_lbl})</b>"
-                cls_name = "delta-red"
-                display_val = f"{abs(diff):,}"
-            else:
-                lead_txt = f"<b style='color:#94a3b8;'>{even_lbl} (0 gold)</b>"
-                cls_name = "delta-even"
-                display_val = "0"
-
-            if v1 is not None and v2 is not None and (v1 > 0 or v2 > 0):
-                tt_html = f"<div style='text-align:left; font-size:0.75rem; line-height:1.4;'><span style='color:#60a5fa;'>🔵 {blue_team_lbl}:</span> <b>{v1:,}</b> gold<br/><span style='color:#f87171;'>🔴 {red_team_lbl}:</span> <b>{v2:,}</b> gold<br/><hr style='border:0; border-top:1px solid #334155; margin:3px 0;'/>{lead_lbl} {lead_txt}</div>"
-            else:
-                tt_html = f"{lead_lbl} {lead_txt}"
-
-            return f'<span class="delta-tag" title="{tt_html}">{time_label}: <b class="{cls_name}">{display_val}</b></span>'
-
-
-        team_gold_tags = "".join([
-            format_team_badge(k, v)
-            for k, v in team_delta_gold.items()
-        ]) if team_delta_gold else ""
-
-
-
-        delta_gold_section = f"""
-        <div class="delta-box" style="margin-top:6px;">
-            <div class="delta-title"><img class="mini-icon" src="{icon_gold}"/> {get_text("gold_delta_title", lang=lang)}</div>
-            <div class="delta-flex">{team_gold_tags}</div>
-        </div>
-        """ if team_gold_tags else ""
-
-        t1_dmg_delta_tag = f'<span class="lead-delta">+{t1_dmg - t2_dmg:,}</span>' if t1_dmg > t2_dmg else ""
-        t2_dmg_delta_tag = f'<span class="lead-delta">+{t2_dmg - t1_dmg:,}</span>' if t2_dmg > t1_dmg else ""
-        t1_gold_delta_tag = f'<span class="lead-delta">+{t1_gold - t2_gold:,}</span>' if t1_gold > t2_gold else ""
-        t2_gold_delta_tag = f'<span class="lead-delta">+{t2_gold - t1_gold:,}</span>' if t2_gold > t1_gold else ""
-
-        pink_badge_t1 = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t1_pinks}</b>"
-        pink_badge_t2 = f"<img class='mini-icon mini-icon-round' src='{icon_pink}' title='Control Wards'/> <b>{t2_pinks}</b>"
-        t1_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t1_vis}</b> ({pink_badge_t1})"
-        t2_vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{t2_vis}</b> ({pink_badge_t2})"
-
-        lbl_dmg = get_text("dmg_dealt", lang=lang)
-        lbl_phys = get_text("dmg_physical", lang=lang)
-        lbl_mag = get_text("dmg_magic", lang=lang)
-        lbl_true = get_text("dmg_true", lang=lang)
-
-        lbl_soaked = get_text("dmg_soaked", lang=lang)
-        lbl_taken = get_text("damage_taken", lang=lang)
-        lbl_mit = get_text("mitigated", lang=lang)
-        lbl_hl = get_text("healed", lang=lang)
-
-        team_exec_html = ""
-        if t1_execs > 0 or t2_execs > 0:
-            t1_exec_list = [f"{p['champion']} ({p['executions']})" if p['executions'] > 1 else p['champion'] for p in t1_players if p.get("executions", 0) > 0]
-            t2_exec_list = [f"{p['champion']} ({p['executions']})" if p['executions'] > 1 else p['champion'] for p in t2_players if p.get("executions", 0) > 0]
-            
-            tt_lines = [get_text("executions_tt_title", lang=lang)]
-            if t1_exec_list:
-                tt_lines.append(f"<span style='color:#60a5fa;'>🔵 Blue:</span> " + ", ".join(t1_exec_list))
-            if t2_exec_list:
-                tt_lines.append(f"<span style='color:#f87171;'>🔴 Red:</span> " + ", ".join(t2_exec_list))
-            tt_exec_str = "<br/>".join(tt_lines)
-
-            team_exec_html = f"""
-            <div class="duel-scores-wrapper" style="margin-top: 6px;">
-                <div class="duel-score-row" title="{tt_exec_str}">
-                    <span class="score-label" style="color:#94a3b8; cursor:help;">💀 {get_text("executions", lang=lang)}</span>
-                    <div class="score-pill-sm" style="background:#1e293b; border-color:#334155; cursor:help;">
-                        <b class="score-blue-sm" style="color:#cbd5e1;">{t1_execs}</b>
-                        <span class="score-x-sm">x</span>
-                        <b class="score-red-sm" style="color:#cbd5e1;">{t2_execs}</b>
-                    </div>
-                </div>
-            </div>
-            """
-
-
-        duels_html.append(f"""
-        <div class="duel-row team-combined-row">
-            <div class="player-card border-blue">
-                <div class="p-header">
-                    <div class="team-avatar-stack">{t1_icons_html}</div>
-                    <div class="p-meta">
-                        <div class="p-name">{get_text("blue_team", lang=lang)}</div>
-                        <div class="p-champ">KDA: <b>{t1_kills}/{t1_deaths}/{t1_assists}</b> <span class="kda-ratio">({ratio_t1:.2f}:1)</span></div>
-                    </div>
-                </div>
-
-                <div class="stats-pills">
-                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
-
-                        <div class="pill-content-main">
-                            <span>{lbl_dmg}: <b>{t1_dmg:,}</b> {t1_dmg_delta_tag}</span>
-                        </div>
-                        <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t1_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{t1_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{t1_tru:,}</b></span>
-                        </div>
-                    </div>
-                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
-                        <div class="pill-content-main">
-                            <span>{lbl_soaked}: <b>{t1_taken + t1_mit:,}</b></span>
-                        </div>
-                        <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t1_taken:,}</b> <span class="breakdown-dot">•</span> {lbl_mit}: <b class="dmg-mit">{t1_mit:,}</b> <span class="breakdown-dot">•</span> {lbl_hl}: <b class="dmg-hl">{t1_hl:,}</b></span>
-                        </div>
-                    </div>
-                    <div class="pill pill-wide">
-                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t1_gold:,}</b> {t1_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t1_dmg / max(t1_gold, 1), 2)} dmg/g)</span></span>
-                        <span><img class="mini-icon" src="{icon_cs}"/> <b>{t1_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t1}/m)</span></span>
-                    </div>
-                    <div class="pill pill-wide">
-                        <span>{t1_vis_combined}</span>
-                        <span><img class="mini-icon-gromp" src="{AssetManager.get_asset_uri('gromp_icon')}" alt="Gromp"/> {get_text('camps_stolen', lang=lang)}: <b>{t1_camps}</b></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="duel-center">
-                <div class="role-badge-lg" style="background:#3730a3; color:#c7d2fe;">{get_text("team_combined_title", lang=lang)}</div>
-                <div class="lane-bar-wrapper">
-                    <div class="lane-bar-container" title="{get_text('gold_dist_team_tt', lang=lang)}">
-                        <div class="lane-bar-blue" style="width: {calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
-                        <div class="lane-bar-red" style="width: {100.0 - calculate_gold_bar_share(t1_gold - t2_gold, max_delta=15000.0):.1f}%;"></div>
-                    </div>
-                </div>
-                {team_exec_html}
-                {delta_gold_section}
-            </div>
-
-
-            <div class="player-card border-red">
-                <div class="p-header" style="justify-content: flex-end;">
-                    <div class="p-meta" style="text-align: right;">
-                        <div class="p-name">{get_text("red_team", lang=lang)}</div>
-                        <div class="p-champ">KDA: <b>{t2_kills}/{t2_deaths}/{t2_assists}</b> <span class="kda-ratio">({ratio_t2:.2f}:1)</span></div>
-                    </div>
-                    <div class="team-avatar-stack">{t2_icons_html}</div>
-                </div>
-                <div class="stats-pills">
-                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
-                        <div class="pill-content-main">
-                            <span>{lbl_dmg}: <b>{t2_dmg:,}</b> {t2_dmg_delta_tag}</span>
-                        </div>
-                        <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_phys}: <b class="dmg-phys">{t2_phys:,}</b> <span class="breakdown-dot">•</span> {lbl_mag}: <b class="dmg-mag">{t2_mag:,}</b> <span class="breakdown-dot">•</span> {lbl_true}: <b class="dmg-true">{t2_tru:,}</b></span>
-                        </div>
-                    </div>
-                    <div class="pill pill-wide pill-interactive" onclick="this.classList.toggle('is-pinned')">
-                        <div class="pill-content-main">
-                            <span>{lbl_soaked}: <b>{t2_taken + t2_mit:,}</b></span>
-                        </div>
-                        <div class="pill-content-detail">
-                            <span class="dmg-breakdown-sub">{lbl_taken}: <b class="dmg-tk">{t2_taken:,}</b> <span class="breakdown-dot">•</span> {lbl_mit}: <b class="dmg-mit">{t2_mit:,}</b> <span class="breakdown-dot">•</span> {lbl_hl}: <b class="dmg-hl">{t2_hl:,}</b></span>
-                        </div>
-                    </div>
-
-
-                    <div class="pill pill-wide">
-                        <span><img class="mini-icon" src="{icon_gold}"/> <b>{t2_gold:,}</b> {t2_gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({round(t2_dmg / max(t2_gold, 1), 2)} dmg/g)</span></span>
-                        <span><img class="mini-icon" src="{icon_cs}"/> <b>{t2_cs}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({csm_t2}/m)</span></span>
-                    </div>
-                    <div class="pill pill-wide">
-                        <span>{t2_vis_combined}</span>
-                        <span><img class="mini-icon-gromp" src="{AssetManager.get_asset_uri('gromp_icon')}" alt="Gromp"/> {get_text('camps_stolen', lang=lang)}: <b>{t2_camps}</b></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """)
+        duels_html.append(render_duel_row(
+            team_p1, team_p2, get_text("team_combined_title", lang=lang),
+            gold_d=team_delta_gold,
+            xp_d={},
+            stats_1={},
+            stats_2={},
+            is_bot_duo=False,
+            target_puuid=target_puuid,
+            lang=lang,
+            is_arena=False
+        ))
 
     return "".join(duels_html)
