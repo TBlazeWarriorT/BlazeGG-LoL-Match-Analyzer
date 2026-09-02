@@ -1,0 +1,3 @@
+127.0.0.1 - - [02/Sep/2026 09:07:49] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [02/Sep/2026 09:08:00] "GET /analyze?match_id=BR1_3278744641&puuid=8asKNN1foDHXELDMXCDw8YUQgIZ4a-WBHv-zK2UmaDqGw9KrQSGQxPYNWqWfnfS38owtNE6g7MEFtQ&lang=en_US HTTP/1.1" 200 -
+127.0.0.1 - - [02/Sep/2026 09:10:23] "GET /?lang=en_US HTTP/1.1" 200 -

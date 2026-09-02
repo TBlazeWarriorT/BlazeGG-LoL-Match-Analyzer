@@ -84,7 +84,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     favicon_link = f'<link rel="icon" type="image/png" href="{favicon_url}"/>' if favicon_url else ""
     
     if target_player:
-        header_avatar_html = f'''<div class="avatar-glint-wrapper" style="width:52px; height:52px; border:2px solid var(--accent); box-shadow:0 0 12px rgba(56, 189, 248, 0.35); flex-shrink:0;">
+        header_avatar_html = f'''<div class="avatar-glint-wrapper" style="width:52px; height:52px; border:2px solid #f97316; box-shadow:0 0 12px rgba(249, 115, 22, 0.35); flex-shrink:0;">
             <img src="{favicon_url}" alt="{target_player.get('riot_id', '')}" style="width:100%; height:100%; object-fit:cover; transform:scale(1.15); display:block;"/>
             <span class="avatar-glint-sweep"></span>
         </div>'''
@@ -100,7 +100,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             h_outcome_cls = "badge-win" if target_win else "badge-loss"
             h_outcome_txt = get_text("win", lang=lang) if target_win else get_text("loss", lang=lang)
         header_outcome_badge = f'<span class="header-outcome-badge {h_outcome_cls}">{h_outcome_txt}</span>'
-        header_kda_badge = f'<span style="background:#1e293b; color:var(--accent); font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_player.get("kda", "")}</span>'
+        header_kda_badge = f'<span style="background:#1e293b; color:#f97316; font-weight:800; font-size:0.9rem; padding:3px 10px; border-radius:6px; border:1px solid #334155;">KDA: {target_player.get("kda", "")}</span>'
         header_title_name = target_player.get("riot_id", "")
         header_main_info = f"""
         {header_avatar_html}
@@ -210,7 +210,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 </head>
 <body data-match-id="{data.get('match_id', '')}">
     <div class="top-nav-bar">
-        <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
+        <div class="kofi-container" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
             <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
         </div>
         {render_language_dropdown(current_lang=lang)}
@@ -218,8 +218,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
     <div class="container">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
-            <a href="/?lang={lang}" style="color:#38bdf8; text-decoration:none; font-weight:700; font-size:0.9rem; background:#111827; padding:8px 14px; border-radius:8px; border:1px solid var(--card-border); transition:background 0.2s;" onmouseover="this.style.background='#1f293d'" onmouseout="this.style.background='#111827'">{get_text('back_to_hub', lang=lang)}</a>
-            <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
+            <a href="/?lang={lang}" class="btn-hub-back">{get_text('back_to_hub', lang=lang)}</a>
+            <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none; margin-left:auto;" title="{get_text('tooltip_back_home', lang=lang)}">
                 <span class="small-logo-title"><span class="fire-flame-anim">🔥</span> <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span> <span class="logo-author-badge">by TBlazeWarriorT</span></span>
             </a>
         </div>

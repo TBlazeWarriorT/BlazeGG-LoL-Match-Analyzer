@@ -410,10 +410,15 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 def run_app():
+    import sys
+    if sys.platform == "win32":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     # If watchdog process is not active, run with auto-reload
     if os.getenv("BLAZE_AUTO_RELOAD") != "1":
         import subprocess
-        import sys
         import time
 
         url = f"http://127.0.0.1:{PORT}"

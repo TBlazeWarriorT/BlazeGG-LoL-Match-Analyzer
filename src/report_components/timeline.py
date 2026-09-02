@@ -492,12 +492,12 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
         avatar_html = f"""
         <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
-            <div class="team-champ-mini-wrap" style="border-color:#38bdf8; margin-right:0;">
+            <div class="team-champ-mini-wrap" style="border-color:var(--accent); margin-right:0;">
                 <img class="team-champ-mini" src="{c_icon}" alt="{c_name}"/>
             </div>
             <div class="stat-popup-card">
                 <div class="stat-popup-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:800; color:#38bdf8;">{c_name}</span>
+                    <span style="font-weight:800; color:var(--accent);">{c_name}</span>
                     <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;">@ {t}</span>
                 </div>
                 <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700; margin-bottom:4px;">Build @ {t}:</div>
@@ -815,7 +815,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
     expand_top_txt = get_text("expand_timeline", lang=lang)
     timeline_top_toggle_btn = f"""
-    <button id="toggleTimelineTopBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:#38bdf8; font-weight:700; font-size:0.78rem; padding:4px 12px; border-radius:6px; cursor:pointer;" onclick="togglePhaseExpansion()">{expand_top_txt}</button>
+    <button id="toggleTimelineTopBtn" class="btn" style="background:#1e293b; border:1px solid var(--card-border); color:var(--accent); font-weight:700; font-size:0.78rem; padding:4px 12px; border-radius:6px; cursor:pointer;" onclick="togglePhaseExpansion()">{expand_top_txt}</button>
     """
     timeline_toggle_btn = ""
 

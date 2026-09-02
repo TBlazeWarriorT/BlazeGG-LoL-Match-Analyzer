@@ -452,7 +452,7 @@ class DataDragon:
             stat_icons = []
             for s_id in stat_perks:
                 s_info = self.STAT_SHARDS.get(s_id, ("Stat Shard", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAdaptiveForceIcon.png"))
-                stat_icons.append(f'<img src="{s_info[1]}" style="width:15px; height:15px; border-radius:50%; border:1px solid #94a3b8; background:rgba(255,255,255,0.05);" title="{s_info[0]}"/>')
+                stat_icons.append(f'<img src="{s_info[1]}" style="width:19px; height:19px; border-radius:50%; border:1px solid #94a3b8; background:rgba(255,255,255,0.05);" title="{s_info[0]}"/>')
             stat_rows_html.append(f'<div style="display:flex; justify-content:center; gap:12px; margin-top:8px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.08);">{"".join(stat_icons)}</div>')
 
         prim_tree_name = primary_tree.get("name", "")

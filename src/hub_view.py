@@ -637,7 +637,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 </head>
 <body>
 <div class="top-nav-bar">
-    <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
+    <div class="kofi-container" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
     </div>
     {render_language_dropdown(current_lang=lang)}
