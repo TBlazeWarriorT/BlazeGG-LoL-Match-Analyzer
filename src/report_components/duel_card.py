@@ -40,6 +40,9 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         cs_val = p.get("cs", 0)
         cs_pm = p.get("cs_per_min", 0)
         cs_display = f"<b>{cs_val}</b> <span style='color:var(--text-muted); font-size:0.78rem;'>({cs_pm}/m)</span>"
+        spells_runes_strip = ""
+        items_html = ""
+        augments_strip = ""
 
         if p.get("is_team_combined"):
             icons_render = p.get("team_icons_html", "")
@@ -54,8 +57,6 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 </div>
             </div>
             """
-            spells_runes_strip = ""
-            items_html = ""
         elif is_bot_duo:
             lvl1 = p.get("lvl1", "")
             lvl2 = p.get("lvl2", "")
@@ -76,9 +77,6 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 </div>
             </div>
             """
-            spells_runes_strip = ""
-            items_html = ""
-
         else:
             lvl_val = p.get("champ_level", 1)
             lvl_display = f" • <span class='champ-level-badge'>Lv {lvl_val}</span>" if lvl_val else ""
@@ -137,18 +135,41 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             ])
             rune_info = p.get("rune", {})
             sub_rune_info = p.get("sub_rune", {})
-            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" data-tooltip="{rune_info.get("tooltip") or rune_info.get("name", "")}" alt="{rune_info.get("name", "")}"/>' if rune_info.get("icon") else ""
-            sub_rune_html = f'<img class="sub-rune-icon" src="{sub_rune_info["icon"]}" data-tooltip="{sub_rune_info.get("tooltip") or sub_rune_info.get("name", "")}" alt="{sub_rune_info.get("name", "")}"/>' if sub_rune_info.get("icon") else ""
+            full_tree_tt = p.get("full_rune_tree_tooltip") or rune_info.get("tooltip") or rune_info.get("name", "")
+            rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" data-tooltip="{full_tree_tt}" alt="{rune_info.get("name", "")}"/>' if rune_info.get("icon") else ""
+            sub_rune_html = f'<img class="sub-rune-icon" src="{sub_rune_info["icon"]}" data-tooltip="{full_tree_tt}" alt="{sub_rune_info.get("name", "")}"/>' if sub_rune_info.get("icon") else ""
 
             spells_runes_strip = f"""
             <div class="spells-runes-strip">
-                <div class="runes-col">
+                <div class="runes-col" data-tooltip="{full_tree_tt}">
                     {rune_html}
                     {sub_rune_html}
                 </div>
                 <div class="spells-row">{spells_html}</div>
             </div>
             """ if (spells_html or rune_html or sub_rune_html) else ""
+
+            # Arena Augments Strip
+            augments_list = p.get("augments", [])
+            aug_items_html = []
+            for aug in augments_list:
+                a_icon = aug.get("icon")
+                a_name = aug.get("name", "")
+                a_tooltip = aug.get("tooltip", a_name)
+                a_border = aug.get("rarity_border", "#94a3b8")
+                a_color = aug.get("rarity_color", "#cbd5e1")
+                aug_items_html.append(f"""
+                <div class="slot-wrap" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:radial-gradient(circle, {a_color}25 0%, rgba(15,23,42,0.9) 80%); border:1.5px solid {a_border}; box-shadow:0 0 6px {a_color}55;">
+                    <img class="augment-icon" src="{a_icon}" data-tooltip="{a_tooltip}" alt="{a_name}" style="width:20px; height:20px; object-fit:contain; filter:drop-shadow(0 0 2px {a_color}); display:block;"/>
+                </div>
+                """)
+            lbl_augs = "Aprimoramentos" if lang == "pt_BR" else "Augments"
+            augments_strip = f"""
+            <div class="arena-augments-strip" style="display:flex; align-items:center; gap:6px; margin-top:6px; padding:3px 8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; flex-wrap:wrap;">
+                <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-right:2px;">{lbl_augs}:</span>
+                {''.join(aug_items_html)}
+            </div>
+            """ if aug_items_html else ""
 
             items_html = "".join([
                 f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" alt="{it.get("name", "")}"/>'
@@ -308,7 +329,8 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             <div class="items-flex">{items_html}</div>
             {spells_runes_strip}
         </div>
-        """ if (items_html or spells_runes_strip) else ""
+        {augments_strip}
+        """ if (items_html or spells_runes_strip or augments_strip) else ""
 
         return f"""
         <div class="player-card {align_class} {border_side} {'is-target' if is_target else ''}">

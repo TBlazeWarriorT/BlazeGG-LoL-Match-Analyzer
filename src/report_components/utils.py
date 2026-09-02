@@ -32,13 +32,22 @@ def clean_mode_name(mode_str: str, lang: str = "en_US") -> str:
         return get_text(mode_keys[m], lang=lang)
     return m.capitalize()
 
+_QUEUE_NAME_CACHE = {}
+
 def get_queue_name(queue_id: int, lang: str = "en_US") -> str:
+    cache_key = (queue_id, lang)
+    if cache_key in _QUEUE_NAME_CACHE:
+        return _QUEUE_NAME_CACHE[cache_key]
     try:
         from ..ddragon import DataDragon
         dd = DataDragon(language=lang)
-        return dd.get_queue_name(queue_id, lang=lang)
+        name = dd.get_queue_name(queue_id, lang=lang)
+        _QUEUE_NAME_CACHE[cache_key] = name
+        return name
     except Exception:
-        return get_text("queue_0" if queue_id == 0 else "queue_featured", lang=lang)
+        fallback = get_text("queue_0" if queue_id == 0 else "queue_featured", lang=lang)
+        _QUEUE_NAME_CACHE[cache_key] = fallback
+        return fallback
 
 def format_full_mode_display(mode_str: str, queue_id: int = 0, lang: str = "en_US", player_count: int = 0) -> str:
     m_upper = str(mode_str).upper()

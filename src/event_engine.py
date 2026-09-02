@@ -122,19 +122,57 @@ class MatchAnalysis:
         s1_info = self.ddragon.get_spell_info(s1_id)
         s2_info = self.ddragon.get_spell_info(s2_id)
 
-        # Keystone Rune & Secondary Tree
+        # Keystone Rune, Full Rune Tree & Secondary Tree
         perk_id = 0
         sub_style_id = 0
-        perks_styles = p.get("perks", {}).get("styles", [])
+        primary_style_id = 0
+        selected_perks_list = []
+        stat_perks_list = []
+
+        perks_obj = p.get("perks", {})
+        stat_perks_obj = perks_obj.get("statPerks", {})
+        if stat_perks_obj:
+            stat_perks_list = [
+                stat_perks_obj.get("offense", 0),
+                stat_perks_obj.get("flex", 0),
+                stat_perks_obj.get("defense", 0)
+            ]
+        perks_styles = perks_obj.get("styles", [])
         if perks_styles and len(perks_styles) > 0:
+            primary_style_id = perks_styles[0].get("style", 0)
             selections = perks_styles[0].get("selections", [])
-            if selections and len(selections) > 0:
-                perk_id = selections[0].get("perk", 0)
+            for sel in selections:
+                pid_val = sel.get("perk", 0)
+                if pid_val:
+                    selected_perks_list.append(pid_val)
+            if selected_perks_list:
+                perk_id = selected_perks_list[0]
         if perks_styles and len(perks_styles) > 1:
             sub_style_id = perks_styles[1].get("style", 0)
+            selections_sub = perks_styles[1].get("selections", [])
+            for sel in selections_sub:
+                pid_val = sel.get("perk", 0)
+                if pid_val:
+                    selected_perks_list.append(pid_val)
 
+        perks_data = {
+            "primary_style": primary_style_id,
+            "sub_style": sub_style_id,
+            "selected_perks": selected_perks_list,
+            "stat_perks": [sp for sp in stat_perks_list if sp]
+        }
+        full_rune_tree_tooltip = self.ddragon.get_full_rune_tree_tooltip(perks_data)
         rune_info = self.ddragon.get_rune_info(perk_id) if perk_id else {"name": "", "icon": ""}
         sub_rune_info = self.ddragon.get_rune_style_info(sub_style_id) if sub_style_id else {"name": "", "icon": ""}
+
+        # Arena Augments
+        augments = []
+        for a_idx in range(1, 7):
+            aid = p.get(f"playerAugment{a_idx}", 0)
+            if aid and aid > 0:
+                aug_info = self.ddragon.get_augment_info(aid)
+                if aug_info:
+                    augments.append(aug_info)
 
         # Executions count and final frame championStats from timeline
         exec_count = 0
@@ -212,6 +250,9 @@ class MatchAnalysis:
             "spells": [s1_info, s2_info],
             "rune": rune_info,
             "sub_rune": sub_rune_info,
+            "perks_data": perks_data,
+            "full_rune_tree_tooltip": full_rune_tree_tooltip,
+            "augments": augments,
             "items": items,
             "subteam_id": p.get("playerSubteamId", 0),
             "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),

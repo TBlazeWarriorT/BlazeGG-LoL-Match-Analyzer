@@ -1,6 +1,6 @@
 import re
 import requests
-from typing import Dict
+from typing import Dict, Any, List
 from .config import DDRAGON_CACHE_DIR
 from .cache_manager import load_json, save_json
 from .i18n import get_text
@@ -28,7 +28,18 @@ QUEUE_ALIASES: Dict[int, int] = {
 }
 
 class DataDragon:
+    _instances: Dict[str, "DataDragon"] = {}
+
+    def __new__(cls, language: str = "pt_BR"):
+        if language not in cls._instances:
+            instance = super().__new__(cls)
+            instance._initialized = False
+            cls._instances[language] = instance
+        return cls._instances[language]
+
     def __init__(self, language: str = "pt_BR"):
+        if getattr(self, "_initialized", False):
+            return
         self.language = language
         self.version = self._get_latest_version()
         self._items: Dict[str, str] = {}
@@ -38,6 +49,7 @@ class DataDragon:
         self._spells: Dict[str, Dict[str, str]] = {}
         self._runes: Dict[int, Dict[str, str]] = {}
         self._load_dictionaries()
+        self._initialized = True
 
     def _get_latest_version(self) -> str:
         cache_path = DDRAGON_CACHE_DIR / "versions.json"
@@ -195,6 +207,61 @@ class DataDragon:
                             "tooltip": r_tooltip.replace('"', '&quot;')
                         }
 
+        self._raw_rune_trees = cached_runes if isinstance(cached_runes, list) else []
+
+        # Load Arena Augments from CommunityDragon
+        aug_cache = DDRAGON_CACHE_DIR / f"augments_{self.language}.json"
+        cached_aug = load_json(aug_cache)
+        if not cached_aug:
+            try:
+                lang_code = "pt_br" if self.language == "pt_BR" else "default"
+                url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/{lang_code}/v1/cherry-augments.json"
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    cached_aug = resp.json()
+                    save_json(aug_cache, cached_aug)
+            except Exception:
+                cached_aug = []
+
+        self._augments: Dict[int, Dict[str, Any]] = {}
+        if cached_aug and isinstance(cached_aug, list):
+            for item in cached_aug:
+                aid = item.get("id")
+                if not aid:
+                    continue
+                name = item.get("nameTRA") or item.get("name") or f"Augment {aid}"
+                rarity_raw = item.get("rarity", "kSilver")
+                icon_raw = item.get("augmentSmallIconPath", "")
+                clean_path = icon_raw.lower().replace("/lol-game-data/assets/", "")
+                icon_url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/{clean_path}" if icon_raw else ""
+                
+                if rarity_raw == "kPrismatic":
+                    r_name = "Prismático" if self.language == "pt_BR" else "Prismatic"
+                    r_color = "#c084fc"
+                    r_border = "#a855f7"
+                elif rarity_raw == "kGold":
+                    r_name = "Ouro" if self.language == "pt_BR" else "Gold"
+                    r_color = "#fbbf24"
+                    r_border = "#f59e0b"
+                else:
+                    r_name = "Prata" if self.language == "pt_BR" else "Silver"
+                    r_color = "#cbd5e1"
+                    r_border = "#94a3b8"
+                
+                aug_header = f'<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:6px;"><b style="color:#f8fafc; font-size:0.85rem;">{name}</b><span style="color:{r_color}; font-size:0.75rem; font-weight:700;">{r_name}</span></div>'
+                aug_sub = f'<div style="color:#94a3b8; font-size:0.75rem;">Aprimoramento de Arena</div>' if self.language == "pt_BR" else '<div style="color:#94a3b8; font-size:0.75rem;">Arena Augment</div>'
+                aug_tooltip = f'{aug_header}{aug_sub}'
+                self._augments[aid] = {
+                    "id": aid,
+                    "name": name,
+                    "rarity": rarity_raw,
+                    "rarity_name": r_name,
+                    "rarity_color": r_color,
+                    "rarity_border": r_border,
+                    "icon": icon_url,
+                    "tooltip": aug_tooltip.replace('"', '&quot;')
+                }
+
         # Load queues.json from Riot Docs CDN
         queues_cache = DDRAGON_CACHE_DIR / "queues.json"
         cached_queues = load_json(queues_cache)
@@ -258,6 +325,108 @@ class DataDragon:
         if r:
             return r
         return {"name": f"Style {style_id}", "icon": ""}
+
+    def get_augment_info(self, augment_id: int) -> Dict[str, Any]:
+        if not augment_id:
+            return {}
+        return self._augments.get(augment_id, {
+            "id": augment_id,
+            "name": f"Augment {augment_id}",
+            "rarity": "kSilver",
+            "rarity_name": "Prata" if self.language == "pt_BR" else "Silver",
+            "rarity_color": "#cbd5e1",
+            "rarity_border": "#94a3b8",
+            "icon": "",
+            "tooltip": f"Augment {augment_id}"
+        })
+
+    STAT_SHARDS = {
+        5008: ("Dano Adaptativo (+9)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAdaptiveForceIcon.png"),
+        5005: ("Velocidade de Ataque (+10%)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAttackSpeedIcon.png"),
+        5007: ("Aceleração de Habilidade (+8)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsCDRScalingIcon.png"),
+        5010: ("Velocidade de Movimento (+2%)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsMovementSpeedIcon.png"),
+        5001: ("Vida Escalonável (+10-180)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthScalingIcon.png"),
+        5011: ("Vida Plana (+65)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthScalingIcon.png"),
+        5013: ("Tenacidade (+10%)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsTenacityIcon.png"),
+        5002: ("Armadura (+6)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsArmorIcon.png"),
+        5003: ("Resistência Mágica (+8)", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsMagicResIcon.png"),
+    }
+
+    def get_full_rune_tree_tooltip(self, perks_data: Dict[str, Any]) -> str:
+        if not perks_data:
+            return ""
+        primary_id = perks_data.get("primary_style", 0)
+        sub_id = perks_data.get("sub_style", 0)
+        selected_perks = set(perks_data.get("selected_perks", []))
+        stat_perks = perks_data.get("stat_perks", [])
+
+        trees_by_id = {t["id"]: t for t in self._raw_rune_trees}
+        primary_tree = trees_by_id.get(primary_id)
+        sub_tree = trees_by_id.get(sub_id)
+
+        if not primary_tree:
+            return ""
+
+        prim_rows_html = []
+        for slot_idx, slot in enumerate(primary_tree.get("slots", [])):
+            runes_row = []
+            for r in slot.get("runes", []):
+                rid = r.get("id")
+                is_sel = rid in selected_perks
+                r_icon = f"https://ddragon.leagueoflegends.com/cdn/img/{r.get('icon', '')}"
+                r_name = r.get("name", "")
+                r_size = "26px" if slot_idx == 0 else "20px"
+                if is_sel:
+                    runes_row.append(f'<img src="{r_icon}" style="width:{r_size}; height:{r_size}; border-radius:50%; border:1.5px solid #38bdf8; box-shadow:0 0 6px rgba(56,189,248,0.5); transform:scale(1.08);" title="{r_name}"/>')
+                else:
+                    runes_row.append(f'<img src="{r_icon}" style="width:{r_size}; height:{r_size}; border-radius:50%; opacity:0.25; filter:grayscale(80%);" title="{r_name}"/>')
+            prim_rows_html.append(f'<div style="display:flex; justify-content:center; gap:12px; margin-bottom:6px;">{"".join(runes_row)}</div>')
+
+        sub_rows_html = []
+        if sub_tree:
+            for slot in sub_tree.get("slots", [])[1:]:
+                runes_row = []
+                for r in slot.get("runes", []):
+                    rid = r.get("id")
+                    is_sel = rid in selected_perks
+                    r_icon = f"https://ddragon.leagueoflegends.com/cdn/img/{r.get('icon', '')}"
+                    r_name = r.get("name", "")
+                    if is_sel:
+                        runes_row.append(f'<img src="{r_icon}" style="width:20px; height:20px; border-radius:50%; border:1.5px solid #fbbf24; box-shadow:0 0 6px rgba(251,191,36,0.5); transform:scale(1.08);" title="{r_name}"/>')
+                    else:
+                        runes_row.append(f'<img src="{r_icon}" style="width:20px; height:20px; border-radius:50%; opacity:0.25; filter:grayscale(80%);" title="{r_name}"/>')
+                sub_rows_html.append(f'<div style="display:flex; justify-content:center; gap:12px; margin-bottom:6px;">{"".join(runes_row)}</div>')
+
+        stat_rows_html = []
+        if stat_perks:
+            stat_icons = []
+            for s_id in stat_perks:
+                s_info = self.STAT_SHARDS.get(s_id, ("Stat Shard", "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAdaptiveForceIcon.png"))
+                stat_icons.append(f'<img src="{s_info[1]}" style="width:15px; height:15px; border-radius:50%; border:1px solid #94a3b8; background:rgba(255,255,255,0.05);" title="{s_info[0]}"/>')
+            stat_rows_html.append(f'<div style="display:flex; justify-content:center; gap:12px; margin-top:8px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.08);">{"".join(stat_icons)}</div>')
+
+        prim_tree_name = primary_tree.get("name", "")
+        prim_tree_icon = f"https://ddragon.leagueoflegends.com/cdn/img/{primary_tree.get('icon', '')}"
+        sub_tree_name = sub_tree.get("name", "") if sub_tree else ""
+        sub_tree_icon = f"https://ddragon.leagueoflegends.com/cdn/img/{sub_tree.get('icon', '')}" if sub_tree else ""
+
+        tooltip = f"""
+        <div style="min-width:280px; padding:3px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <img src="{prim_tree_icon}" style="width:18px; height:18px;"/>
+                    <b style="color:#38bdf8; font-size:0.82rem;">{prim_tree_name}</b>
+                </div>
+                {f'<div style="display:flex; align-items:center; gap:5px;"><img src="{sub_tree_icon}" style="width:18px; height:18px;"/><b style="color:#fbbf24; font-size:0.82rem;">{sub_tree_name}</b></div>' if sub_tree else ''}
+            </div>
+            <div style="display:flex; justify-content:space-around; gap:16px;">
+                <div style="flex:1;">{''.join(prim_rows_html)}</div>
+                {f'<div style="flex:1; border-left:1px solid rgba(255,255,255,0.08); padding-left:14px;">{"".join(sub_rows_html)}</div>' if sub_rows_html else ''}
+            </div>
+            {''.join(stat_rows_html)}
+        </div>
+        """
+        return tooltip.strip().replace('"', '&quot;').replace('\n', '')
 
     def get_item_name(self, item_id: int) -> str:
         if not item_id or item_id == 0:
