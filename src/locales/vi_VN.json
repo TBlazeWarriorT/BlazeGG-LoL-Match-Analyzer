@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "Xóa Hết",
   "btn_cancel": "Hủy",
   "tab_show_less": "▲ Thu gọn",
-  "tab_show_more": "▼ Xem thêm ({count} trận)"
+  "tab_show_more": "▼ Xem thêm ({count} trận)",
+  "spells_used_label": "Phép:"
 }

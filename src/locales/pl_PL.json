@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "Usuń Wszystko",
   "btn_cancel": "Anuluj",
   "tab_show_less": "▲ Pokaż mniej",
-  "tab_show_more": "▼ Pokaż więcej ({count} pozostało)"
+  "tab_show_more": "▼ Pokaż więcej ({count} pozostało)",
+  "spells_used_label": "Czary:"
 }

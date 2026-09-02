@@ -296,6 +296,17 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             else:
                 ev_phase = "late"
 
+            spells_html = ""
+            combat_spells = ev.get("combat_spells", [])
+            if combat_spells:
+                spell_icons = "".join([
+                    f'<div class="event-spell-wrap" data-tooltip="<b>{cs.get("spell_name")}</b> ({cs.get("champ")})<br/>{cs.get("damage", 0):,} DMG"><img class="event-spell-icon" src="{cs.get("spell_icon")}" alt="{cs.get("spell_name")}"/></div>'
+                    for cs in combat_spells if cs.get("spell_icon")
+                ])
+                if spell_icons:
+                    sp_lbl = get_text("spells_used_label", lang=lang)
+                    spells_html = f'<span class="event-spells-group" title="{sp_lbl}"><span class="event-spells-label">{sp_lbl}</span>{spell_icons}</span>'
+
             if is_exec:
                 exec_text = get_text("was_executed", lang=lang)
                 v_avatar = render_stat_tooltip(
@@ -322,7 +333,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             else:
                 team_border_class = "event-kill-blue" if k_team == 100 else "event-kill-red"
                 killer_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
-                desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html}"
+                desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html} {spells_html}"
                 k_avatar = render_stat_tooltip(
                     ev['killer_champ'],
                     ev.get('killer_stats', {}),

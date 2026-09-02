@@ -88,14 +88,24 @@ TIMELINE_EVENT_BLACKLIST_KEYS = (
 )
 
 def sanitize_timeline(data: dict) -> dict:
-    """Removes verbose combat damage logs from timeline before caching to save disk."""
+    """Retains only compact combat summoner spells in victimDamageReceived, discarding heavy skill logs to save disk."""
     if not isinstance(data, dict):
         return data
     frames = data.get("info", {}).get("frames", [])
     for frame in frames:
         for ev in frame.get("events", []):
             if ev.get("type") == "CHAMPION_KILL":
-                for key in TIMELINE_EVENT_BLACKLIST_KEYS:
+                dmg_rec = ev.get("victimDamageReceived", [])
+                if isinstance(dmg_rec, list):
+                    filtered_spells = [
+                        d for d in dmg_rec
+                        if any(k in str(d.get("spellName") or d.get("name") or "").lower() for k in ("summoner", "smite", "dot", "ignite", "snowball", "exhaust"))
+                    ]
+                    if filtered_spells:
+                        ev["victimDamageReceived"] = filtered_spells
+                    else:
+                        ev.pop("victimDamageReceived", None)
+                for key in ("victimDamageDealt", "victimTeamfightDamageReceived", "victimTeamfightDamageDealt"):
                     ev.pop(key, None)
     return data
 

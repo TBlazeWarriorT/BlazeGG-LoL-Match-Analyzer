@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "Alles löschen",
   "btn_cancel": "Abbrechen",
   "tab_show_less": "▲ Weniger anzeigen",
-  "tab_show_more": "▼ Mehr anzeigen ({count} übrig)"
+  "tab_show_more": "▼ Mehr anzeigen ({count} übrig)",
+  "spells_used_label": "Zauber:"
 }

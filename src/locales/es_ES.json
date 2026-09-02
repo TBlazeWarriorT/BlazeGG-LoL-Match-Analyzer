@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "Eliminar Todo",
   "btn_cancel": "Cancelar",
   "tab_show_less": "▲ Mostrar menos",
-  "tab_show_more": "▼ Mostrar más ({count} restantes)"
+  "tab_show_more": "▼ Mostrar más ({count} restantes)",
+  "spells_used_label": "Hechizos:"
 }

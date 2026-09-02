@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "Очистити все",
   "btn_cancel": "Скасувати",
   "tab_show_less": "▲ Показати менше",
-  "tab_show_more": "▼ Показати більше (ще {count})"
+  "tab_show_more": "▼ Показати більше (ще {count})",
+  "spells_used_label": "Заклинання:"
 }

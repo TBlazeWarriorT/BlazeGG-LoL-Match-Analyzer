@@ -158,11 +158,14 @@ class DataDragon:
                 s_desc = details.get("description", "").strip()
                 s_desc = re.sub(r'<[^>]+>', '', s_desc).strip()
                 s_tooltip = f'{s_header}<div>{s_desc}</div>' if s_desc else f'{s_header}'
-                self._spells[s_key] = {
+                s_info_obj = {
                     "name": s_name,
                     "icon": f"{BASE_CDN_URL}/{self.version}/img/spell/{details.get('image', {}).get('full', '')}",
                     "tooltip": s_tooltip.replace('"', '&quot;')
                 }
+                self._spells[s_key] = s_info_obj
+                self._spells[s_id] = s_info_obj
+                self._spells[s_id.lower()] = s_info_obj
 
         runes_cache = DDRAGON_CACHE_DIR / f"runes_{self.version}_{self.language}.json"
         cached_runes = load_json(runes_cache)
@@ -308,10 +311,20 @@ class DataDragon:
 
         return get_text("queue_0" if queue_id == 0 else "queue_featured", lang=target_lang)
 
-    def get_spell_info(self, spell_id: int) -> Dict[str, str]:
-        s = self._spells.get(str(spell_id))
+    def get_spell_info(self, spell_id: Any) -> Dict[str, str]:
+        s_str = str(spell_id)
+        s = self._spells.get(s_str) or self._spells.get(s_str.lower())
         if s:
             return s
+        s_lower = s_str.lower()
+        if "dot" in s_lower or "ignite" in s_lower:
+            return self._spells.get("summonerdot", {"name": "Ignite", "icon": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/spell/SummonerDot.png"})
+        if "smite" in s_lower:
+            return self._spells.get("summonersmite", {"name": "Smite", "icon": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/spell/SummonerSmite.png"})
+        if "snowball" in s_lower or "mark" in s_lower:
+            return self._spells.get("summonersnowball", {"name": "Mark", "icon": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/spell/SummonerSnowball.png"})
+        if "exhaust" in s_lower:
+            return self._spells.get("summonerexhaust", {"name": "Exhaust", "icon": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/spell/SummonerExhaust.png"})
         return {"name": f"Spell {spell_id}", "icon": ""}
 
     def get_rune_info(self, rune_id: int) -> Dict[str, str]:

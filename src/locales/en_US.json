@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "Clear All",
   "btn_cancel": "Cancel",
   "tab_show_less": "▲ Show less",
-  "tab_show_more": "▼ Show more ({count} remaining)"
+  "tab_show_more": "▼ Show more ({count} remaining)",
+  "spells_used_label": "Spells:"
 }

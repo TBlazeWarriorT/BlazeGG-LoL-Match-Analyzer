@@ -288,5 +288,6 @@
   "modal_clear_all_confirm": "全部清除",
   "btn_cancel": "取消",
   "tab_show_less": "▲ 顯示較少",
-  "tab_show_more": "▼ 顯示更多 (尚有 {count} 場)"
+  "tab_show_more": "▼ 顯示更多 (尚有 {count} 場)",
+  "spells_used_label": "技能:"
 }

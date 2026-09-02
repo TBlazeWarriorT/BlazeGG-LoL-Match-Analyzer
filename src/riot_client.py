@@ -1,5 +1,6 @@
 import requests
 import time
+import urllib.parse
 from typing import Optional, List, Dict, Any
 from .config import get_api_key, get_key_expires_at, get_prod_key, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
@@ -48,13 +49,21 @@ class RiotClient:
         raise RiotAPIError(get_text("err_rate_limit", lang=self.lang))
 
     def get_puuid(self, game_name: str, tag_line: str) -> str:
-        # Try routing clusters starting with the configured one, then fallbacks
-        routings = [self.routing] + [r for r in ["americas", "asia", "europe", "sea"] if r != self.routing]
+        # Try routing clusters for Riot Account-v1 (americas, asia, europe)
+        name_encoded = urllib.parse.quote(game_name.strip())
+        tag_encoded = urllib.parse.quote(tag_line.strip())
+        routings = [self.routing] + [r for r in ["americas", "asia", "europe"] if r != self.routing and r != "sea"]
         for r in routings:
-            url = f"https://{r}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-            data = self._request(url)
-            if data and "puuid" in data:
-                return data["puuid"]
+            url = f"https://{r}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{name_encoded}/{tag_encoded}"
+            try:
+                data = self._request(url)
+                if data and "puuid" in data:
+                    return data["puuid"]
+            except RiotAPIError as e:
+                # If a regional cluster gives 403/404 during fallback search, try next cluster
+                if "403" in str(e) or "404" in str(e):
+                    continue
+                raise
         raise RiotAPIError(get_text("err_summoner_not_found", lang=self.lang, name=game_name, tag=tag_line))
 
     def get_recent_matches(self, puuid: str, count: int = 8, start: int = 0, queue: Optional[int] = None) -> List[str]:
@@ -64,9 +73,14 @@ class RiotClient:
             url = f"https://{r}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start={start}&count={count}"
             if queue:
                 url += f"&queue={queue}"
-            matches = self._request(url)
-            if matches:
-                return matches
+            try:
+                matches = self._request(url)
+                if matches:
+                    return matches
+            except RiotAPIError as e:
+                if "403" in str(e) or "404" in str(e):
+                    continue
+                raise
         return []
 
     def get_match_detail(self, match_id: str, target_puuid: str = "") -> Dict[str, Any]:
@@ -87,15 +101,23 @@ class RiotClient:
             norm_match_id = "KR_" + match_id[4:]
 
         url = f"https://{cluster}.api.riotgames.com/lol/match/v5/matches/{norm_match_id}"
-        data = self._request(url)
+        data = None
+        try:
+            data = self._request(url)
+        except RiotAPIError:
+            pass
+
         if not data:
             # Fallback across other clusters just in case
             for fallback_cluster in ["americas", "asia", "europe", "sea"]:
                 if fallback_cluster == cluster:
                     continue
-                data = self._request(f"https://{fallback_cluster}.api.riotgames.com/lol/match/v5/matches/{norm_match_id}")
-                if data:
-                    break
+                try:
+                    data = self._request(f"https://{fallback_cluster}.api.riotgames.com/lol/match/v5/matches/{norm_match_id}")
+                    if data:
+                        break
+                except RiotAPIError:
+                    continue
         if not data:
             raise RiotAPIError(get_text("err_match_not_found", lang=self.lang, match_id=match_id))
         save_cached_match(match_id, data, target_puuid)
@@ -114,14 +136,22 @@ class RiotClient:
             norm_match_id = "KR_" + match_id[4:]
 
         url = f"https://{cluster}.api.riotgames.com/lol/match/v5/matches/{norm_match_id}/timeline"
-        data = self._request(url)
+        data = None
+        try:
+            data = self._request(url)
+        except RiotAPIError:
+            pass
+
         if not data:
             for fallback_cluster in ["americas", "asia", "europe", "sea"]:
                 if fallback_cluster == cluster:
                     continue
-                data = self._request(f"https://{fallback_cluster}.api.riotgames.com/lol/match/v5/matches/{norm_match_id}/timeline")
-                if data:
-                    break
+                try:
+                    data = self._request(f"https://{fallback_cluster}.api.riotgames.com/lol/match/v5/matches/{norm_match_id}/timeline")
+                    if data:
+                        break
+                except RiotAPIError:
+                    continue
         if not data:
             raise RiotAPIError(get_text("err_timeline_not_found", lang=self.lang, match_id=match_id))
         save_cached_timeline(match_id, data)

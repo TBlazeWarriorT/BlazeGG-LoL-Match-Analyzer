@@ -1555,6 +1555,51 @@ body {
     clip-path: circle(49% at 50% 50%);
     display: block;
 }
+.event-spells-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    background: #090d16;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(251, 146, 60, 0.35);
+}
+.event-spells-label {
+    font-size: 0.73rem;
+    color: #fb923c;
+    font-weight: 600;
+}
+.event-spell-wrap {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid rgba(251, 146, 60, 0.6);
+    overflow: hidden;
+    line-height: 0;
+    flex-shrink: 0;
+    background: #0f172a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+.event-spell-wrap:hover {
+    transform: scale(1.35);
+    border-color: #fb923c;
+    z-index: 2;
+}
+.event-spell-icon {
+    width: 100%;
+    height: 100%;
+    border: none;
+    vertical-align: middle;
+    flex-shrink: 0;
+    object-fit: cover;
+    display: block;
+}
 .event-kill {
     background: #151d30;
     border-left-color: #3b82f6;

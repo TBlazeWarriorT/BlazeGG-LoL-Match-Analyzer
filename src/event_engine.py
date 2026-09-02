@@ -758,6 +758,36 @@ class MatchAnalysis:
                         for iid in inventories.get(victim, []) if iid
                     ] if victim else []
 
+                    # Combat summoner spells used in this kill
+                    combat_spells = []
+                    dmg_received = ev.get("victimDamageReceived", [])
+                    spell_damages = {}
+                    for d in dmg_received:
+                        sp_name = d.get("spellName") or d.get("name") or ""
+                        p_src = d.get("participantId")
+                        if not p_src:
+                            continue
+                        sp_lower = sp_name.lower()
+                        if "summoner" in sp_lower or "smite" in sp_lower or "dot" in sp_lower or "ignite" in sp_lower or "snowball" in sp_lower or "exhaust" in sp_lower:
+                            tot_d = d.get("physicalDamage", 0) + d.get("magicDamage", 0) + d.get("trueDamage", 0)
+                            key = (p_src, sp_name)
+                            spell_damages[key] = spell_damages.get(key, 0) + tot_d
+
+                    for (p_src, sp_name), s_dmg in spell_damages.items():
+                        caster_p = self._get_part_dict(p_src)
+                        c_raw = caster_p.get("championName", "")
+                        s_info = self.ddragon.get_spell_info(sp_name)
+                        combat_spells.append({
+                            "participant_id": p_src,
+                            "champ": self.ddragon.get_clean_champion_name(c_raw),
+                            "champ_icon": self.ddragon.get_champion_icon_url(c_raw),
+                            "riot_id": f"{caster_p.get('riotIdGameName', '')}#{caster_p.get('riotIdTagline', '')}",
+                            "spell_name": s_info.get("name", sp_name),
+                            "spell_icon": s_info.get("icon", ""),
+                            "damage": s_dmg,
+                            "is_killer": (p_src == killer)
+                        })
+
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
@@ -787,7 +817,8 @@ class MatchAnalysis:
                         "is_solo": is_solo,
                         "is_first_blood": is_first_blood,
                         "assists_count": len(assisters),
-                        "assisters": assisters_data
+                        "assisters": assisters_data,
+                        "combat_spells": combat_spells
                     })
 
                 elif ev_type == "ELITE_MONSTER_KILL":
