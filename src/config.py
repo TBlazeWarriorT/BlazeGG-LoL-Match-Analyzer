@@ -94,19 +94,45 @@ def get_dev_key() -> str:
 def get_dev_expires_at() -> str:
     return os.getenv("DEV_EXPIRY") or os.getenv("DEV_KEY_EXPIRES_AT") or os.getenv("RIOT_KEY_EXPIRES_AT") or ""
 
+def get_key_preference() -> str:
+    """Which of PROD_KEY/DEV_KEY last worked. Not a permanent blacklist —
+    just the try-first order, so a dead key doesn't get retried forever
+    while a good one sits unused, but it's never fully locked out either."""
+    try:
+        if KEY_PREF_FILE.exists():
+            import json
+            pref = json.loads(KEY_PREF_FILE.read_text(encoding="utf-8")).get("preferred", "prod")
+            if pref in ("prod", "dev"):
+                return pref
+    except Exception:
+        pass
+    return "prod"
+
+def set_key_preference(kind: str):
+    if kind not in ("prod", "dev"):
+        return
+    try:
+        import json
+        KEY_PREF_FILE.write_text(json.dumps({"preferred": kind}), encoding="utf-8")
+    except Exception:
+        pass
+
 def get_api_key(session_key: str = "") -> str:
-    # Priority: PROD_KEY > session_key (User Cookie) > DEV_KEY (Local .env)
-    return get_prod_key() or session_key or get_dev_key() or ""
+    # Whichever of PROD/DEV last worked goes first, session_key (User Cookie) sits
+    # in between, and the other of PROD/DEV is the fallback.
+    prod, dev = get_prod_key(), get_dev_key()
+    first, second = (prod, dev) if get_key_preference() == "prod" else (dev, prod)
+    return first or session_key or second or ""
 
 def get_key_expires_at(session_expiry: str = "") -> str:
-    # If using PROD_KEY, never expires
-    if get_prod_key():
+    # Reflects whichever key is actually preferred right now.
+    if get_key_preference() == "prod" and get_prod_key():
         return "permanent"
     return session_expiry or get_dev_expires_at()
 
 def is_production_mode(session_key: str = "") -> bool:
-    # Production mode is active if PROD_KEY is present or explicit BLAZE_ENV=production
-    return bool(get_prod_key() or os.getenv("BLAZE_ENV") == "production")
+    # Production mode is active if the preferred key is PROD_KEY or explicit BLAZE_ENV=production
+    return bool((get_key_preference() == "prod" and get_prod_key()) or os.getenv("BLAZE_ENV") == "production")
 
 def parse_expiry_str(text: str) -> int:
     import re
@@ -162,6 +188,7 @@ CACHE_DIR = BASE_DIR / "data_cache"
 MATCH_CACHE_DIR = CACHE_DIR / "matches"
 TIMELINE_CACHE_DIR = CACHE_DIR / "timelines"
 DDRAGON_CACHE_DIR = CACHE_DIR / "ddragon"
+KEY_PREF_FILE = CACHE_DIR / "key_preference.json"
 
 for d in [MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, DDRAGON_CACHE_DIR]:
     d.mkdir(parents=True, exist_ok=True)

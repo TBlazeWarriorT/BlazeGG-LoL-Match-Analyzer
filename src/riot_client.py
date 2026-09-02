@@ -2,7 +2,7 @@ import requests
 import time
 import urllib.parse
 from typing import Optional, List, Dict, Any
-from .config import get_api_key, get_key_expires_at, get_prod_key, DEFAULT_ROUTING, DEFAULT_REGION
+from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
 from .i18n import get_text
 
@@ -10,25 +10,64 @@ class RiotAPIError(Exception):
     pass
 
 class RiotClient:
-    def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION, lang: str = "en_US"):
-        self.api_key = api_key or get_api_key()
+    def __init__(self, api_key: Optional[str] = None, routing: str = DEFAULT_ROUTING, region: str = DEFAULT_REGION, lang: str = "en_US", session_key: str = ""):
         self.routing = routing
         self.region = region
         self.lang = lang
+        self.session_key = session_key
+        if api_key:
+            self.api_key = api_key
+            self.key_kind = self._classify_key(api_key)
+        else:
+            self.api_key = get_api_key(session_key=session_key)
+            self.key_kind = self._classify_key(self.api_key)
         self._check_key_validity()
         self.headers = {"X-Riot-Token": self.api_key}
+
+    @staticmethod
+    def _classify_key(value: str) -> str:
+        if value and value == get_prod_key():
+            return "prod"
+        if value and value == get_dev_key():
+            return "dev"
+        return "session" if value else ""
+
+    def _key_expiry_for(self, kind: str):
+        if kind == "prod":
+            return "permanent"
+        if kind == "dev":
+            return get_dev_expires_at()
+        return ""
 
     def _check_key_validity(self):
         if not self.api_key:
             raise RiotAPIError(get_text("err_key_missing", lang=self.lang))
-        exp_val = get_key_expires_at()
+        exp_val = self._key_expiry_for(self.key_kind)
         if exp_val and str(exp_val).isdigit():
             exp_ts = int(exp_val)
             if time.time() >= exp_ts:
                 raise RiotAPIError(get_text("err_key_expired", lang=self.lang))
 
+    def _switch_to_alternate_key(self) -> bool:
+        """On a 401/403, try the other of PROD/DEV before giving up. Whichever
+        one works becomes the preferred key going forward (not a permanent
+        blacklist of the one that failed — just try-order, so it gets retried
+        again once the currently-preferred one fails too)."""
+        if self.key_kind not in ("prod", "dev"):
+            return False
+        alt_kind = "dev" if self.key_kind == "prod" else "prod"
+        alt_value = get_dev_key() if alt_kind == "dev" else get_prod_key()
+        if not alt_value or alt_value == self.api_key:
+            return False
+        self.api_key = alt_value
+        self.key_kind = alt_kind
+        self.headers = {"X-Riot-Token": self.api_key}
+        set_key_preference(alt_kind)
+        return True
+
     def _request(self, url: str) -> Any:
         self._check_key_validity()
+        switched = False
         for _ in range(3):
             resp = requests.get(url, headers=self.headers, timeout=15)
             if resp.status_code == 200:
@@ -40,7 +79,10 @@ class RiotClient:
             elif resp.status_code == 404:
                 return None
             elif resp.status_code in (401, 403):
-                err_key = "err_prod_key_invalid" if bool(get_prod_key()) else "err_dev_key_invalid"
+                if not switched and self._switch_to_alternate_key():
+                    switched = True
+                    continue
+                err_key = "err_prod_key_invalid" if self.key_kind == "prod" else "err_dev_key_invalid"
                 # Extract clean debugging status if returned by Riot
                 detail_msg = f" [Riot API: {resp.status_code} {resp.reason}]" if resp.reason else f" [Riot API: {resp.status_code}]"
                 raise RiotAPIError(get_text(err_key, lang=self.lang, detail=f"<br/><small style='opacity:0.8;'>{detail_msg}</small>"))
