@@ -48,12 +48,13 @@ function promptSearchSummoner(name, tag) {
     if (!name || !tag) return;
     var i18n = window.REPORT_I18N || {};
     var lang = i18n.lang || "en_US";
-    var isPt = lang === "pt_BR";
+    var title = i18n.search_modal_title || "🔍 Search Summoner";
+    var bodyTpl = i18n.search_modal_body || "Do you want to search recent matches for <span class='modal-summoner-highlight'>{name}#{tag}</span>?";
+    var body = bodyTpl.replace("{name}", name).replace("{tag}", tag);
+
     showCustomConfirmModal({
-        title: isPt ? "🔍 Buscar Invocador" : "🔍 Search Summoner",
-        body: isPt 
-            ? "Deseja buscar as partidas recentes de <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?" 
-            : "Do you want to search recent matches for <span class='modal-summoner-highlight'>" + name + "#" + tag + "</span>?",
+        title: title,
+        body: body,
         confirmText: i18n.search_modal_confirm || "Search Matches ➔",
         confirmColor: "#ea580c",
         confirmBorder: "#f97316",
@@ -65,13 +66,14 @@ function promptSearchSummoner(name, tag) {
 
 function confirmDeleteSummonerModal(formEl, summonerLabel) {
     var i18n = window.REPORT_I18N || {};
-    var isPt = (i18n.lang === "pt_BR");
+    var title = i18n.delete_modal_title || "Delete Saved Matches";
+    var bodyTpl = i18n.delete_modal_body || "Do you really want to delete saved matches for <span class='modal-summoner-highlight'>{summoner}</span> from local disk?";
+    var body = bodyTpl.replace("{summoner}", summonerLabel);
+
     showCustomConfirmModal({
-        title: i18n.delete_modal_title || "Delete Saved Matches",
-        body: isPt 
-            ? "Deseja realmente apagar as partidas de <span class='modal-summoner-highlight'>" + summonerLabel + "</span> do disco local?" 
-            : "Do you really want to delete saved matches for <span class='modal-summoner-highlight'>" + summonerLabel + "</span> from local disk?",
-        confirmText: isPt ? "Sim, Excluir" : "Yes, Delete",
+        title: title,
+        body: body,
+        confirmText: i18n.delete_modal_confirm || "Yes, Delete",
         confirmColor: "#dc2626",
         confirmBorder: "#ef4444",
         onConfirm: function() {
@@ -83,13 +85,13 @@ function confirmDeleteSummonerModal(formEl, summonerLabel) {
 
 function confirmClearAllCacheModal(formEl) {
     var i18n = window.REPORT_I18N || {};
-    var isPt = (i18n.lang === "pt_BR");
+    var title = "⚠️ " + (i18n.clear_all_title || "Clear All Cache");
+    var body = i18n.clear_all_body || "Do you really want to delete <b>all</b> cached matches from local disk? This action cannot be undone.";
+
     showCustomConfirmModal({
-        title: "⚠️ " + (i18n.clear_all_title || "Clear All Cache"),
-        body: isPt 
-            ? "Deseja realmente apagar <b>todas</b> as partidas salvas no disco local? Esta ação é irreversível." 
-            : "Do you really want to delete <b>all</b> cached matches from local disk? This action cannot be undone.",
-        confirmText: isPt ? "Apagar Tudo" : "Clear All",
+        title: title,
+        body: body,
+        confirmText: i18n.clear_all_confirm || "Clear All",
         confirmColor: "#dc2626",
         confirmBorder: "#ef4444",
         onConfirm: function() {
@@ -125,14 +127,14 @@ function toggleTabMatches(tabIndex, totalCount) {
 
     var isExpanded = !!tabExpandedState[tabIndex];
     var hiddenMatches = pane.querySelectorAll(".match-item");
-    var isPt = document.documentElement.lang.includes("pt") || (window.REPORT_I18N && window.REPORT_I18N.lang === "pt_BR");
+    var i18n = window.REPORT_I18N || {};
 
     if (!isExpanded) {
         hiddenMatches.forEach(function(el) {
             el.classList.remove("match-hidden");
         });
         tabExpandedState[tabIndex] = true;
-        var lessTxt = isPt ? "▲ Mostrar menos" : "▲ Show less";
+        var lessTxt = i18n.tab_show_less || "▲ Show less";
         btn.querySelector("span").innerText = lessTxt;
     } else {
         hiddenMatches.forEach(function(el, idx) {
@@ -142,7 +144,8 @@ function toggleTabMatches(tabIndex, totalCount) {
         });
         tabExpandedState[tabIndex] = false;
         var rem = totalCount - 8;
-        var moreTxt = isPt ? "▼ Mostrar mais (" + rem + " restantes)" : "▼ Show more (" + rem + " remaining)";
+        var moreTpl = i18n.tab_show_more || "▼ Show more ({count} remaining)";
+        var moreTxt = moreTpl.replace("{count}", rem);
         btn.querySelector("span").innerText = moreTxt;
 
         // Smoothly scroll back to the top of the tab container so context is kept
@@ -151,7 +154,6 @@ function toggleTabMatches(tabIndex, totalCount) {
             tabContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
     }
-
 }
 
 function switchCacheTab(tabIndex) {

@@ -259,7 +259,18 @@ LANGUAGES = {
         "damage_tru": "Dano Verdadeiro",
         "damage_taken_total": "Dano Recebido Total",
         "healing_done": "Cura Total",
-        "shields_given": "Escudos Concedidos"
+        "shields_given": "Escudos Concedidos",
+        "level_prefix": "Nv",
+        "crit_items_label": "(itens)",
+        "modal_search_summoner_title": "🔍 Buscar Invocador",
+        "modal_search_summoner_body": "Deseja buscar as partidas recentes de <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+        "modal_delete_summoner_body": "Deseja realmente apagar as partidas de <span class='modal-summoner-highlight'>{summoner}</span> do disco local?",
+        "modal_delete_summoner_confirm": "Sim, Excluir",
+        "modal_clear_all_body": "Deseja realmente apagar <b>todas</b> as partidas salvas no disco local? Esta ação é irreversível.",
+        "modal_clear_all_confirm": "Apagar Tudo",
+        "btn_cancel": "Cancelar",
+        "tab_show_less": "▲ Mostrar menos",
+        "tab_show_more": "▼ Mostrar mais ({count} restantes)"
     },
     "en_US": {
         "app_title": "Blaze GG - LoL Analytics",
@@ -506,7 +517,18 @@ LANGUAGES = {
         "damage_tru": "True Damage",
         "damage_taken_total": "Damage Taken",
         "healing_done": "Total Healing",
-        "shields_given": "Shields Given"
+        "shields_given": "Shields Given",
+        "level_prefix": "Lv",
+        "crit_items_label": "(items)",
+        "modal_search_summoner_title": "🔍 Search Summoner",
+        "modal_search_summoner_body": "Do you want to search recent matches for <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+        "modal_delete_summoner_body": "Do you really want to delete saved matches for <span class='modal-summoner-highlight'>{summoner}</span> from local disk?",
+        "modal_delete_summoner_confirm": "Yes, Delete",
+        "modal_clear_all_body": "Do you really want to delete <b>all</b> cached matches from local disk? This action cannot be undone.",
+        "modal_clear_all_confirm": "Clear All",
+        "btn_cancel": "Cancel",
+        "tab_show_less": "▲ Show less",
+        "tab_show_more": "▼ Show more ({count} remaining)"
     }
 }
 

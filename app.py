@@ -578,12 +578,18 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     <script>
         window.REPORT_I18N = {{
             lang: "{lang}",
-            search_modal_title: "{get_text('search_title', lang=lang)}",
+            search_modal_title: "{get_text('modal_search_summoner_title', lang=lang)}",
+            search_modal_body: "{get_text('modal_search_summoner_body', lang=lang)}",
             search_modal_confirm: "{get_text('search_btn', lang=lang)}",
             delete_modal_title: "{get_text('tooltip_delete_tab', lang=lang)}",
-            delete_modal_confirm: "{get_text('btn_clear_cache', lang=lang)}",
+            delete_modal_body: "{get_text('modal_delete_summoner_body', lang=lang)}",
+            delete_modal_confirm: "{get_text('modal_delete_summoner_confirm', lang=lang)}",
             clear_all_title: "{get_text('confirm_clear_cache', lang=lang)}",
-            cancel: "{'Cancelar' if lang == 'pt_BR' else 'Cancel'}"
+            clear_all_body: "{get_text('modal_clear_all_body', lang=lang)}",
+            clear_all_confirm: "{get_text('modal_clear_all_confirm', lang=lang)}",
+            cancel: "{get_text('btn_cancel', lang=lang)}",
+            tab_show_less: "{get_text('tab_show_less', lang=lang)}",
+            tab_show_more: "{get_text('tab_show_more', lang=lang)}"
         }};
     </script>
     """

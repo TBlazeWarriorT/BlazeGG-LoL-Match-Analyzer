@@ -147,7 +147,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 p_team = k_team if is_killer else v_team
                 title_color = "#60a5fa" if p_team == 100 else "#f87171"
 
-                lvl_prefix = "Nv" if lang == "pt_BR" else "Lv"
+                lvl_prefix = get_text("level_prefix", lang=lang)
                 gold_fmt = f"{gold:,}".replace(",", ".")
                 gold_badge_html = f'<div style="margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:0.75rem; font-weight:700; color:#fbbf24; white-space:nowrap;" title="Ouro acumulado">{gold_fmt} <i class="stat-ico ico-gold" style="width:13px; height:13px;"></i></div>'
 
@@ -240,7 +240,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 if "yasuo" in clean_lower or "yone" in clean_lower:
                     crit_est *= 2
                 crit_est = min(crit_est, 100)
-                crit_label = "(itens)" if lang == "pt_BR" else "(items)"
+                crit_label = get_text("crit_items_label", lang=lang)
                 crit_str = f'<span title="Estimativa via itens">{crit_est}% <small style="opacity:0.7; font-size:0.7em;">{crit_label}</small></span>' if crit_est > 0 else "0%"
 
                 return f"""
@@ -572,7 +572,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" title="{extra_it.get("name", "")} (Quest/Extra)"/>{b_tag}</div>'
 
         lvl_val = p.get("champ_level", 1)
-        lvl_prefix = "Nv" if lang == "pt_BR" else "Lv"
+        lvl_prefix = get_text("level_prefix", lang=lang)
         kda_val = p.get("kda", "0/0/0")
         gold_val = p.get("gold_total", 0)
         gold_fmt = f"{gold_val:,}".replace(",", ".")
@@ -640,7 +640,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         if "yasuo" in clean_lower or "yone" in clean_lower:
             crit_est *= 2
         crit_est = min(crit_est, 100)
-        crit_label = "(itens)" if lang == "pt_BR" else "(items)"
+        crit_label = get_text("crit_items_label", lang=lang)
         crit_str = f'<span title="Estimativa via itens">{crit_est}% <small style="opacity:0.7; font-size:0.7em;">{crit_label}</small></span>' if crit_est > 0 else "0%"
 
         return f"""
