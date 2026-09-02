@@ -1145,6 +1145,7 @@ body {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
     z-index: 1000;
 }
+
 .event-time {
     font-family: Consolas, Monaco, monospace;
     font-size: 0.82rem;
@@ -1528,32 +1529,10 @@ body {
     vertical-align: middle;
 }
 
-/* ⚔️ Multikill Continuous Backdrop & Merged Cluster */
+/* ⚔️ Multikill Sequence Indicator (Option 2: Compact Subtle Backdrop, Independent Cards) */
 .event-item[data-multikill-group] {
-    background: rgba(245, 158, 11, 0.04);
-    border-color: rgba(245, 158, 11, 0.28);
-    position: relative;
-    z-index: 1;
-}
-
-.event-item[data-multikill-pos="start"] {
-    margin-bottom: -8px;
-    border-bottom-left-radius: 0px;
-    border-bottom-right-radius: 0px;
-    border-bottom: 1px dashed rgba(245, 158, 11, 0.2);
-}
-
-.event-item[data-multikill-pos="mid"] {
-    margin-bottom: -8px;
-    border-radius: 0px;
-    border-top: none;
-    border-bottom: 1px dashed rgba(245, 158, 11, 0.2);
-}
-
-.event-item[data-multikill-pos="end"] {
-    border-top-left-radius: 0px;
-    border-top-right-radius: 0px;
-    border-top: none;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+    border-color: rgba(245, 158, 11, 0.35);
 }
 .tag-ultkill {
     background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);

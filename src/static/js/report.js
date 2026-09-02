@@ -435,31 +435,6 @@ function initSmartTooltips() {
     });
 }
 
-function initMultikillGroupLift() {
-    document.addEventListener("mouseover", function(e) {
-        var mkItem = e.target.closest("[data-multikill-group]");
-        if (mkItem) {
-            var gid = mkItem.getAttribute("data-multikill-group");
-            if (gid) {
-                document.querySelectorAll('[data-multikill-group="' + gid + '"]').forEach(function(el) {
-                    el.classList.add("multikill-hover-active");
-                });
-            }
-        }
-    });
-    document.addEventListener("mouseout", function(e) {
-        var mkItem = e.target.closest("[data-multikill-group]");
-        if (mkItem) {
-            var gid = mkItem.getAttribute("data-multikill-group");
-            if (gid) {
-                document.querySelectorAll('[data-multikill-group="' + gid + '"]').forEach(function(el) {
-                    el.classList.remove("multikill-hover-active");
-                });
-            }
-        }
-    });
-}
-
 window.addEventListener("DOMContentLoaded", function() {
     var i18n = window.REPORT_I18N || {};
     var currentMatchId = i18n.match_id || (new URLSearchParams(window.location.search)).get("match_id") || document.body.getAttribute("data-match-id") || "";
@@ -482,7 +457,6 @@ window.addEventListener("DOMContentLoaded", function() {
         }
     }
     initSmartTooltips();
-    initMultikillGroupLift();
 });
 
 function autoResizeTextarea() {
