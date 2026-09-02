@@ -2,7 +2,7 @@ import requests
 import time
 import urllib.parse
 from typing import Optional, List, Dict, Any
-from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
+from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, get_key_preference, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
 from .i18n import get_text
 
@@ -21,6 +21,7 @@ class RiotClient:
         else:
             self.api_key = get_api_key(session_key=session_key)
             self.key_kind = self._classify_key(self.api_key)
+        self._tried_values = {self.api_key} if self.api_key else set()
         self._check_key_validity()
         self.headers = {"X-Riot-Token": self.api_key}
 
@@ -48,27 +49,34 @@ class RiotClient:
             if time.time() >= exp_ts:
                 raise RiotAPIError(get_text("err_key_expired", lang=self.lang))
 
+    def _remaining_candidates(self):
+        """All key candidates in the same order get_api_key() would try them,
+        so a dead PROD_KEY falls through to the visitor's own session key
+        (set via the website's own key form on hosted/production deploys,
+        where there's usually no server-side DEV_KEY at all) and then DEV_KEY."""
+        prod, dev = get_prod_key(), get_dev_key()
+        first, second = (("prod", prod), ("dev", dev)) if get_key_preference() == "prod" else (("dev", dev), ("prod", prod))
+        return [first, ("session", self.session_key), second]
+
     def _switch_to_alternate_key(self) -> bool:
-        """On a 401/403, try the other of PROD/DEV before giving up. Whichever
-        one works becomes the preferred key going forward (not a permanent
-        blacklist of the one that failed — just try-order, so it gets retried
-        again once the currently-preferred one fails too)."""
-        if self.key_kind not in ("prod", "dev"):
-            return False
-        alt_kind = "dev" if self.key_kind == "prod" else "prod"
-        alt_value = get_dev_key() if alt_kind == "dev" else get_prod_key()
-        if not alt_value or alt_value == self.api_key:
-            return False
-        self.api_key = alt_value
-        self.key_kind = alt_kind
-        self.headers = {"X-Riot-Token": self.api_key}
-        set_key_preference(alt_kind)
-        return True
+        """On a 401/403, try the next untried candidate (prod/dev/session) before
+        giving up. Whichever one works becomes the preferred prod/dev key going
+        forward — not a permanent blacklist of the one that failed, just try-order,
+        so it gets retried again once the currently-preferred one fails too."""
+        for kind, value in self._remaining_candidates():
+            if value and value not in self._tried_values:
+                self.api_key = value
+                self.key_kind = kind
+                self.headers = {"X-Riot-Token": self.api_key}
+                self._tried_values.add(value)
+                if kind in ("prod", "dev"):
+                    set_key_preference(kind)
+                return True
+        return False
 
     def _request(self, url: str) -> Any:
         self._check_key_validity()
-        switched = False
-        for _ in range(3):
+        for _ in range(5):
             resp = requests.get(url, headers=self.headers, timeout=15)
             if resp.status_code == 200:
                 return resp.json()
@@ -79,8 +87,7 @@ class RiotClient:
             elif resp.status_code == 404:
                 return None
             elif resp.status_code in (401, 403):
-                if not switched and self._switch_to_alternate_key():
-                    switched = True
+                if self._switch_to_alternate_key():
                     continue
                 err_key = "err_prod_key_invalid" if self.key_kind == "prod" else "err_dev_key_invalid"
                 # Extract clean debugging status if returned by Riot
