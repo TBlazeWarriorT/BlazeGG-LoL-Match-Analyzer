@@ -788,12 +788,24 @@ class MatchAnalysis:
                             "is_killer": (p_src == killer)
                         })
 
+                    # Check if final blow was an ultimate (spellSlot == 3 or spellName ending with R / Ultimate)
+                    is_ult_kill = False
+                    if killer and killer != 0 and dmg_received:
+                        killer_dmg = [d for d in dmg_received if d.get("participantId") == killer]
+                        if killer_dmg:
+                            last_hit = killer_dmg[-1]
+                            slot = last_hit.get("spellSlot")
+                            sp_name = str(last_hit.get("spellName") or last_hit.get("name") or "")
+                            if slot == 3 or sp_name.lower().endswith("r") or "ultimate" in sp_name.lower():
+                                is_ult_kill = True
+
                     events_log.append({
                         "type": "kill",
                         "streak": streak_type,
                         "life_streak": life_streak_type,
                         "time": t_str,
                         "is_execution": is_execution,
+                        "is_ult_kill": is_ult_kill,
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if not is_execution else "",
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",

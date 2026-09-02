@@ -289,5 +289,6 @@
   "btn_cancel": "Abbrechen",
   "tab_show_less": "▲ Weniger anzeigen",
   "tab_show_more": "▼ Mehr anzeigen ({count} übrig)",
-  "spells_used_label": "Zauber:"
+  "spells_used_label": "Zauber:",
+  "eliminated_ult": "hat geultet"
 }

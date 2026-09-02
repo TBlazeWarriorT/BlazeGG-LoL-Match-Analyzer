@@ -99,7 +99,7 @@ def sanitize_timeline(data: dict) -> dict:
                 if isinstance(dmg_rec, list):
                     filtered_spells = [
                         d for d in dmg_rec
-                        if any(k in str(d.get("spellName") or d.get("name") or "").lower() for k in ("summoner", "smite", "dot", "ignite", "snowball", "exhaust"))
+                        if d.get("spellSlot") == 3 or any(k in str(d.get("spellName") or d.get("name") or "").lower() for k in ("summoner", "smite", "dot", "ignite", "snowball", "exhaust", "ultimate", "r"))
                     ]
                     if filtered_spells:
                         ev["victimDamageReceived"] = filtered_spells

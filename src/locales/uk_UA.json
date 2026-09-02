@@ -289,5 +289,6 @@
   "btn_cancel": "Скасувати",
   "tab_show_less": "▲ Показати менше",
   "tab_show_more": "▼ Показати більше (ще {count})",
-  "spells_used_label": "Заклинання:"
+  "spells_used_label": "Заклинання:",
+  "eliminated_ult": "ультом знищив(ла)"
 }

@@ -289,5 +289,6 @@
   "btn_cancel": "취소",
   "tab_show_less": "▲ 접기",
   "tab_show_more": "▼ 더 보기 ({count}개 남음)",
-  "spells_used_label": "스펠:"
+  "spells_used_label": "스펠:",
+  "eliminated_ult": "궁극기로 처치"
 }

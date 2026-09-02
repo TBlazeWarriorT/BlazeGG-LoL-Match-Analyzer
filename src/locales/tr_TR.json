@@ -289,5 +289,6 @@
   "btn_cancel": "İptal",
   "tab_show_less": "▲ Daha az göster",
   "tab_show_more": "▼ Daha fazla göster ({count} kaldı)",
-  "spells_used_label": "Büyüler:"
+  "spells_used_label": "Büyüler:",
+  "eliminated_ult": "ultiledi"
 }

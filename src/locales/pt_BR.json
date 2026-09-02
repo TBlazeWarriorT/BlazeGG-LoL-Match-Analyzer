@@ -289,5 +289,6 @@
   "btn_cancel": "Cancelar",
   "tab_show_less": "▲ Mostrar menos",
   "tab_show_more": "▼ Mostrar mais ({count} restantes)",
-  "spells_used_label": "Feitiços:"
+  "spells_used_label": "Feitiços:",
+  "eliminated_ult": "ultou"
 }

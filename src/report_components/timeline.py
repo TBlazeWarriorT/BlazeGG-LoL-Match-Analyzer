@@ -101,7 +101,15 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             if ev.get("is_first_blood"):
                 streak_badge = f'<span class="multi-badge badge-first-blood">FIRST BLOOD! 🩸</span> {streak_badge}'
 
-            elim_txt = get_text("eliminated", lang=lang)
+            is_ult = ev.get("is_ult_kill", False)
+            elim_txt = get_text("eliminated_ult", lang=lang) if is_ult else get_text("eliminated", lang=lang)
+            ult_icon_html = ""
+            if is_ult and 'dd' in locals():
+                u_info = dd.get_champion_ult_info(ev.get("killer_champ", ""))
+                u_icon = u_info.get("icon", "")
+                u_name = u_info.get("name", "Ultimate")
+                if u_icon:
+                    ult_icon_html = f'<div class="event-ult-wrap" data-tooltip="<b>{u_name}</b> (Ultimate)"><img class="event-ult-icon" src="{u_icon}" alt="{u_name}"/></div> '
             c_ast = ev.get('assists_count', 0)
             is_exec = ev.get("is_execution", False)
 
@@ -333,7 +341,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             else:
                 team_border_class = "event-kill-blue" if k_team == 100 else "event-kill-red"
                 killer_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
-                desc_html = f"{killer_str} {elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html} {spells_html}"
+                desc_html = f"{killer_str} {ult_icon_html}{elim_txt} <b>{ev['victim_champ']}</b> ({ev['victim_name']}) {assists_html} {spells_html}"
                 k_avatar = render_stat_tooltip(
                     ev['killer_champ'],
                     ev.get('killer_stats', {}),

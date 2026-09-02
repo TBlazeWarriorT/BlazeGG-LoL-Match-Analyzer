@@ -133,9 +133,36 @@ class DataDragon:
                 self._champions[key] = name
                 self._champions_by_id[champ_id.lower()] = name
                 self._champ_images[champ_id.lower()] = img_full
-                self._champ_images[name.lower().replace(" ", "").replace("'", "")] = img_full
                 self._champ_ranges[champ_id.lower()] = attack_range
                 self._champ_ranges[name.lower().replace(" ", "").replace("'", "")] = attack_range
+
+        ults_cache = DDRAGON_CACHE_DIR / f"champion_ults_{self.version}_{self.language}.json"
+        cached_ults = load_json(ults_cache)
+        if not cached_ults:
+            try:
+                url = f"{BASE_CDN_URL}/{self.version}/data/{self.language}/championFull.json"
+                resp = requests.get(url, timeout=15)
+                if resp.status_code == 200:
+                    cdata = resp.json()
+                    cached_ults = {}
+                    for cid, cinfo in cdata.get("data", {}).items():
+                        c_spells = cinfo.get("spells", [])
+                        if len(c_spells) >= 4:
+                            r_spell = c_spells[3]
+                            r_img = r_spell.get("image", {}).get("full", "")
+                            c_key = cid.lower()
+                            c_name_key = cinfo.get("name", "").lower().replace(" ", "").replace("'", "")
+                            u_obj = {
+                                "name": r_spell.get("name", "Ultimate"),
+                                "icon": f"{BASE_CDN_URL}/{self.version}/img/spell/{r_img}" if r_img else ""
+                            }
+                            cached_ults[c_key] = u_obj
+                            if c_name_key:
+                                cached_ults[c_name_key] = u_obj
+                    save_json(ults_cache, cached_ults)
+            except Exception:
+                cached_ults = {}
+        self._champ_ults: Dict[str, Dict[str, str]] = cached_ults or {}
 
         spells_cache = DDRAGON_CACHE_DIR / f"spells_{self.version}_{self.language}.json"
         cached_spells = load_json(spells_cache)
@@ -310,6 +337,16 @@ class DataDragon:
             return raw_desc
 
         return get_text("queue_0" if queue_id == 0 else "queue_featured", lang=target_lang)
+
+    def get_champion_ult_info(self, champ_id_or_name: str) -> Dict[str, str]:
+        c_clean = str(champ_id_or_name).lower().replace(" ", "").replace("'", "")
+        if hasattr(self, "_champ_ults") and self._champ_ults:
+            if c_clean in self._champ_ults:
+                return self._champ_ults[c_clean]
+            for k, v in self._champ_ults.items():
+                if k in c_clean or c_clean in k:
+                    return v
+        return {"name": "Ultimate", "icon": ""}
 
     def get_spell_info(self, spell_id: Any) -> Dict[str, str]:
         s_str = str(spell_id)
