@@ -14,6 +14,8 @@ SUPPORTED_LANGUAGES: Dict[str, Dict[str, str]] = {
     "fr_FR": {"name": "Français", "flag_url": "https://flagcdn.com/w40/fr.png", "short": "FR"},
     "pl_PL": {"name": "Polski", "flag_url": "https://flagcdn.com/w40/pl.png", "short": "PL"},
     "tr_TR": {"name": "Türkçe", "flag_url": "https://flagcdn.com/w40/tr.png", "short": "TR"},
+    "zh_TW": {"name": "繁體中文", "flag_url": "https://flagcdn.com/w40/tw.png", "short": "TW"},
+    "uk_UA": {"name": "Українська", "flag_url": "https://flagcdn.com/w40/ua.png", "short": "UA"},
 }
 
 def _load_languages() -> Dict[str, Dict[str, str]]:
