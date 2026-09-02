@@ -6,6 +6,9 @@
 data_cache/
 *.json.cache
 
+# Logs
+*.log
+
 # Python
 __pycache__/
 *.py[cod]

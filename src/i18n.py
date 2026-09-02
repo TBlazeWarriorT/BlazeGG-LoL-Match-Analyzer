@@ -67,3 +67,10 @@ def render_language_dropdown(current_lang: str = "en_US", on_change_callback: st
         </div>
     </div>
     """
+
+def render_kofi_button(lang: str = "en_US") -> str:
+    return f"""
+    <div class="kofi-container" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
+        <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
+    </div>
+    """

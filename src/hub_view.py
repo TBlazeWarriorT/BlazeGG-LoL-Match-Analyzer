@@ -11,8 +11,9 @@ from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
 from src.ddragon import DataDragon
-from src.i18n import get_text, SUPPORTED_LANGUAGES, render_language_dropdown
+from src.i18n import get_text, SUPPORTED_LANGUAGES, render_language_dropdown, render_kofi_button
 
+COMMON_CSS_FILE = Path(__file__).parent / "static" / "css" / "common.css"
 HUB_CSS_FILE = Path(__file__).parent / "static" / "css" / "hub.css"
 HUB_JS_FILE = Path(__file__).parent / "static" / "js" / "report.js"
 
@@ -555,7 +556,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     key_card_cls = "section-card key-card-urgent" if (is_expired or not key_configured or "expir" in str(error_msg).lower()) else "section-card"
     error_html = f'<div class="error-banner">{error_msg}</div>' if error_msg else ""
 
-    hub_css = HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else ""
+    common_css = COMMON_CSS_FILE.read_text(encoding="utf-8") if COMMON_CSS_FILE.exists() else ""
+    hub_css = common_css + (HUB_CSS_FILE.read_text(encoding="utf-8") if HUB_CSS_FILE.exists() else "")
     hub_js = HUB_JS_FILE.read_text(encoding="utf-8") if HUB_JS_FILE.exists() else ""
 
     config_card_html = f"""
@@ -637,9 +639,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 </head>
 <body>
 <div class="top-nav-bar">
-    <div class="kofi-container" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
-        <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
-    </div>
+    {render_kofi_button(lang=lang)}
     {render_language_dropdown(current_lang=lang)}
 </div>
 

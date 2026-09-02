@@ -2,11 +2,12 @@ import webbrowser
 from pathlib import Path
 from typing import Dict, Any
 from .config import CACHE_DIR
-from .i18n import get_text, render_language_dropdown
+from .i18n import get_text, render_language_dropdown, render_kofi_button
 from .asset_cache import AssetManager
 import src.report_components as rc
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
+COMMON_CSS_FILE = Path(__file__).parent / "static" / "css" / "common.css"
 CSS_FILE = Path(__file__).parent / "static" / "css" / "report.css"
 JS_FILE = Path(__file__).parent / "static" / "js" / "report.js"
 
@@ -14,8 +15,10 @@ JS_FILE = Path(__file__).parent / "static" / "js" / "report.js"
 def _load_static_assets() -> tuple[str, str]:
     css_content = ""
     js_content = ""
+    if COMMON_CSS_FILE.exists():
+        css_content += COMMON_CSS_FILE.read_text(encoding="utf-8")
     if CSS_FILE.exists():
-        css_content = CSS_FILE.read_text(encoding="utf-8")
+        css_content += CSS_FILE.read_text(encoding="utf-8")
     if JS_FILE.exists():
         js_content = JS_FILE.read_text(encoding="utf-8")
     return css_content, js_content
@@ -210,9 +213,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 </head>
 <body data-match-id="{data.get('match_id', '')}">
     <div class="top-nav-bar">
-        <div class="kofi-container" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
-            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
-        </div>
+        {render_kofi_button(lang=lang)}
         {render_language_dropdown(current_lang=lang)}
     </div>
 
