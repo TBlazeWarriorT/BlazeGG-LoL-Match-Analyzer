@@ -163,7 +163,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                     <img class="augment-icon" src="{a_icon}" data-tooltip="{a_tooltip}" alt="{a_name}" style="width:20px; height:20px; object-fit:contain; filter:drop-shadow(0 0 2px {a_color}); display:block;"/>
                 </div>
                 """)
-            lbl_augs = "Aprimoramentos" if lang == "pt_BR" else "Augments"
+            lbl_augs = get_text("lbl_augments", lang=lang)
 
             # Purchased Stat Anvils Badge
             purchased_anvils_cnt = p.get("purchased_anvils", 0)

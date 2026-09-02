@@ -176,7 +176,7 @@ class DataDragon:
             except Exception:
                 cached_runes = []
         if cached_runes and isinstance(cached_runes, list):
-            tree_sub_label = "Árvore de Runas Secundária" if self.language == "pt_BR" else "Secondary Rune Tree"
+            tree_sub_label = get_text("secondary_rune_tree", lang=self.language)
             for tree in cached_runes:
                 tree_id = tree.get("id")
                 tree_icon = tree.get("icon", "")
@@ -236,20 +236,20 @@ class DataDragon:
                 icon_url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/{clean_path}" if icon_raw else ""
                 
                 if rarity_raw == "kPrismatic":
-                    r_name = "Prismático" if self.language == "pt_BR" else "Prismatic"
+                    r_name = get_text("rarity_prismatic", lang=self.language)
                     r_color = "#c084fc"
                     r_border = "#a855f7"
                 elif rarity_raw == "kGold":
-                    r_name = "Ouro" if self.language == "pt_BR" else "Gold"
+                    r_name = get_text("rarity_gold", lang=self.language)
                     r_color = "#fbbf24"
                     r_border = "#f59e0b"
                 else:
-                    r_name = "Prata" if self.language == "pt_BR" else "Silver"
+                    r_name = get_text("rarity_silver", lang=self.language)
                     r_color = "#cbd5e1"
                     r_border = "#94a3b8"
                 
                 aug_header = f'<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:6px;"><b style="color:#f8fafc; font-size:0.85rem;">{name}</b><span style="color:{r_color}; font-size:0.75rem; font-weight:700;">{r_name}</span></div>'
-                aug_sub = f'<div style="color:#94a3b8; font-size:0.75rem;">Aprimoramento de Arena</div>' if self.language == "pt_BR" else '<div style="color:#94a3b8; font-size:0.75rem;">Arena Augment</div>'
+                aug_sub = f'<div style="color:#94a3b8; font-size:0.75rem;">{get_text("arena_augment_subtitle", lang=self.language)}</div>'
                 aug_tooltip = f'{aug_header}{aug_sub}'
                 self._augments[aid] = {
                     "id": aid,
@@ -333,7 +333,7 @@ class DataDragon:
             "id": augment_id,
             "name": f"Augment {augment_id}",
             "rarity": "kSilver",
-            "rarity_name": "Prata" if self.language == "pt_BR" else "Silver",
+            "rarity_name": get_text("rarity_silver", lang=self.language),
             "rarity_color": "#cbd5e1",
             "rarity_border": "#94a3b8",
             "icon": "",

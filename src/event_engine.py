@@ -194,12 +194,8 @@ class MatchAnalysis:
                         exec_count += 1
                 elif ev_type == "ITEM_PURCHASED" and ev.get("participantId") == p.get("participantId"):
                     iid = ev.get("itemId", 0)
-                    if iid in (220000, 220008, 220009, 220010, 6032):
+                    if iid == 6032 or (220000 <= iid <= 220050):
                         purchased_anvils += 1
-                    else:
-                        iname = self.ddragon.get_item_name(iid).lower()
-                        if "stat bonus" in iname or "atributo adicional" in iname or "bigorna" in iname or "anvil" in iname:
-                            purchased_anvils += 1
 
         return {
             "participantId": p.get("participantId"),
