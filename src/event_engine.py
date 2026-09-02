@@ -329,7 +329,7 @@ class MatchAnalysis:
                 f"{k}:{(v['diff'] if isinstance(v, dict) else v):+d}g"
                 for k, v in m["gold_delta"].items()
             ])
-            lines.append(f"• {role_name} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']} | GankDeaths: {m['p1_stats']['other_deaths']}x{m['p2_stats']['other_deaths']}")
+            lines.append(f"• {role_name} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']} | OtherDeaths: {m['p1_stats']['other_deaths']}x{m['p2_stats']['other_deaths']}")
 
         # 3. JOGADORES (Blue & Red)
         def format_team_players(team_key, team_name):
@@ -789,15 +789,19 @@ class MatchAnalysis:
                             "is_killer": (p_src == killer)
                         })
 
-                    # Check if final blow was an ultimate (spellSlot == 3 or spellName ending with R / Ultimate)
+                    # Check if final blow was an ultimate (Riot API timeline standard: spellSlot == 3 is R)
                     is_ult_kill = False
                     if killer and killer != 0 and dmg_received:
-                        killer_dmg = [d for d in dmg_received if d.get("participantId") == killer]
+                        killer_dmg = [
+                            d for d in dmg_received
+                            if d.get("participantId") == killer and (d.get("physicalDamage", 0) + d.get("magicDamage", 0) + d.get("trueDamage", 0) > 0)
+                        ]
                         if killer_dmg:
                             last_hit = killer_dmg[-1]
+                            is_basic = last_hit.get("basic", False)
                             slot = last_hit.get("spellSlot")
-                            sp_name = str(last_hit.get("spellName") or last_hit.get("name") or "")
-                            if slot == 3 or sp_name.lower().endswith("r") or "ultimate" in sp_name.lower():
+                            # spellSlot 3 = Ultimate (0=Q, 1=W, 2=E, 3=R)
+                            if not is_basic and slot == 3:
                                 is_ult_kill = True
 
                     events_log.append({
