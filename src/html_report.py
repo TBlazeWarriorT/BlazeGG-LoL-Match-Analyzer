@@ -69,8 +69,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
             tab_title_parts.append(target_nick)
         if target_kda:
             tab_title_parts.append(f"({target_kda})")
-    if match_mode:
-        tab_title_parts.append(match_mode)
+    if full_mode_display:
+        tab_title_parts.append(full_mode_display)
     tab_title_parts.append(f"LoL Head-to-Head Duel Analytics ({match_id_str})")
     browser_tab_title = " • ".join(tab_title_parts)
 

@@ -33,60 +33,12 @@ def clean_mode_name(mode_str: str, lang: str = "en_US") -> str:
     return m.capitalize()
 
 def get_queue_name(queue_id: int, lang: str = "en_US") -> str:
-    queue_map = {
-        0: "queue_custom",
-        76: "queue_urf",
-        400: "queue_normal_draft",
-        420: "queue_ranked_solo",
-        430: "queue_normal_blind",
-        440: "queue_ranked_flex",
-        450: "queue_aram",
-        480: "queue_quickplay",
-        490: "queue_quickplay",
-        700: "queue_clash",
-        720: "queue_clash",
-        830: "queue_coop_ai",
-        840: "queue_coop_ai",
-        850: "queue_coop_ai",
-        870: "queue_coop_ai",
-        880: "queue_coop_ai",
-        890: "queue_coop_ai",
-        900: "queue_arurf",
-        950: "queue_doom_bots",
-        960: "queue_doom_bots",
-        1010: "queue_arurf",
-        1020: "queue_one_for_all",
-        1300: "queue_nexus_blitz",
-        1400: "queue_ultimate_spellbook",
-        1700: "queue_arena",
-        1710: "queue_arena",
-        1810: "queue_swarm",
-        1820: "queue_swarm",
-        1830: "queue_swarm",
-        1840: "queue_swarm",
-        1900: "queue_urf",
-        1920: "queue_league_classic",
-        2000: "queue_tutorial",
-        2010: "queue_tutorial",
-        2020: "queue_tutorial",
-        2300: "queue_brawl",
-        2400: "queue_aram_mayhem"
-    }
-    q_key = queue_map.get(queue_id, "")
-    if q_key:
-        return get_text(q_key, lang=lang)
-    
-    # Fallback to official Riot queues.json description
     try:
         from ..ddragon import DataDragon
         dd = DataDragon(language=lang)
-        raw_desc = dd.get_queue_raw_description(queue_id)
-        if raw_desc:
-            return raw_desc
+        return dd.get_queue_name(queue_id, lang=lang)
     except Exception:
-        pass
-
-    return get_text("queue_featured" if queue_id != 0 else "queue_custom", lang=lang)
+        return get_text("queue_0" if queue_id == 0 else "queue_featured", lang=lang)
 
 def format_full_mode_display(mode_str: str, queue_id: int = 0, lang: str = "en_US") -> str:
     m_name = clean_mode_name(mode_str, lang=lang)

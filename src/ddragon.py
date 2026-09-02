@@ -2,9 +2,29 @@ import requests
 from typing import Dict
 from .config import DDRAGON_CACHE_DIR
 from .cache_manager import load_json, save_json
+from .i18n import get_text
 
 DDRAGON_VERSION_URL = "https://ddragon.leagueoflegends.com/api/versions.json"
 BASE_CDN_URL = "https://ddragon.leagueoflegends.com/cdn"
+
+QUEUE_ALIASES: Dict[int, int] = {
+    490: 480,   # Quickplay
+    720: 700,   # Clash ARAM -> Clash
+    840: 830,   # Co-op vs AI variants -> 830
+    850: 830,
+    870: 830,
+    880: 830,
+    890: 830,
+    960: 950,   # Doom Bots
+    1010: 900,  # ARURF Snowdown -> ARURF
+    1710: 1700, # Arena
+    1820: 1810, # Swarm variants -> 1810
+    1830: 1810,
+    1840: 1810,
+    1900: 76,   # Pick URF -> URF
+    2010: 2000, # Tutorial variants -> 2000
+    2020: 2000,
+}
 
 class DataDragon:
     def __init__(self, language: str = "pt_BR"):
@@ -156,6 +176,20 @@ class DataDragon:
         elif desc.endswith(" Games"):
             desc = desc[:-6]
         return desc.strip()
+
+    def get_queue_name(self, queue_id: int, lang: str = None) -> str:
+        target_lang = lang or self.language
+        resolved_id = QUEUE_ALIASES.get(queue_id, queue_id)
+        key = f"queue_{resolved_id}"
+        translated = get_text(key, lang=target_lang)
+        if translated != key:
+            return translated
+
+        raw_desc = self.get_queue_raw_description(queue_id)
+        if raw_desc:
+            return raw_desc
+
+        return get_text("queue_0" if queue_id == 0 else "queue_featured", lang=target_lang)
 
     def get_spell_info(self, spell_id: int) -> Dict[str, str]:
         s = self._spells.get(str(spell_id))
