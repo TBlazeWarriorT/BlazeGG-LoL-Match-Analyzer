@@ -39,8 +39,9 @@ def format_relative_time(creation_ms: int, lang: str = "en_US") -> str:
         key = "time_day_ago" if d == 1 else "time_days_ago"
         return get_text(key, lang=lang, count=d)
     else:
-        from datetime import datetime
         fmt = "%d/%m/%Y" if lang == "pt_BR" else "%m/%d/%Y"
+        return datetime.fromtimestamp(creation_ms / 1000).strftime(fmt)
+
 _MATCHES_CACHE_STORE = {}
 _MATCHES_CACHE_TIMESTAMP = 0
 
@@ -123,6 +124,13 @@ def get_cached_matches_list(lang: str = "en_US"):
 def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US", player_count: int = 0) -> str:
     from src.report_components.utils import format_full_mode_display
     return format_full_mode_display(mode, queue_id=queue_id, lang=lang, player_count=player_count)
+
+def _render_mini_champ_icon(p, puuid, title_suffix=""):
+    """Small clickable champion icon used in the team strips on a match card
+    (arena subteams, blue/red teams) — was copy-pasted 3x with only the title
+    differing (arena adds a placement suffix)."""
+    host_cls = " m-mini-host" if p.get("puuid") == puuid else ""
+    return f'<img class="m-mini-champ{host_cls}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]}){title_suffix}" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
 
 def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0, largest_multikill=0, penta_kills=0, quadra_kills=0):
     m_upper = str(mode).upper()
@@ -209,22 +217,13 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         
         subteam_groups = []
         for place, plist in sorted_subteams:
-            p_icons = "".join([
-                f'<img class="m-mini-champ{" m-mini-host" if p.get("puuid") == puuid else ""}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]}) - #{place}" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
-                for p in plist
-            ])
+            p_icons = "".join(_render_mini_champ_icon(p, puuid, f" - #{place}") for p in plist)
             extra_cls = " m-team-first" if place == 1 else ""
             subteam_groups.append(f'<div class="m-team-group m-team-arena{extra_cls}" title="#{place}">{p_icons}</div>')
         teams_html = f'<div class="m-teams-strip m-arena-strip">{"".join(subteam_groups)}</div>'
     elif team_100 and team_200:
-        t1_icons = "".join([
-            f'<img class="m-mini-champ{" m-mini-host" if p.get("puuid") == puuid else ""}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
-            for p in team_100
-        ])
-        t2_icons = "".join([
-            f'<img class="m-mini-champ{" m-mini-host" if p.get("puuid") == puuid else ""}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
-            for p in team_200
-        ])
+        t1_icons = "".join(_render_mini_champ_icon(p, puuid) for p in team_100)
+        t2_icons = "".join(_render_mini_champ_icon(p, puuid) for p in team_200)
         teams_html = f"""
         <div class="m-teams-strip">
             <div class="m-team-group m-team-blue">{t1_icons}</div>
