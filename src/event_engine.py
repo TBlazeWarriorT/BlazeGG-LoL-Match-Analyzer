@@ -274,12 +274,12 @@ class MatchAnalysis:
         lines.append("\n[LANE MATCHUPS & GOLD DELTAS (Blue vs Red)]")
         for m in data["matchups"]:
             p1, p2 = m["player1"], m["player2"]
+            role_name = "SUPPORT" if m["role"] == "UTILITY" else m["role"]
             g_tags = " ".join([
                 f"{k}:{(v['diff'] if isinstance(v, dict) else v):+d}g"
                 for k, v in m["gold_delta"].items()
             ])
-            lines.append(f"• {m['role']} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']} | GankDeaths: {m['p1_stats']['other_deaths']}x{m['p2_stats']['other_deaths']}")
-
+            lines.append(f"• {role_name} ({p1['champion']} vs {p2['champion']}): {g_tags} | SoloKills: {m['p1_stats']['solo_kills']}x{m['p2_stats']['solo_kills']} | GankDeaths: {m['p1_stats']['other_deaths']}x{m['p2_stats']['other_deaths']}")
 
         # 3. JOGADORES (Blue & Red)
         def format_team_players(team_key, team_name):
@@ -291,7 +291,9 @@ class MatchAnalysis:
                 dmg_m = p.get("damage_magic", 0)
                 dmg_t = p.get("damage_true", 0)
                 dmg_str = f"{dmg_total:,} (Phys: {dmg_p:,}, Magic: {dmg_m:,}, True: {dmg_t:,})"
-                role_prefix = f"{p['role']} " if p.get("role") else ""
+                raw_role = p.get("role") or ""
+                clean_role = "SUPPORT" if raw_role == "UTILITY" else raw_role
+                role_prefix = f"{clean_role} " if clean_role else ""
                 t_lines.append(f"• {role_prefix}{p['champion']} ({p['riot_id']}): KDA {p['kda']} | CS {p['cs']} | DMG {dmg_str} | GOLD {p['gold_total']:,} | ITEMS: {items_str}")
             return t_lines
 
@@ -303,11 +305,11 @@ class MatchAnalysis:
         for ev in data.get("key_events", []):
             streak = ev.get("streak", "normal")
             if streak == "penta":
-                highlights.append(f"[{ev['time']}] PENTAKILL por {ev['killer_champ']} ({ev['killer_name']})")
+                highlights.append(f"[{ev['time']}] PENTAKILL by {ev['killer_champ']} ({ev['killer_name']})")
             elif streak == "quadra":
-                highlights.append(f"[{ev['time']}] QUADRA KILL por {ev['killer_champ']} ({ev['killer_name']})")
+                highlights.append(f"[{ev['time']}] QUADRA KILL by {ev['killer_champ']} ({ev['killer_name']})")
             elif streak == "triple":
-                highlights.append(f"[{ev['time']}] TRIPLE KILL por {ev['killer_champ']} ({ev['killer_name']})")
+                highlights.append(f"[{ev['time']}] TRIPLE KILL by {ev['killer_champ']} ({ev['killer_name']})")
         if highlights:
             lines.append("\n[HIGHLIGHTS]")
             lines.extend([f"• {h}" for h in highlights])
