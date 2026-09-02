@@ -40,13 +40,21 @@ def get_queue_name(queue_id: int, lang: str = "en_US") -> str:
     except Exception:
         return get_text("queue_0" if queue_id == 0 else "queue_featured", lang=lang)
 
-def format_full_mode_display(mode_str: str, queue_id: int = 0, lang: str = "en_US") -> str:
+def format_full_mode_display(mode_str: str, queue_id: int = 0, lang: str = "en_US", player_count: int = 0) -> str:
+    m_upper = str(mode_str).upper()
+    # Arena mode distinction based on total player count
+    if m_upper in ("CHERRY", "ARENA") or queue_id in (1700, 1710):
+        if player_count == 18:
+            return "Arena (3v3)"
+        if player_count in (8, 12, 16) or (player_count > 0 and player_count % 2 == 0):
+            return "Arena (2v2)"
+        return "Arena"
+
     m_name = clean_mode_name(mode_str, lang=lang)
     q_name = get_queue_name(queue_id, lang=lang)
     if not q_name:
         return m_name
     # If mode is unknown or generic placeholder, prioritize the queue name cleanly
-    m_upper = str(mode_str).upper()
     if m_upper in ("UNKNOWN", "OTHER", "", "NONE"):
         return q_name
     if m_name.lower() == q_name.lower() or q_name.lower().startswith(m_name.lower()):

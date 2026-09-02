@@ -118,17 +118,19 @@ def get_cached_matches_list(lang: str = "en_US"):
         _MATCHES_CACHE_STORE[cache_key] = matches
     return matches
 
-def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US") -> str:
+def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US", player_count: int = 0) -> str:
     from src.report_components.utils import format_full_mode_display
-    return format_full_mode_display(mode, queue_id=queue_id, lang=lang)
+    return format_full_mode_display(mode, queue_id=queue_id, lang=lang, player_count=player_count)
 
 def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0):
     m_upper = str(mode).upper()
-    is_arena = ("CHERRY" in m_upper or "ARENA" in m_upper or queue_id == 1700)
+    is_arena = ("CHERRY" in m_upper or "ARENA" in m_upper or queue_id in (1700, 1710))
+    all_parts = (team_100 or []) + (team_200 or [])
+    player_count = len(all_parts)
     
     # In Arena: top 50% is considered a win (e.g. 1st-4th in 8-team 2v2v2v2 or 1st-2nd/3rd in 3v3v3v3)
     if is_arena and placement:
-        is_effective_win = placement <= 4 if queue_id == 1700 or placement <= 8 else win
+        is_effective_win = placement <= 4 if queue_id in (1700, 1710) or placement <= 8 else win
         place_suffix = f" (#{placement})"
         win_class = "card-win" if is_effective_win else "card-loss"
         badge_class = "badge-win" if is_effective_win else "badge-loss"
@@ -157,7 +159,6 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
     target_part = None
 
     if is_classic:
-        all_parts = (team_100 or []) + (team_200 or [])
         for p in all_parts:
             if p.get("puuid") == puuid:
                 target_part = p
@@ -197,9 +198,31 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         """
 
     teams_html = ""
-    if team_100 and team_200:
-        t1_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>' for p in team_100])
-        t2_icons = "".join([f'<img class="m-mini-champ" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>' for p in team_200])
+    if is_arena and all_parts:
+        subteams = {}
+        for p in all_parts:
+            place = p.get("placement") or p.get("subteam_id", 0)
+            subteams.setdefault(place, []).append(p)
+        sorted_subteams = sorted(subteams.items(), key=lambda x: x[0] if isinstance(x[0], int) and x[0] > 0 else 99)
+        
+        subteam_groups = []
+        for place, plist in sorted_subteams:
+            p_icons = "".join([
+                f'<img class="m-mini-champ{" m-mini-host" if p.get("puuid") == puuid else ""}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]}) - #{place}" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
+                for p in plist
+            ])
+            extra_cls = " m-team-first" if place == 1 else ""
+            subteam_groups.append(f'<div class="m-team-group m-team-arena{extra_cls}" title="#{place}">{p_icons}</div>')
+        teams_html = f'<div class="m-teams-strip m-arena-strip">{"".join(subteam_groups)}</div>'
+    elif team_100 and team_200:
+        t1_icons = "".join([
+            f'<img class="m-mini-champ{" m-mini-host" if p.get("puuid") == puuid else ""}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
+            for p in team_100
+        ])
+        t2_icons = "".join([
+            f'<img class="m-mini-champ{" m-mini-host" if p.get("puuid") == puuid else ""}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]})" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\')"/>'
+            for p in team_200
+        ])
         teams_html = f"""
         <div class="m-teams-strip">
             <div class="m-team-group m-team-blue">{t1_icons}</div>
@@ -218,7 +241,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     {champ_name} 
                     <a href="{search_link}" class="summoner-link" title="{get_text('tooltip_search_matches', lang=lang)}">({riot_id})</a>
                 </div>
-                <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
+                <div class="m-sub">{clean_game_mode(mode, queue_id=queue_id, lang=lang, player_count=player_count)} • {duration} {time_badge} • KDA: <b>{kda}</b></div>
             </div>
         </div>
         <div class="m-right">

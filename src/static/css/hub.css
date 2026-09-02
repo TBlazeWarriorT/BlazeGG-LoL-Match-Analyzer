@@ -499,6 +499,34 @@ input[type="text"], input[type="password"] {
 }
 .m-team-blue { border-color: rgba(56, 189, 248, 0.55); }
 .m-team-red { border-color: rgba(239, 68, 68, 0.38); }
+.m-arena-strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 3px;
+    justify-content: flex-end;
+}
+.m-team-arena {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-color: rgba(168, 85, 247, 0.4);
+    background: rgba(15, 23, 42, 0.85);
+    padding: 1px 3px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.m-team-arena.m-team-first {
+    border-color: rgba(234, 179, 8, 0.75);
+    background: rgba(30, 27, 75, 0.85);
+}
+.m-team-arena:hover {
+    border-color: rgba(216, 180, 254, 0.8);
+}
+.m-arena-strip .m-mini-champ {
+    width: 18px;
+    height: 18px;
+}
 .m-mini-champ {
     width: 22px;
     height: 22px;
@@ -507,15 +535,27 @@ input[type="text"], input[type="password"] {
     background: #0f172a;
     object-fit: cover;
     clip-path: circle(50% at 50% 50%);
-    transition: transform 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     display: block;
     cursor: pointer;
+}
+.m-mini-champ.m-mini-host {
+    border-color: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.75);
+    transform: scale(1.1);
+    z-index: 1;
 }
 
 .m-mini-champ:hover {
     transform: scale(1.3);
     z-index: 2;
     border-color: var(--accent);
+}
+.m-mini-champ.m-mini-host:hover {
+    transform: scale(1.35);
+    z-index: 3;
+    border-color: #fef08a;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.95);
 }
 .m-vs-text {
     color: #475569;
