@@ -6,7 +6,7 @@ LOCALES_DIR = Path(__file__).resolve().parent / "locales"
 
 SUPPORTED_LANGUAGES: Dict[str, Dict[str, str]] = {
     "en_US": {"name": "English", "flag_url": "https://flagcdn.com/w40/us.png", "short": "EN"},
-    "pt_BR": {"name": "Português", "flag_url": "https://flagcdn.com/w40/br.png", "short": "PT"},
+    "pt_BR": {"name": "Português", "flag_url": "https://flagcdn.com/w40/br.png", "short": "BR"},
     "ko_KR": {"name": "한국어", "flag_url": "https://flagcdn.com/w40/kr.png", "short": "KO"},
     "vi_VN": {"name": "Tiếng Việt", "flag_url": "https://flagcdn.com/w40/vn.png", "short": "VI"},
     "es_ES": {"name": "Español", "flag_url": "https://flagcdn.com/w40/es.png", "short": "ES"},

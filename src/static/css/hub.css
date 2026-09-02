@@ -977,6 +977,19 @@ input[type="text"], input[type="password"] {
     pointer-events: auto;
 }
 .modal-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-top: 2px solid #38bdf8;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 440px;
+    width: 90%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+    text-align: center;
+}
+.modal-backdrop.active .modal-card {
     transform: scale(1);
 }
 .modal-title {
