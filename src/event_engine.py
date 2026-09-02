@@ -789,20 +789,20 @@ class MatchAnalysis:
                             "is_killer": (p_src == killer)
                         })
 
-                    # Check if final blow was an ultimate (Riot API timeline standard: spellSlot == 3 is R)
+                    # Check if the ultimate contributed damage to this kill.
+                    # NOTE: victimDamageReceived is NOT chronologically ordered (Riot API
+                    # doesn't provide per-instance timestamps), so we can't reliably tell
+                    # which hit was the literal last one. Instead we flag any kill where
+                    # the ult (spellSlot == 3, non-basic) dealt damage in this event.
                     is_ult_kill = False
                     if killer and killer != 0 and dmg_received:
-                        killer_dmg = [
-                            d for d in dmg_received
-                            if d.get("participantId") == killer and (d.get("physicalDamage", 0) + d.get("magicDamage", 0) + d.get("trueDamage", 0) > 0)
-                        ]
-                        if killer_dmg:
-                            last_hit = killer_dmg[-1]
-                            is_basic = last_hit.get("basic", False)
-                            slot = last_hit.get("spellSlot")
-                            # spellSlot 3 = Ultimate (0=Q, 1=W, 2=E, 3=R)
-                            if not is_basic and slot == 3:
-                                is_ult_kill = True
+                        is_ult_kill = any(
+                            d.get("participantId") == killer
+                            and not d.get("basic", False)
+                            and d.get("spellSlot") == 3
+                            and (d.get("physicalDamage", 0) + d.get("magicDamage", 0) + d.get("trueDamage", 0) > 0)
+                            for d in dmg_received
+                        )
 
                     events_log.append({
                         "type": "kill",
