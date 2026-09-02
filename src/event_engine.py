@@ -183,13 +183,23 @@ class MatchAnalysis:
             p_pid_str = str(p.get("participantId"))
             final_stats = last_p_frames.get(p_pid_str, {}).get("championStats", {})
 
+        purchased_anvils = 0
         for frame in frames:
             for ev in frame.get("events", []):
-                if ev.get("type") == "CHAMPION_KILL" and ev.get("victimId") == p.get("participantId"):
+                ev_type = ev.get("type")
+                if ev_type == "CHAMPION_KILL" and ev.get("victimId") == p.get("participantId"):
                     kil = ev.get("killerId", 0)
                     ass = ev.get("assistingParticipantIds", [])
                     if kil == 0 and not ass:
                         exec_count += 1
+                elif ev_type == "ITEM_PURCHASED" and ev.get("participantId") == p.get("participantId"):
+                    iid = ev.get("itemId", 0)
+                    if iid in (220000, 220008, 220009, 220010, 6032):
+                        purchased_anvils += 1
+                    else:
+                        iname = self.ddragon.get_item_name(iid).lower()
+                        if "stat bonus" in iname or "atributo adicional" in iname or "bigorna" in iname or "anvil" in iname:
+                            purchased_anvils += 1
 
         return {
             "participantId": p.get("participantId"),
@@ -253,6 +263,7 @@ class MatchAnalysis:
             "perks_data": perks_data,
             "full_rune_tree_tooltip": full_rune_tree_tooltip,
             "augments": augments,
+            "purchased_anvils": purchased_anvils,
             "items": items,
             "subteam_id": p.get("playerSubteamId", 0),
             "placement": p.get("subteamPlacement") or p.get("placement") or p.get("challenges", {}).get("placement", 0),

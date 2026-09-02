@@ -164,12 +164,28 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 </div>
                 """)
             lbl_augs = "Aprimoramentos" if lang == "pt_BR" else "Augments"
+
+            # Purchased Stat Anvils Badge
+            purchased_anvils_cnt = p.get("purchased_anvils", 0)
+            anvil_badge_html = ""
+            if is_arena or purchased_anvils_cnt > 0:
+                anvil_tt = get_text("purchased_stat_anvils", lang=lang)
+                anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
+                anvil_badge_html = f"""
+                <div class="anvil-purchased-badge" data-tooltip="{anvil_tt}" style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; margin-left:auto; font-size:0.72rem; font-weight:700; color:#f8fafc; cursor:help;">
+                    <img src="{anvil_icon_url}" style="width:16px; height:16px; border-radius:50%; display:block;" alt="Anvil"/>
+                    <span style="color:#f8fafc;">{purchased_anvils_cnt}</span>
+                    <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>
+                </div>
+                """
+
             augments_strip = f"""
             <div class="arena-augments-strip" style="display:flex; align-items:center; gap:6px; margin-top:6px; padding:3px 8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; flex-wrap:wrap;">
                 <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-right:2px;">{lbl_augs}:</span>
                 {''.join(aug_items_html)}
+                {anvil_badge_html}
             </div>
-            """ if aug_items_html else ""
+            """ if (aug_items_html or anvil_badge_html) else ""
 
             items_html = "".join([
                 f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" alt="{it.get("name", "")}"/>'
@@ -276,22 +292,43 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         enemy_jg_val = p.get("enemy_jungle_monsters", 0)
 
         gold_lbl = get_text('gold', lang=lang)
-        gold_cs_tooltip_lines = [
-            f"<b><img class='mini-icon' src='{icon_gold}'/> {gold_lbl}: {p['gold_total']:,}</b>",
-            f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
-            f"• {get_text('efficiency', lang=lang)}: <b>{p['damage_per_gold']} dmg/g</b>",
-            f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
-            f"<b><img class='mini-icon' src='{icon_cs}'/> CS Total: {p['cs']} ({p['cs_per_min']}/min)</b>",
-            f"• {get_text('lane_minions', lang=lang)}: <b>{minions_val}</b>"
-        ]
-        if neutral_val > 0 or ally_jg_val > 0 or enemy_jg_val > 0:
-            gold_cs_tooltip_lines.append(f"• {get_text('neutral_minions', lang=lang)}: <b>{neutral_val}</b> (🌲 {get_text('ally_jungle', lang=lang)}: {ally_jg_val} • ⚔️ {get_text('enemy_jungle', lang=lang)}: {enemy_jg_val})")
-        gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
+        if p.get("is_team_combined") and is_arena:
+            anvils_cnt = p.get("purchased_anvils", 0)
+            anvil_lbl = get_text("purchased_stat_anvils", lang=lang)
+            anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
+            gold_cs_tooltip_lines = [
+                f"<b><img class='mini-icon' src='{icon_gold}'/> {gold_lbl}: {p['gold_total']:,}</b>",
+                f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
+                f"• {get_text('efficiency', lang=lang)}: <b>{p['damage_per_gold']} dmg/g</b>",
+                f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+                f"<b><img class='mini-icon mini-icon-round' src='{anvil_icon_url}'/> {anvil_lbl}: {anvils_cnt}</b>"
+            ]
+            gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
+            cs_or_anvils_slot = f"""
+            <div class="anvil-purchased-badge" style="display:inline-flex; align-items:center; gap:4px; padding:1px 6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; font-size:0.72rem; font-weight:700; color:#f8fafc;">
+                <img src="{anvil_icon_url}" style="width:14px; height:14px; border-radius:50%; display:block;" alt="Anvil"/>
+                <span style="color:#f8fafc;">{anvils_cnt}</span>
+                <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>
+            </div>
+            """
+        else:
+            gold_cs_tooltip_lines = [
+                f"<b><img class='mini-icon' src='{icon_gold}'/> {gold_lbl}: {p['gold_total']:,}</b>",
+                f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
+                f"• {get_text('efficiency', lang=lang)}: <b>{p['damage_per_gold']} dmg/g</b>",
+                f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+                f"<b><img class='mini-icon' src='{icon_cs}'/> CS Total: {p['cs']} ({p['cs_per_min']}/min)</b>",
+                f"• {get_text('lane_minions', lang=lang)}: <b>{minions_val}</b>"
+            ]
+            if neutral_val > 0 or ally_jg_val > 0 or enemy_jg_val > 0:
+                gold_cs_tooltip_lines.append(f"• {get_text('neutral_minions', lang=lang)}: <b>{neutral_val}</b> (🌲 {get_text('ally_jungle', lang=lang)}: {ally_jg_val} • ⚔️ {get_text('enemy_jungle', lang=lang)}: {enemy_jg_val})")
+            gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
+            cs_or_anvils_slot = f"""<span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>"""
 
         line_3_gold_cs = f"""
         <div class="pill pill-wide" data-tooltip="{gold_cs_tooltip_html}">
             <span><img class="mini-icon" src="{icon_gold}"/> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({p['damage_per_gold']} dmg/g)</span></span>
-            <span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>
+            {cs_or_anvils_slot}
         </div>
         """
 
@@ -690,6 +727,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     t_assists = sum(p.get("assists", 0) for p in t_players)
                     t_vis = sum(p.get("vision_score", 0) for p in t_players)
                     t_pinks = sum(p.get("detector_wards", 0) for p in t_players)
+                    t_anvils = sum(p.get("purchased_anvils", 0) for p in t_players)
                     
                     ratio = (t_kills + t_assists) / max(t_deaths, 1)
                     csm = round(t_cs / dur_min_calc, 1)
@@ -706,6 +744,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                         "kda_ratio": f"{ratio:.2f}:1" if t_deaths > 0 else "Perfect",
                         "cs": t_cs,
                         "cs_per_min": csm,
+                        "purchased_anvils": t_anvils,
                         "gold_total": t_gold,
                         "damage_to_champions": t_dmg,
                         "damage_physical": t_phys,
