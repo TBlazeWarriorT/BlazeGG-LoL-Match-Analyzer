@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import webbrowser
 import urllib.parse
@@ -409,22 +410,100 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.send_header("Set-Cookie", c)
         self.end_headers()
 
+def _port_in_use(port: int) -> bool:
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+def _find_pid_on_port(port: int):
+    import subprocess
+    try:
+        out = subprocess.check_output("netstat -ano -p TCP", shell=True, text=True, stderr=subprocess.DEVNULL)
+    except Exception:
+        return None
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) >= 5 and parts[1].endswith(f":{port}") and parts[3] == "LISTENING":
+            return parts[-1]
+    return None
+
+def _kill_pid_tree(pid: str) -> bool:
+    import subprocess
+    try:
+        # Only kill it if it's actually a python process — never nuke something
+        # unrelated that just happened to be holding the port.
+        check = subprocess.check_output(f'tasklist /FI "PID eq {pid}"', shell=True, text=True, stderr=subprocess.DEVNULL)
+        if "python" not in check.lower():
+            return False
+        subprocess.run(["taskkill", "/F", "/PID", pid, "/T"], capture_output=True)
+        return True
+    except Exception:
+        return False
+
+def _supports_emoji() -> bool:
+    # Classic cmd.exe (conhost) often can't render emoji glyphs even once the
+    # UTF-8 codepage is set — only bother on terminals known to handle them:
+    # Windows Terminal, VS Code's integrated terminal, and anything non-Windows.
+    if sys.platform != "win32":
+        return True
+    return bool(os.getenv("WT_SESSION") or os.getenv("TERM_PROGRAM"))
+
 def run_app():
-    import sys
     if sys.platform == "win32":
         try:
             sys.stdout.reconfigure(encoding="utf-8")
         except Exception:
             pass
+    emoji = _supports_emoji()
+    fire = "🔥" if emoji else "[i]"
+    bolt = "⚡" if emoji else "->"
     # If watchdog process is not active, run with auto-reload
     if os.getenv("BLAZE_AUTO_RELOAD") != "1":
         import subprocess
         import time
 
         url = f"http://127.0.0.1:{PORT}"
+
+        if _port_in_use(PORT):
+            print(f"\n==================================================")
+            print(f"  {fire} Blaze GG Hub is already running at: {url}")
+            print(f"==================================================\n")
+            answer = ""
+            if not os.getenv("BLAZE_ENV") and not os.getenv("HEADLESS") and sys.stdin.isatty():
+                try:
+                    answer = input("  Kill it and start a fresh instance? [y/N]: ").strip().lower()
+                except Exception:
+                    answer = ""
+            if answer == "y":
+                pid = _find_pid_on_port(PORT)
+                killed = pid and _kill_pid_tree(pid)
+                if killed:
+                    print(f"  Killed the old instance (PID {pid}). Starting fresh...\n")
+                    for _ in range(20):
+                        if not _port_in_use(PORT):
+                            break
+                        time.sleep(0.2)
+                else:
+                    print("  Couldn't confirm it was safe to kill — leaving it running.\n")
+                    if not os.getenv("BLAZE_ENV") and not os.getenv("HEADLESS"):
+                        try:
+                            webbrowser.open(url)
+                        except Exception:
+                            pass
+                    return
+            else:
+                print("  Opening it in your browser instead of starting a second copy.\n")
+                if not os.getenv("BLAZE_ENV") and not os.getenv("HEADLESS"):
+                    try:
+                        webbrowser.open(url)
+                    except Exception:
+                        pass
+                return
+
         print(f"\n==================================================")
-        print(f"  🔥 Blaze GG Hub running at: {url}")
-        print(f"  ⚡ Auto-Reloader ENABLED (code changes reload on refresh)")
+        print(f"  {fire} Blaze GG Hub running at: {url}")
+        print(f"  {bolt} Auto-Reloader ENABLED (code changes reload on refresh)")
         print(f"  Press Ctrl+C to stop.")
         print(f"==================================================\n")
         if not os.getenv("BLAZE_ENV") and not os.getenv("HEADLESS"):
@@ -454,7 +533,7 @@ def run_app():
                                 last_mtimes[str(f)] = mtime
                                 changed = True
                     if changed:
-                        print("\n[⚡ Auto-Reloader] Change detected! Reloading server in background...")
+                        print(f"\n[{bolt} Auto-Reloader] Change detected! Reloading server in background...")
                         proc.terminate()
                         proc.wait()
                         break
