@@ -94,28 +94,22 @@ def get_dev_key() -> str:
 def get_dev_expires_at() -> str:
     return os.getenv("DEV_EXPIRY") or os.getenv("DEV_KEY_EXPIRES_AT") or os.getenv("RIOT_KEY_EXPIRES_AT") or ""
 
+_key_preference = "prod"  # in-memory only: a fresh boot (local restart or Render
+# redeploy) always re-assumes PROD_KEY is good again. This is deliberate — a
+# reboot is usually exactly the moment someone fixed/rotated the key and wants
+# it retried, so persisting the "dev was preferred" state to disk across
+# restarts would fight that instead of helping it.
+
 def get_key_preference() -> str:
     """Which of PROD_KEY/DEV_KEY last worked. Not a permanent blacklist —
     just the try-first order, so a dead key doesn't get retried forever
     while a good one sits unused, but it's never fully locked out either."""
-    try:
-        if KEY_PREF_FILE.exists():
-            import json
-            pref = json.loads(KEY_PREF_FILE.read_text(encoding="utf-8")).get("preferred", "prod")
-            if pref in ("prod", "dev"):
-                return pref
-    except Exception:
-        pass
-    return "prod"
+    return _key_preference
 
 def set_key_preference(kind: str):
-    if kind not in ("prod", "dev"):
-        return
-    try:
-        import json
-        KEY_PREF_FILE.write_text(json.dumps({"preferred": kind}), encoding="utf-8")
-    except Exception:
-        pass
+    global _key_preference
+    if kind in ("prod", "dev"):
+        _key_preference = kind
 
 def get_key_candidates(session_key: str = ""):
     """Ordered (kind, value) key candidates: whichever of PROD/DEV worked last
@@ -197,7 +191,6 @@ CACHE_DIR = BASE_DIR / "data_cache"
 MATCH_CACHE_DIR = CACHE_DIR / "matches"
 TIMELINE_CACHE_DIR = CACHE_DIR / "timelines"
 DDRAGON_CACHE_DIR = CACHE_DIR / "ddragon"
-KEY_PREF_FILE = CACHE_DIR / "key_preference.json"
 
 for d in [MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, DDRAGON_CACHE_DIR]:
     d.mkdir(parents=True, exist_ok=True)
