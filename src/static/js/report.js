@@ -203,7 +203,37 @@ var isPhaseExpanded = sessionStorage.getItem("blaze_phase_expanded") === "true";
 function syncTimelineState() {
     var i18n = window.REPORT_I18N || {};
 
-    // 1. Process items inside both timeline panes
+    // 1. Count events per phase in the active pane FIRST
+    var paneKills = document.getElementById("timelinePaneKills");
+    var paneItems = document.getElementById("timelinePaneItems");
+    var activePane = (paneItems && paneItems.classList.contains("active")) ? paneItems : paneKills;
+    
+    var phaseCounts = { "early": 0, "mid": 0, "late": 0 };
+    if (activePane) {
+        var activeItems = activePane.querySelectorAll(".event-item");
+        activeItems.forEach(function(el) {
+            var p = el.getAttribute("data-phase") || "early";
+            if (phaseCounts[p] !== undefined) {
+                phaseCounts[p]++;
+            }
+        });
+    }
+
+    // Auto-fallback: if current saved phase has 0 events in this match, fallback to the latest valid phase
+    var totalEvents = phaseCounts.early + phaseCounts.mid + phaseCounts.late;
+    if (totalEvents > 0 && phaseCounts[currentTimelinePhase] === 0) {
+        if (currentTimelinePhase === "late" && phaseCounts["mid"] > 0) {
+            currentTimelinePhase = "mid";
+        } else if (phaseCounts["early"] > 0) {
+            currentTimelinePhase = "early";
+        } else {
+            var firstValid = PHASES_ORDER.find(function(ph) { return phaseCounts[ph] > 0; });
+            if (firstValid) currentTimelinePhase = firstValid;
+        }
+        sessionStorage.setItem("blaze_timeline_phase", currentTimelinePhase);
+    }
+
+    // 2. Process items inside both timeline panes
     ["timelinePaneKills", "timelinePaneItems"].forEach(function(paneId) {
         var pane = document.getElementById(paneId);
         if (!pane) return;
@@ -225,22 +255,6 @@ function syncTimelineState() {
             }
         });
     });
-
-    // 2. Count events per phase in the currently active pane for header & navigation buttons
-    var paneKills = document.getElementById("timelinePaneKills");
-    var paneItems = document.getElementById("timelinePaneItems");
-    var activePane = (paneItems && paneItems.classList.contains("active")) ? paneItems : paneKills;
-    
-    var phaseCounts = { "early": 0, "mid": 0, "late": 0 };
-    if (activePane) {
-        var activeItems = activePane.querySelectorAll(".event-item");
-        activeItems.forEach(function(el) {
-            var p = el.getAttribute("data-phase") || "early";
-            if (phaseCounts[p] !== undefined) {
-                phaseCounts[p]++;
-            }
-        });
-    }
 
     // 3. Update Phase Filter Buttons (Highlight active, gray out if 0 events in active tab)
     var filterBtns = document.querySelectorAll(".phase-filter-btn");
@@ -422,11 +436,25 @@ function initSmartTooltips() {
 }
 
 window.addEventListener("DOMContentLoaded", function() {
-    var savedTab = sessionStorage.getItem("blaze_timeline_tab");
-    if (savedTab && (savedTab === "kills" || savedTab === "items")) {
-        switchTimelineTab(savedTab);
+    var i18n = window.REPORT_I18N || {};
+    var currentMatchId = i18n.match_id || (new URLSearchParams(window.location.search)).get("match_id") || document.body.getAttribute("data-match-id") || "";
+    var lastSavedMatchId = sessionStorage.getItem("blaze_last_match_id");
+
+    if (currentMatchId && lastSavedMatchId !== currentMatchId) {
+        // New match opened: reset timeline tab to 'kills' and phase to 'early'
+        sessionStorage.setItem("blaze_last_match_id", currentMatchId);
+        sessionStorage.setItem("blaze_timeline_tab", "kills");
+        sessionStorage.setItem("blaze_timeline_phase", "early");
+        currentTimelinePhase = "early";
+        switchTimelineTab("kills");
     } else {
-        syncTimelineState();
+        // Same match (e.g. F5 / page reload): preserve saved tab and phase
+        var savedTab = sessionStorage.getItem("blaze_timeline_tab");
+        if (savedTab && (savedTab === "kills" || savedTab === "items")) {
+            switchTimelineTab(savedTab);
+        } else {
+            syncTimelineState();
+        }
     }
     initSmartTooltips();
 });

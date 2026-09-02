@@ -142,6 +142,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     js_i18n = f"""
     <script>
         window.REPORT_I18N = {{
+            match_id: "{data.get('match_id', '')}",
             copied: "{get_text('copied_btn', lang=lang)}",
             nav_prev_early: "{get_text('nav_prev_early', lang=lang)}",
             nav_prev_mid: "{get_text('nav_prev_mid', lang=lang)}",
@@ -190,7 +191,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         {css_styles}
     </style>
 </head>
-<body>
+<body data-match-id="{data.get('match_id', '')}">
     <div class="top-nav-bar">
         <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
             <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
