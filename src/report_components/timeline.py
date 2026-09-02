@@ -1,7 +1,68 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, List, Tuple
 from ..i18n import get_text
 from ..event_engine import clean_monster_name
 from ..ddragon import DataDragon
+
+TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
+BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
+CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
+
+def build_item_slot_html(items_snapshot: List[Dict[str, Any]], role: str = "") -> Tuple[str, str, str]:
+    """Splits a raw item list into the game's own item-bar layout: up to 6 main
+    slots, a 7th slot (role quest boot for bot lane, else an overflow item),
+    and the trinket slot. Returns (main_slots_html, boot_slot_html, trinket_slot_html).
+    Used by every stat tooltip / end-of-game avatar that shows a build — kept in
+    one place so a fix here doesn't need to be repeated at each call site."""
+    has_adc_role_slot = (str(role).upper() == "BOTTOM")
+    trinket_item = None
+    boot_item = None
+    raw_normal_items = []
+    item_counts = {}
+    item_objs = {}
+
+    for it in (items_snapshot or []):
+        iid = it.get("id", 0)
+        if iid in TRINKET_IDS and not trinket_item:
+            trinket_item = it
+        elif has_adc_role_slot and iid in BOOT_IDS and not boot_item:
+            boot_item = it
+        else:
+            if iid in CONSUMABLE_STACKS:
+                item_counts[iid] = item_counts.get(iid, 0) + 1
+                item_objs[iid] = it
+            else:
+                raw_normal_items.append((it, 1))
+
+    for iid, count in item_counts.items():
+        raw_normal_items.append((item_objs[iid], count))
+
+    main_slots = []
+    for it, count in raw_normal_items[:6]:
+        if it.get("icon"):
+            count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
+            main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{count_badge}</div>')
+    while len(main_slots) < 6:
+        main_slots.append('<div class="stat-item-slot-empty"></div>')
+
+    # 7th Slot: Only rendered if ADC role has dedicated boot slot or extra quest item
+    boot_slot_html = ""
+    if has_adc_role_slot:
+        if boot_item:
+            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" data-tooltip="{boot_item.get("tooltip") or boot_item.get("name", "")}"/></div>'
+        else:
+            boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
+    elif len(raw_normal_items) > 6:
+        extra_it, extra_count = raw_normal_items[6]
+        count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
+        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{count_badge}</div>'
+
+    # Trinket Slot
+    if trinket_item:
+        trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" data-tooltip="{trinket_item.get("tooltip") or trinket_item.get("name", "")}"/></div>'
+    else:
+        trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
+
+    return "".join(main_slots), boot_slot_html, trinket_slot_html
 
 def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[str, str, str]:
     dd = DataDragon(language=lang)
@@ -167,68 +228,13 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 # Items row inside tooltip: 6 main slots | Role Quest Slot (ADC / Special) | Trinket | Gold on Right
                 items_row_html = ""
                 if items_snapshot:
-                    TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
-                    BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
-                    CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
-                    
-                    trinket_item = None
-                    boot_item = None
-                    raw_normal_items = []
-                    item_counts = {}
-                    item_objs = {}
-                    
-                    # Detect role from ev dictionary
                     p_role = str(ev.get("killer_role" if is_killer else "victim_role", "")).upper()
-                    has_adc_role_slot = (p_role == "BOTTOM")
-                    
-                    for it in items_snapshot:
-                        iid = it.get("id", 0)
-                        if iid in TRINKET_IDS and not trinket_item:
-                            trinket_item = it
-                        elif has_adc_role_slot and iid in BOOT_IDS and not boot_item:
-                            boot_item = it
-                        else:
-                            if iid in CONSUMABLE_STACKS:
-                                item_counts[iid] = item_counts.get(iid, 0) + 1
-                                item_objs[iid] = it
-                            else:
-                                raw_normal_items.append((it, 1))
-
-                    for iid, count in item_counts.items():
-                        raw_normal_items.append((item_objs[iid], count))
-                    
-                    main_slots = []
-                    for it, count in raw_normal_items[:6]:
-                        if it.get("icon"):
-                            count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
-                            main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{count_badge}</div>')
-                    while len(main_slots) < 6:
-                        main_slots.append('<div class="stat-item-slot-empty"></div>')
-                    
-                    # 7th Slot: Only rendered if ADC role has dedicated boot slot or extra quest item
-                    boot_slot_html = ""
-                    if has_adc_role_slot:
-                        if boot_item:
-                            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" data-tooltip="{boot_item.get("tooltip") or boot_item.get("name", "")}"/></div>'
-                        else:
-                            boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
-                    elif len(raw_normal_items) > 6:
-                        extra_it, extra_count = raw_normal_items[6]
-                        count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
-                        boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{count_badge}</div>'
-
-                    # Trinket Slot
-                    trinket_slot_html = ""
-                    if trinket_item:
-                        trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" data-tooltip="{trinket_item.get("tooltip") or trinket_item.get("name", "")}"/></div>'
-                    else:
-                        trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
-                    
+                    main_slots, boot_slot_html, trinket_slot_html = build_item_slot_html(items_snapshot, p_role)
                     items_row_html = f"""
                     <div class="stat-divider"></div>
                     <div class="stat-items-row">
                         <div style="display:flex; gap:5px; align-items:center;">
-                            {''.join(main_slots)}
+                            {main_slots}
                             {boot_slot_html}
                             {trinket_slot_html}
                         </div>
@@ -432,63 +438,9 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         snapshot = ev.get("items_snapshot", [])
 
         # Build snapshot slots on hover
-        TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
-        BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
-        CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
-        
-        trinket_item = None
-        boot_item = None
-        raw_normal_items = []
-        item_counts = {}
-        item_objs = {}
-        
         p_role = str(ev.get("role", "")).upper()
-        has_adc_role_slot = (p_role == "BOTTOM")
-
-        for it in snapshot:
-            iid = it.get("id", 0)
-            if iid in TRINKET_IDS and not trinket_item:
-                trinket_item = it
-            elif has_adc_role_slot and iid in BOOT_IDS and not boot_item:
-                boot_item = it
-            else:
-                if iid in CONSUMABLE_STACKS:
-                    item_counts[iid] = item_counts.get(iid, 0) + 1
-                    item_objs[iid] = it
-                else:
-                    raw_normal_items.append((it, 1))
-
-        for iid, count in item_counts.items():
-            raw_normal_items.append((item_objs[iid], count))
-
-        main_slots = []
-        for it, count in raw_normal_items[:6]:
-            if it.get("icon"):
-                count_badge = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
-                main_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{count_badge}</div>')
-        while len(main_slots) < 6:
-            main_slots.append('<div class="stat-item-slot-empty"></div>')
-
-        # 7th Slot: Only rendered if ADC role has dedicated boot slot or extra quest item
-        boot_slot_html = ""
-        if has_adc_role_slot:
-            if boot_item:
-                boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_item["icon"]}" data-tooltip="{boot_item.get("tooltip") or boot_item.get("name", "")}"/></div>'
-            else:
-                boot_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
-        elif len(raw_normal_items) > 6:
-            extra_it, extra_count = raw_normal_items[6]
-            count_badge = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
-            boot_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{count_badge}</div>'
-
-        # Trinket Slot
-        trinket_slot_html = ""
-        if trinket_item:
-            trinket_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_item["icon"]}" data-tooltip="{trinket_item.get("tooltip") or trinket_item.get("name", "")}"/></div>'
-        else:
-            trinket_slot_html = '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
-
-        items_row = f'<div class="stat-items-row" style="margin-top:4px;">{"".join(main_slots)}{boot_slot_html}{trinket_slot_html}</div>'
+        main_slots, boot_slot_html, trinket_slot_html = build_item_slot_html(snapshot, p_role)
+        items_row = f'<div class="stat-items-row" style="margin-top:4px;">{main_slots}{boot_slot_html}{trinket_slot_html}</div>'
 
         avatar_html = f"""
         <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
@@ -573,51 +525,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         # Build snapshot items
         p_items = p.get("items", [])
         p_role = str(p.get("role", "")).upper()
-        has_adc_role = (p_role == "BOTTOM")
-        
-        TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
-        BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
-        CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
-
-        trinket_it = None
-        boot_it = None
-        norm_its = []
-        c_counts = {}
-        c_objs = {}
-        for it in p_items:
-            iid = it.get("id", 0)
-            if iid in TRINKET_IDS and not trinket_it:
-                trinket_it = it
-            elif has_adc_role and iid in BOOT_IDS and not boot_it:
-                boot_it = it
-            else:
-                if iid in CONSUMABLE_STACKS:
-                    c_counts[iid] = c_counts.get(iid, 0) + 1
-                    c_objs[iid] = it
-                else:
-                    norm_its.append((it, 1))
-
-        for iid, count in c_counts.items():
-            norm_its.append((c_objs[iid], count))
-
-        m_slots = []
-        for it, count in norm_its[:6]:
-            if it.get("icon"):
-                b_tag = f'<span class="slot-stack-badge">{count}</span>' if count > 1 else ""
-                m_slots.append(f'<div class="slot-wrap"><img class="stat-item-slot" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" />{b_tag}</div>')
-        while len(m_slots) < 6:
-            m_slots.append('<div class="stat-item-slot-empty"></div>')
-
-        b_slot_html = ""
-        if has_adc_role:
-            if boot_it:
-                b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{boot_it["icon"]}" data-tooltip="{boot_it.get("tooltip") or boot_it.get("name", "")}"/></div>'
-            else:
-                b_slot_html = '<div class="stat-item-slot-empty stat-item-slot-boot" title="Role Quest Boot Slot"></div>'
-        elif len(norm_its) > 6:
-            extra_it, extra_count = norm_its[6]
-            b_tag = f'<span class="slot-stack-badge">{extra_count}</span>' if extra_count > 1 else ""
-            b_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-boot" src="{extra_it["icon"]}" data-tooltip="{extra_it.get("tooltip") or extra_it.get("name", "")}"/>{b_tag}</div>'
+        m_slots, b_slot_html, t_slot_html = build_item_slot_html(p_items, p_role)
 
         lvl_val = p.get("champ_level", 1)
         lvl_prefix = get_text("level_prefix", lang=lang)
@@ -626,13 +534,11 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
         gold_fmt = f"{gold_val:,}".replace(",", ".")
         gold_badge_html = f'<div style="margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:0.75rem; font-weight:700; color:#fbbf24; white-space:nowrap;" title="Ouro total ao fim da partida">{gold_fmt} <i class="stat-ico ico-gold" style="width:13px; height:13px;"></i></div>'
 
-        t_slot_html = f'<div class="slot-wrap"><img class="stat-item-slot stat-item-slot-trinket" src="{trinket_it["icon"]}" data-tooltip="{trinket_it.get("tooltip") or trinket_it.get("name", "")}"/></div>' if trinket_it else '<div class="stat-item-slot-empty stat-item-slot-trinket" title="Trinket"></div>'
-        
         items_row_html = f"""
         <div class="stat-divider"></div>
         <div class="stat-items-row">
             <div style="display:flex; gap:5px; align-items:center;">
-                {''.join(m_slots)}
+                {m_slots}
                 {b_slot_html}
                 {t_slot_html}
             </div>
