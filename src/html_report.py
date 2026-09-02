@@ -177,8 +177,23 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         --ico-range: url('{AssetManager.get_asset_uri("stat_range")}');
         --ico-tenacity: url('{AssetManager.get_asset_uri("stat_tenacity")}');
         --ico-gold: url('{AssetManager.get_asset_uri("gold_icon")}');
+        --ico-cs: url('{AssetManager.get_asset_uri("cs_icon")}');
+        --ico-xp: url('{AssetManager.get_asset_uri("xp_icon")}');
     }}
     """
+
+    # Icons reused many times per report (objectives, gromp, wards...) are embedded once
+    # here and referenced via class name (.aico-<key>) instead of repeating their base64
+    # data on every occurrence, which otherwise bloats the report by megabytes.
+    reusable_icon_keys = [
+        "dragon_circle", "dragon_circle_air", "dragon_circle_chemtech", "dragon_circle_earth",
+        "dragon_circle_fire", "dragon_circle_hextech", "dragon_circle_water",
+        "sru_voidgrub_circle", "sruriftherald_circle", "baron_circle",
+        "gromp_circle", "gromp_icon", "oracle_lens", "stealth_ward", "control_ward",
+        "award_visionary", "award_crown", "award_smite", "award_ie", "award_avarice",
+        "award_might", "award_demolisher",
+    ]
+    reusable_icon_css = "\n    " + AssetManager.get_icon_css_block(reusable_icon_keys)
 
     html_content = f"""<!DOCTYPE html>
 <html lang="{get_text('html_lang_code', lang=lang)}">
@@ -190,6 +205,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     <style>
         {stat_vars}
         {css_styles}
+        {reusable_icon_css}
     </style>
 </head>
 <body data-match-id="{data.get('match_id', '')}">

@@ -1,5 +1,4 @@
 from typing import Dict, Any, Tuple
-from ..asset_cache import AssetManager
 from ..i18n import get_text
 from ..event_engine import clean_monster_name
 from ..ddragon import DataDragon
@@ -27,7 +26,6 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             ev_phase = "late"
         
         if ev_type == "objective":
-            icon_uri = AssetManager.get_asset_uri(ev.get("asset_key", ""))
             m_type = ev.get("monster_type", "")
             m_sub = ev.get("monster_sub_type", "")
             is_soul = ev.get("is_soul", False)
@@ -56,7 +54,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             kills_list_items.append(f"""
             <li class="event-item event-obj {obj_theme_class}" data-phase="{ev_phase}">
                 <span class="event-time">{t}</span>
-                <img class="event-obj-icon {glow_class}" src="{icon_uri}" alt="{obj_desc}"/>
+                <i class="event-obj-icon icon-bg aico-{asset_key} {glow_class}" title="{obj_desc}"></i>
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)

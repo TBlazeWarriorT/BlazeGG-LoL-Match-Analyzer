@@ -1259,6 +1259,9 @@ body {
 .ico-range { background-image: var(--ico-range); }
 .ico-tenacity { background-image: var(--ico-tenacity); }
 .ico-gold { background-image: var(--ico-gold); }
+.ico-cs { background-image: var(--ico-cs); }
+.ico-xp { background-image: var(--ico-xp); }
+.icon-bg { background-size: contain; background-repeat: no-repeat; background-position: center; }
 .stat-divider {
     height: 1px;
     background: rgba(255, 255, 255, 0.08);

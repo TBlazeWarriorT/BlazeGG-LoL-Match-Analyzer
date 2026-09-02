@@ -1,5 +1,4 @@
 from typing import Dict, Any, List
-from ..asset_cache import AssetManager
 from ..i18n import get_text
 
 def assign_competition_ranks(items: List[Any], key_fn, max_items: int = 3) -> List[tuple]:
@@ -28,7 +27,6 @@ def assign_competition_ranks(items: List[Any], key_fn, max_items: int = 3) -> Li
     return ranked_tuples
 
 def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]], is_aram: bool = False, is_arena: bool = False, lang: str = "pt_BR") -> str:
-    icon_gold = AssetManager.get_asset_uri("gold_icon")
 
     # 1. Jungle
     objs_source = data.get("all_objectives", [])
@@ -117,7 +115,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
                 <div class="award-avatar-wrap" title="{p['champion']}"><img class="award-avatar" src="{p['champion_icon']}" alt="{p['champion']}"/></div>
                 <span class="award-name">{p['riot_id']}</span>
             </div>
-            <span class="award-val">{p.get('gold_total', 0):,} <img class="mini-icon" src="{icon_gold}"/></span>
+            <span class="award-val">{p.get('gold_total', 0):,} <i class="mini-icon icon-bg ico-gold"></i></span>
         </div>
         """ for p, rank_cls in greed_ranked
     ])
@@ -165,13 +163,6 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     ])
 
 
-    icon_crown = AssetManager.get_asset_uri("award_crown")
-    icon_smite = AssetManager.get_asset_uri("award_smite")
-    icon_ie = AssetManager.get_asset_uri("award_ie")
-    icon_avarice = AssetManager.get_asset_uri("award_avarice")
-    icon_might = AssetManager.get_asset_uri("award_might")
-    icon_visionary = AssetManager.get_asset_uri("award_visionary")
-    icon_demolisher = AssetManager.get_asset_uri("award_demolisher")
 
     award_cards = []
 
@@ -179,7 +170,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header"><img class="award-badge-icon" src="{icon_smite}" alt="Smite"/> {get_text('award_jungle_title', lang=lang)}</div>
+                <div class="award-header"><i class="award-badge-icon icon-bg aico-award_smite" title="Smite"></i> {get_text('award_jungle_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_jungle_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{jungle_items}</div>
@@ -190,7 +181,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header"><img class="award-badge-icon" src="{icon_ie}" alt="IE"/> {get_text('award_mayhem_title', lang=lang)}</div>
+                <div class="award-header"><i class="award-badge-icon icon-bg aico-award_ie" title="IE"></i> {get_text('award_mayhem_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_mayhem_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{mayhem_items}</div>
@@ -200,7 +191,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     award_cards.append(f"""
     <div class="award-card">
         <div>
-            <div class="award-header"><img class="award-badge-icon" src="{icon_avarice}" alt="Avarice Blade"/> {get_text('award_greed_title', lang=lang)}</div>
+            <div class="award-header"><i class="award-badge-icon icon-bg aico-award_avarice" title="Avarice Blade"></i> {get_text('award_greed_title', lang=lang)}</div>
             <div class="award-desc">{get_text('award_greed_desc', lang=lang)}</div>
         </div>
         <div class="award-list">{greed_items}</div>
@@ -210,7 +201,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     award_cards.append(f"""
     <div class="award-card">
         <div>
-            <div class="award-header"><img class="award-badge-icon" src="{icon_might}" alt="Frozen Heart"/> {get_text('award_might_title', lang=lang)}</div>
+            <div class="award-header"><i class="award-badge-icon icon-bg aico-award_might" title="Frozen Heart"></i> {get_text('award_might_title', lang=lang)}</div>
             <div class="award-desc">{get_text('award_might_desc', lang=lang)}</div>
         </div>
         <div class="award-list">{might_items}</div>
@@ -221,7 +212,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header"><img class="award-badge-icon" src="{icon_visionary}" alt="Sightstone"/> {get_text('award_visionary_title', lang=lang)}</div>
+                <div class="award-header"><i class="award-badge-icon icon-bg aico-award_visionary" title="Sightstone"></i> {get_text('award_visionary_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_visionary_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{visionary_items}</div>
@@ -232,7 +223,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header"><img class="award-badge-icon" src="{icon_demolisher}" alt="Hullbreaker"/> {get_text('award_demolisher_title', lang=lang)}</div>
+                <div class="award-header"><i class="award-badge-icon icon-bg aico-award_demolisher" title="Hullbreaker"></i> {get_text('award_demolisher_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_demolisher_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{demolisher_items}</div>
@@ -241,7 +232,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
 
     return f"""
     <div class="card">
-        <h3><img class="award-badge-icon" src="{icon_crown}" alt="DKC" style="width:22px; height:22px;"/> {get_text('match_awards_title', lang=lang)}</h3>
+        <h3><i class="award-badge-icon icon-bg aico-award_crown" title="DKC" style="width:22px; height:22px;"></i> {get_text('match_awards_title', lang=lang)}</h3>
         <div class="awards-grid">
             {"".join(award_cards)}
         </div>

@@ -274,6 +274,21 @@ class AssetManager:
         return fallback_url
 
     @classmethod
+    def get_icon_css_block(cls, keys) -> str:
+        """Emits one background-image rule per key so callers can reuse an icon via
+        class name instead of re-embedding its full base64 data on every occurrence."""
+        rules = []
+        seen = set()
+        for k in keys:
+            if k in seen:
+                continue
+            seen.add(k)
+            uri = cls.get_asset_uri(k)
+            if uri:
+                rules.append(f".aico-{k} {{ background-image: url('{uri}'); }}")
+        return "".join(rules)
+
+    @classmethod
     def preload_all_assets(cls):
         """Pre-downloads and crops all icons in background and warms up analysis engine."""
         keys = list(ASSETS.keys()) + ["gold_icon", "xp_icon", "cs_icon"]

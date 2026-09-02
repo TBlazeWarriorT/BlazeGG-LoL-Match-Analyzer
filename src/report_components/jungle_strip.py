@@ -1,4 +1,3 @@
-from ..asset_cache import AssetManager
 from ..i18n import get_text
 
 def render_jungle_chronological(seq, lang: str = "en_US") -> str:
@@ -28,7 +27,7 @@ def render_jungle_chronological(seq, lang: str = "en_US") -> str:
         soul_title_tag = " • DRAGON SOUL!" if is_soul else ""
         items_html.append(
             f'<div class="jungle-badge-wrapper" title="[{item["time"]}] {item["name"]}{soul_title_tag}">'
-            f'<img class="obj-badge-icon-lg {glow_class}" src="{AssetManager.get_asset_uri(item["asset_key"])}"/>'
+            f'<i class="obj-badge-icon-lg icon-bg aico-{asset_key} {glow_class}"></i>'
             f'<span class="badge-time" style="{time_style}">{item["time"]}</span>'
             f'</div>'
         )

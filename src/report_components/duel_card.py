@@ -1,5 +1,4 @@
 from typing import Dict, Any, List
-from ..asset_cache import AssetManager
 from ..i18n import get_text
 from .utils import calculate_gold_bar_share
 from .jungle_strip import render_jungle_chronological
@@ -21,9 +20,6 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
             dur_s_game = 1800
 
     dur_min_calc = max(dur_s_game / 60.0, 1.0)
-    icon_gold = AssetManager.get_asset_uri("gold_icon")
-    icon_cs = AssetManager.get_asset_uri("cs_icon")
-    icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
 
     j100 = jungle.get(100, {})
     j200 = jungle.get(200, {})
