@@ -8,7 +8,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import concurrent.futures
 from pathlib import Path
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
@@ -114,7 +114,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
+                client = RiotClient(session_key=sess_key, lang=lang)
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8)
@@ -213,7 +213,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
+                client = RiotClient(session_key=sess_key, lang=lang)
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8, start=start_offset)
@@ -238,7 +238,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                client = RiotClient(api_key=get_api_key(session_key=sess_key), lang=lang)
+                client = RiotClient(session_key=sess_key, lang=lang)
                 with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                     f_match = executor.submit(client.get_match_detail, match_id)
                     f_timeline = executor.submit(client.get_match_timeline, match_id)
