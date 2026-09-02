@@ -117,12 +117,21 @@ def set_key_preference(kind: str):
     except Exception:
         pass
 
-def get_api_key(session_key: str = "") -> str:
-    # Whichever of PROD/DEV last worked goes first, session_key (User Cookie) sits
-    # in between, and the other of PROD/DEV is the fallback.
+def get_key_candidates(session_key: str = ""):
+    """Ordered (kind, value) key candidates: whichever of PROD/DEV worked last
+    goes first, session_key (the visitor's own cookie-provided key on hosted
+    deploys) sits in between, and the other of PROD/DEV is the fallback.
+    Single source of truth — get_api_key() and RiotClient's request-time
+    fallback both read this instead of each re-deriving the same order."""
     prod, dev = get_prod_key(), get_dev_key()
-    first, second = (prod, dev) if get_key_preference() == "prod" else (dev, prod)
-    return first or session_key or second or ""
+    first, second = (("prod", prod), ("dev", dev)) if get_key_preference() == "prod" else (("dev", dev), ("prod", prod))
+    return [first, ("session", session_key), second]
+
+def get_api_key(session_key: str = "") -> str:
+    for _, value in get_key_candidates(session_key):
+        if value:
+            return value
+    return ""
 
 def get_key_expires_at(session_expiry: str = "") -> str:
     # Reflects whichever key is actually preferred right now.

@@ -2,7 +2,7 @@ import requests
 import time
 import urllib.parse
 from typing import Optional, List, Dict, Any
-from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, get_key_preference, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
+from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, get_key_candidates, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
 from .i18n import get_text
 
@@ -49,21 +49,12 @@ class RiotClient:
             if time.time() >= exp_ts:
                 raise RiotAPIError(get_text("err_key_expired", lang=self.lang))
 
-    def _remaining_candidates(self):
-        """All key candidates in the same order get_api_key() would try them,
-        so a dead PROD_KEY falls through to the visitor's own session key
-        (set via the website's own key form on hosted/production deploys,
-        where there's usually no server-side DEV_KEY at all) and then DEV_KEY."""
-        prod, dev = get_prod_key(), get_dev_key()
-        first, second = (("prod", prod), ("dev", dev)) if get_key_preference() == "prod" else (("dev", dev), ("prod", prod))
-        return [first, ("session", self.session_key), second]
-
     def _switch_to_alternate_key(self) -> bool:
         """On a 401/403, try the next untried candidate (prod/dev/session) before
         giving up. Whichever one works becomes the preferred prod/dev key going
         forward — not a permanent blacklist of the one that failed, just try-order,
         so it gets retried again once the currently-preferred one fails too."""
-        for kind, value in self._remaining_candidates():
+        for kind, value in get_key_candidates(self.session_key):
             if value and value not in self._tried_values:
                 self.api_key = value
                 self.key_kind = kind
