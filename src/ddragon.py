@@ -125,6 +125,38 @@ class DataDragon:
                             "icon": f"https://ddragon.leagueoflegends.com/cdn/img/{icon_path}"
                         }
 
+        # Load queues.json from Riot Docs CDN
+        queues_cache = DDRAGON_CACHE_DIR / "queues.json"
+        cached_queues = load_json(queues_cache)
+        if not cached_queues:
+            try:
+                url = "https://static.developer.riotgames.com/docs/lol/queues.json"
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    cached_queues = resp.json()
+                    save_json(queues_cache, cached_queues)
+            except Exception:
+                cached_queues = []
+        self._queues: Dict[int, Dict[str, str]] = {}
+        if cached_queues and isinstance(cached_queues, list):
+            for q in cached_queues:
+                qid = q.get("queueId")
+                if qid is not None:
+                    self._queues[qid] = {
+                        "map": q.get("map") or "",
+                        "description": q.get("description") or "",
+                        "notes": q.get("notes") or ""
+                    }
+
+    def get_queue_raw_description(self, queue_id: int) -> str:
+        q = self._queues.get(queue_id, {})
+        desc = q.get("description") or ""
+        if desc.endswith(" games"):
+            desc = desc[:-6]
+        elif desc.endswith(" Games"):
+            desc = desc[:-6]
+        return desc.strip()
+
     def get_spell_info(self, spell_id: int) -> Dict[str, str]:
         s = self._spells.get(str(spell_id))
         if s:
