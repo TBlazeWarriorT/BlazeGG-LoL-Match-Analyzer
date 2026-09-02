@@ -50,9 +50,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     events_html, timeline_top_toggle_btn, timeline_toggle_btn = rc.render_timeline_section(data, lang=lang)
 
     # Header & Mode lookup
-    match_mode = rc.clean_mode_name(data.get("game_mode", "CLASSIC"))
-    queue_name = rc.get_queue_name(data.get("queue_id", 0), lang=lang)
-    full_mode_display = f"{match_mode} ({queue_name})" if queue_name else match_mode
+    full_mode_display = rc.format_full_mode_display(data.get("game_mode", "CLASSIC"), queue_id=data.get("queue_id", 0), lang=lang)
 
 
     target_player = None

@@ -119,23 +119,8 @@ def get_cached_matches_list(lang: str = "en_US"):
     return matches
 
 def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US") -> str:
-    m = str(mode).upper()
-    mode_name = "Summoner's Rift" if m == "CLASSIC" else ("ARAM" if m == "ARAM" else ("Arena" if m == "CHERRY" else ("URF" if m == "URF" else m.capitalize())))
-    queue_map = {
-        420: "queue_ranked_solo",
-        440: "queue_ranked_flex",
-        400: "queue_normal_draft",
-        430: "queue_normal_blind",
-        450: "queue_aram",
-        1700: "queue_arena",
-        900: "queue_urf",
-        1010: "queue_urf",
-        1020: "queue_one_for_all",
-        1900: "queue_urf"
-    }
-    q_key = queue_map.get(queue_id, "")
-    q_name = get_text(q_key, lang=lang) if q_key else ""
-    return f"{mode_name} ({q_name})" if q_name else mode_name
+    from src.report_components.utils import format_full_mode_display
+    return format_full_mode_display(mode, queue_id=queue_id, lang=lang)
 
 def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0):
     m_upper = str(mode).upper()
