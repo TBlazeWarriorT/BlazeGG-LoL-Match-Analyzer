@@ -165,13 +165,21 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     ])
 
 
+    icon_crown = AssetManager.get_asset_uri("award_crown")
+    icon_smite = AssetManager.get_asset_uri("award_smite")
+    icon_ie = AssetManager.get_asset_uri("award_ie")
+    icon_avarice = AssetManager.get_asset_uri("award_avarice")
+    icon_might = AssetManager.get_asset_uri("award_might")
+    icon_visionary = AssetManager.get_asset_uri("award_visionary")
+    icon_demolisher = AssetManager.get_asset_uri("award_demolisher")
+
     award_cards = []
 
     if not is_aram and not is_arena and jungle_items_list:
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header">{get_text('award_jungle_title', lang=lang)}</div>
+                <div class="award-header"><img class="award-badge-icon" src="{icon_smite}" alt="Smite"/> {get_text('award_jungle_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_jungle_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{jungle_items}</div>
@@ -182,7 +190,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header">{get_text('award_mayhem_title', lang=lang)}</div>
+                <div class="award-header"><img class="award-badge-icon" src="{icon_ie}" alt="IE"/> {get_text('award_mayhem_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_mayhem_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{mayhem_items}</div>
@@ -192,7 +200,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     award_cards.append(f"""
     <div class="award-card">
         <div>
-            <div class="award-header">{get_text('award_greed_title', lang=lang)}</div>
+            <div class="award-header"><img class="award-badge-icon" src="{icon_avarice}" alt="Avarice Blade"/> {get_text('award_greed_title', lang=lang)}</div>
             <div class="award-desc">{get_text('award_greed_desc', lang=lang)}</div>
         </div>
         <div class="award-list">{greed_items}</div>
@@ -202,7 +210,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
     award_cards.append(f"""
     <div class="award-card">
         <div>
-            <div class="award-header">{get_text('award_might_title', lang=lang)}</div>
+            <div class="award-header"><img class="award-badge-icon" src="{icon_might}" alt="Frozen Heart"/> {get_text('award_might_title', lang=lang)}</div>
             <div class="award-desc">{get_text('award_might_desc', lang=lang)}</div>
         </div>
         <div class="award-list">{might_items}</div>
@@ -213,7 +221,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header">{get_text('award_visionary_title', lang=lang)}</div>
+                <div class="award-header"><img class="award-badge-icon" src="{icon_visionary}" alt="Sightstone"/> {get_text('award_visionary_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_visionary_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{visionary_items}</div>
@@ -224,7 +232,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
         award_cards.append(f"""
         <div class="award-card">
             <div>
-                <div class="award-header">{get_text('award_demolisher_title', lang=lang)}</div>
+                <div class="award-header"><img class="award-badge-icon" src="{icon_demolisher}" alt="Hullbreaker"/> {get_text('award_demolisher_title', lang=lang)}</div>
                 <div class="award-desc">{get_text('award_demolisher_desc', lang=lang)}</div>
             </div>
             <div class="award-list">{demolisher_items}</div>
@@ -233,7 +241,7 @@ def render_match_awards(data: Dict[str, Any], all_players: List[Dict[str, Any]],
 
     return f"""
     <div class="card">
-        <h3>{get_text('match_awards_title', lang=lang)}</h3>
+        <h3><img class="award-badge-icon" src="{icon_crown}" alt="DKC" style="width:22px; height:22px;"/> {get_text('match_awards_title', lang=lang)}</h3>
         <div class="awards-grid">
             {"".join(award_cards)}
         </div>

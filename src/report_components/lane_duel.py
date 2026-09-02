@@ -26,6 +26,10 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
     icon_xp = AssetManager.get_asset_uri("xp_icon")
     icon_cs = AssetManager.get_asset_uri("cs_icon")
     icon_pink = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png"
+    icon_gromp = AssetManager.get_asset_uri("gromp_icon")
+    icon_oracle = AssetManager.get_asset_uri("oracle_lens")
+    icon_stealth = AssetManager.get_asset_uri("stealth_ward")
+    icon_sightstone = AssetManager.get_asset_uri("award_visionary")
 
     def p_card(p, is_target, is_left=True, badges_html="", is_dmg_leader=False, is_gold_leader=False, delta_dmg=0, delta_gold=0):
         align_class = "align-left" if is_left else "align-right"
@@ -321,7 +325,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 f"• {get_text('lane_minions', lang=lang)}: <b>{minions_val}</b>"
             ]
             if neutral_val > 0 or ally_jg_val > 0 or enemy_jg_val > 0:
-                gold_cs_tooltip_lines.append(f"• {get_text('neutral_minions', lang=lang)}: <b>{neutral_val}</b> (🌲 {get_text('ally_jungle', lang=lang)}: {ally_jg_val} • ⚔️ {get_text('enemy_jungle', lang=lang)}: {enemy_jg_val})")
+                gold_cs_tooltip_lines.append(f"• {get_text('neutral_minions', lang=lang)}: <b>{neutral_val}</b> (<img class='mini-icon mini-icon-round' src='{icon_gromp}'/> {get_text('ally_jungle', lang=lang)}: {ally_jg_val} • ⚔️ {get_text('enemy_jungle', lang=lang)}: {enemy_jg_val})")
             gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
             cs_or_anvils_slot = f"""<span><img class="mini-icon" src="{icon_cs}"/> {cs_display}</span>"""
 
@@ -334,24 +338,24 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
         # 5. Clean multi-line HTML tooltip for Vision Pill
         vis_tooltip_lines = [
-            f"<b>👁️ {get_text('vision_score', lang=lang)}: {vis_val}</b>",
-            f"• {get_text('wards_placed', lang=lang)}: <b>{wards_placed_val}</b>",
-            f"• {get_text('control_wards_placed', lang=lang)}: <b>{pinks_val}</b>",
-            f"• {get_text('control_wards_bought', lang=lang)}: <b>{pinks_bought_val}</b>",
-            f"• {get_text('wards_killed', lang=lang)}: <b>{wards_killed_val}</b>"
+            f"<div style='margin-bottom:4px;'><b><img class='mini-icon-gromp' src='{icon_sightstone}'/> {get_text('vision_score', lang=lang)}: {vis_val}</b></div>",
+            f"• <img class='mini-icon mini-icon-round' src='{icon_stealth}'/> {get_text('wards_placed', lang=lang)}: <b>{wards_placed_val}</b>",
+            f"• <img class='mini-icon mini-icon-round' src='{icon_pink}'/> {get_text('control_wards_placed', lang=lang)}: <b>{pinks_val}</b>",
+            f"• <img class='mini-icon mini-icon-round' src='{icon_pink}'/> {get_text('control_wards_bought', lang=lang)}: <b>{pinks_bought_val}</b>",
+            f"• <img class='mini-icon mini-icon-round' src='{icon_oracle}'/> {get_text('wards_killed', lang=lang)}: <b>{wards_killed_val}</b>"
         ]
         if camps_stolen_val > 0:
             vis_tooltip_lines.append(f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>")
-            vis_tooltip_lines.append(f"🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b>")
+            vis_tooltip_lines.append(f"<img class='mini-icon-gromp' src='{icon_gromp}'/> {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b>")
         vis_tooltip_html = "<br/>".join(vis_tooltip_lines).replace('"', '&quot;')
 
         pink_badge = f"<img class='mini-icon mini-icon-round' src='{icon_pink}'/> <b>{pinks_val}</b>"
-        ward_kill_badge = f"<span style='color:#cbd5e1;'>🗡️ <b>{wards_killed_val}</b></span>" if wards_killed_val > 0 else ""
+        ward_kill_badge = f"<span style='color:#cbd5e1;'><img class='mini-icon mini-icon-round' src='{icon_oracle}'/> <b>{wards_killed_val}</b></span>" if wards_killed_val > 0 else ""
         vis_badges = f"({pink_badge}{(' • ' + ward_kill_badge) if ward_kill_badge else ''})"
         vis_combined = f"{get_text('vision_score', lang=lang)}: <b>{vis_val}</b> {vis_badges}"
 
         # Hide jungle stolen in ARAM/Arena
-        camps_item = f"<span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>" if (not is_aram and not is_arena) else ""
+        camps_item = f"<span><img class='mini-icon-gromp' src='{icon_gromp}' alt='Gromp'/> {get_text('camps_stolen', lang=lang)}: <b>{camps_stolen_val}</b></span>" if (not is_aram and not is_arena) else ""
 
         line_4_vision_camps = f"""
         <div class="pill pill-wide" data-tooltip="{vis_tooltip_html}">

@@ -560,7 +560,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     </div>
                     <div class="pill pill-wide">
                         <span>{t1_vis_combined}</span>
-                        <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{t1_camps}</b></span>
+                        <span><img class="mini-icon-gromp" src="{AssetManager.get_asset_uri('gromp_icon')}" alt="Gromp"/> {get_text('camps_stolen', lang=lang)}: <b>{t1_camps}</b></span>
                     </div>
                 </div>
             </div>
@@ -611,7 +611,7 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                     </div>
                     <div class="pill pill-wide">
                         <span>{t2_vis_combined}</span>
-                        <span>🌲 {get_text('camps_stolen', lang=lang)}: <b>{t2_camps}</b></span>
+                        <span><img class="mini-icon-gromp" src="{AssetManager.get_asset_uri('gromp_icon')}" alt="Gromp"/> {get_text('camps_stolen', lang=lang)}: <b>{t2_camps}</b></span>
                     </div>
                 </div>
             </div>

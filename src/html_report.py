@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, Any
 from .config import CACHE_DIR
 from .i18n import get_text, render_language_dropdown
+from .asset_cache import AssetManager
 import src.report_components as rc
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
@@ -228,7 +229,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         <!-- Momentos Chave -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="margin:0;">{get_text('timeline_title', lang=lang)}</h3>
+                <h3 style="margin:0;"><img src="{AssetManager.get_asset_uri('swords_icon')}" alt="⚔️" style="width:18px; height:18px; vertical-align:middle; display:inline-block; margin-right:6px;"/>{get_text('timeline_title', lang=lang)}</h3>
                 {timeline_top_toggle_btn}
             </div>
             {events_html}

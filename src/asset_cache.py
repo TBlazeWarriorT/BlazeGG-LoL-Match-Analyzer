@@ -59,6 +59,54 @@ ASSETS = {
         "url": f"{CD_DRAGON_BASE}/baron_circle.png",
         "fallback": "https://wiki.leagueoflegends.com/en-us/images/thumb/Baron_NashorSquare.png/48px-Baron_NashorSquare.png"
     },
+    "gromp_circle": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/characters/sru_gromp/hud/gromp_circle.png",
+        "fallback": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png"
+    },
+    "gromp_icon": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/characters/sru_gromp/hud/gromp_circle.png",
+        "fallback": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png"
+    },
+    "award_crown": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/items/icons2d/3056_demonkingscrown.png",
+        "fallback": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/4644.png"
+    },
+    "award_smite": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/spell/SummonerSmite.png",
+        "fallback": ""
+    },
+    "award_ie": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/3031.png",
+        "fallback": ""
+    },
+    "award_avarice": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/items/icons2d/773093_avarice_blade.png",
+        "fallback": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/4403.png"
+    },
+    "award_might": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/3110.png",
+        "fallback": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/3143.png"
+    },
+    "award_visionary": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/items/icons2d/772049_sightstone.png",
+        "fallback": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/4643.png"
+    },
+    "oracle_lens": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/3364.png",
+        "fallback": ""
+    },
+    "stealth_ward": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/3340.png",
+        "fallback": ""
+    },
+    "control_ward": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/2055.png",
+        "fallback": ""
+    },
+    "award_demolisher": {
+        "url": "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/3181.png",
+        "fallback": "https://raw.communitydragon.org/latest/game/assets/items/icons2d/3512_zzrot_portal.png"
+    },
     "stat_hp": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/1/17/Health_icon.png/revision/latest/scale-to-width-down/15?cb=20240607103046", "fallback": ""},
     "stat_hpregen": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/3/31/Health_regeneration_icon.png/revision/latest/scale-to-width-down/15?cb=20240607102806", "fallback": ""},
     "stat_healshield": {"url": "https://static.wikia.nocookie.net/leagueoflegends/images/2/28/Heal_and_shield_power_icon.png/revision/latest/scale-to-width-down/15?cb=20240607102503", "fallback": ""},
@@ -91,7 +139,7 @@ class AssetManager:
         if asset_key in cls._data_uri_cache:
             return cls._data_uri_cache[asset_key]
 
-        if asset_key in ("gold_icon", "xp_icon", "cs_icon") or asset_key.startswith("stat_"):
+        if asset_key in ("gold_icon", "xp_icon", "cs_icon", "swords_icon", "ranged_icon") or asset_key.startswith("stat_"):
             return cls._get_cropped_icon(asset_key)
 
         info = ASSETS.get(asset_key)
@@ -185,6 +233,8 @@ class AssetManager:
             "stat_hpregen": (0, 96, 24, 120),
             "stat_critdmg": (24, 240, 48, 264),
             "stat_healshield": (70, 262, 94, 286),
+            "swords_icon": (144, 263, 144 + 20, 263 + 20),
+            "ranged_icon": (120, 263, 120 + 20, 263 + 20),
         }
 
         # Ouro, XP e Stats do texticons.png

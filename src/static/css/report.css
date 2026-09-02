@@ -508,6 +508,16 @@ body {
 }
 .mini-icon { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; flex-shrink: 0; }
 .mini-icon-round { border-radius: 50% !important; border: 1px solid #334155; }
+.mini-icon-gromp {
+    width: 19px;
+    height: 19px;
+    border-radius: 50% !important;
+    border: 1px solid #475569;
+    display: inline-block;
+    vertical-align: -4px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
 
 
 .items-flex { display: flex; gap: 3px; flex-wrap: nowrap; align-items: center; margin-top: 4px; }
@@ -660,6 +670,16 @@ body {
     font-size: 1rem;
     color: #f59e0b;
     margin-bottom: 6px;
+}
+.award-badge-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    vertical-align: middle;
+    display: inline-block;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .award-desc {
     font-size: 0.75rem;
