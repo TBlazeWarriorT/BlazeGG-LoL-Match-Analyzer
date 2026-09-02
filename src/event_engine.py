@@ -664,16 +664,17 @@ class MatchAnalysis:
 
                     # Multikill tracking (Double, Triple, Quadra, Penta within time window)
                     streak_type = "normal"
-                    killer_streak = kill_streaks.get(killer, {"count": 0, "last_ts": 0})
+                    killer_streak = kill_streaks.get(killer, {"count": 0, "last_ts": 0, "event_indices": []})
                     current_count = killer_streak["count"]
                     last_ts = killer_streak["last_ts"]
+                    streak_ev_indices = list(killer_streak.get("event_indices", []))
 
                     allowed_window = 30000 if current_count == 4 else 10000
                     if current_count > 0 and (ts - last_ts) <= allowed_window:
                         new_count = current_count + 1
                     else:
                         new_count = 1
-                    kill_streaks[killer] = {"count": new_count, "last_ts": ts}
+                        streak_ev_indices = []
 
                     if new_count >= 5:
                         streak_type = "penta"
@@ -833,6 +834,15 @@ class MatchAnalysis:
                         "combat_spells": combat_spells
                     })
 
+                    curr_ev_idx = len(events_log) - 1
+                    streak_ev_indices.append(curr_ev_idx)
+                    kill_streaks[killer] = {"count": new_count, "last_ts": ts, "event_indices": streak_ev_indices}
+
+                    if new_count >= 2:
+                        group_id = f"mk_{killer}_{streak_ev_indices[0]}"
+                        for ev_i in streak_ev_indices:
+                            events_log[ev_i]["multikill_group"] = group_id
+
                 elif ev_type == "ELITE_MONSTER_KILL":
                     m_type = ev.get("monsterType", "")
                     m_sub = ev.get("monsterSubType", "")
@@ -870,6 +880,22 @@ class MatchAnalysis:
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw),
                         "killer_name": k_p.get("riotIdGameName", "")
                     })
+
+        # Post-process multikill consecutive visual segments
+        for i, ev in enumerate(events_log):
+            gid = ev.get("multikill_group")
+            if not gid:
+                continue
+            prev_same = (i > 0 and events_log[i - 1].get("multikill_group") == gid)
+            next_same = (i < len(events_log) - 1 and events_log[i + 1].get("multikill_group") == gid)
+            if prev_same and next_same:
+                ev["multikill_segment_pos"] = "mid"
+            elif prev_same and not next_same:
+                ev["multikill_segment_pos"] = "end"
+            elif not prev_same and next_same:
+                ev["multikill_segment_pos"] = "start"
+            else:
+                ev["multikill_segment_pos"] = "single"
 
         self._cached_item_events = item_events_log
         return events_log

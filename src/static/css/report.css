@@ -1507,6 +1507,34 @@ body {
     display: inline-block;
     vertical-align: middle;
 }
+
+/* ⚔️ Multikill Continuous Backdrop & Merged Cluster */
+.event-item[data-multikill-group] {
+    background: rgba(245, 158, 11, 0.04);
+    border-color: rgba(245, 158, 11, 0.28);
+    position: relative;
+    z-index: 1;
+}
+
+.event-item[data-multikill-pos="start"] {
+    margin-bottom: -8px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-bottom: 1px dashed rgba(245, 158, 11, 0.2);
+}
+
+.event-item[data-multikill-pos="mid"] {
+    margin-bottom: -8px;
+    border-radius: 0px;
+    border-top: none;
+    border-bottom: 1px dashed rgba(245, 158, 11, 0.2);
+}
+
+.event-item[data-multikill-pos="end"] {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-top: none;
+}
 .tag-ultkill {
     background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
     color: #ffffff;

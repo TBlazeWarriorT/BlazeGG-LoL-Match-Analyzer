@@ -368,8 +368,12 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     kda=ev.get('victim_kda', '0/0/0')
                 )
 
+                mk_group = ev.get("multikill_group", "")
+                mk_pos = ev.get("multikill_segment_pos", "")
+                mk_attrs = f' data-multikill-group="{mk_group}" data-multikill-pos="{mk_pos}"' if mk_group else ""
+
                 kills_list_items.append(f"""
-                <li class="event-item event-kill {team_border_class} {streak_class}" data-phase="{ev_phase}">
+                <li class="event-item event-kill {team_border_class} {streak_class}" data-phase="{ev_phase}"{mk_attrs}>
                     <span class="event-time">{t}</span>
                     <div class="event-kill-duel">
                         {k_avatar}
