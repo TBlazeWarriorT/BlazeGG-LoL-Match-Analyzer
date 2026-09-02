@@ -222,7 +222,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     list(executor.map(lambda mid: client.get_match_detail(mid, target_puuid=puuid), match_ids))
 
-                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang))
+                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang, auto_expand=True))
 
             except RiotAPIError as e:
                 self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))

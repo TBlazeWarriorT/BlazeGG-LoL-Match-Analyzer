@@ -267,7 +267,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True, auto_expand=False):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
     def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
@@ -311,6 +311,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_missing", lang=lang)}</span>'
 
     cached_html = ""
+    auto_expand_indices = []
     if cached_list:
         # Group cached matches by target summoner
         summoner_groups = {}
@@ -413,11 +414,12 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             tab_id = f"cache-tab-{idx}"
             btn_active_cls = "active" if idx == active_tab_idx else ""
             pane_active_cls = "active" if idx == active_tab_idx else ""
+            tab_pre_expanded = auto_expand and idx == active_tab_idx
 
-            # Format cards: first 8 visible, remaining hidden
+            # Format cards: first 8 visible, remaining hidden (unless this tab was just fetched via load more)
             formatted_cards = []
             for c_idx, c_html in enumerate(cards_list):
-                if c_idx < 8:
+                if c_idx < 8 or tab_pre_expanded:
                     formatted_cards.append(c_html)
                 else:
                     hidden_card = c_html.replace('class="match-item ', 'class="match-item match-hidden ')
@@ -426,12 +428,21 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             # Build action buttons inside tab
             expand_btn = ""
             if len(cards_list) > 8:
-                lbl_show_more = get_text("show_more_matches", lang=lang, count=len(cards_list) - 8)
-                expand_btn = f"""
-                <button type="button" class="btn-tab-action" id="expand-btn-{idx}" onclick="toggleTabMatches({idx}, {len(cards_list)})">
-                    <span>▼ {lbl_show_more}</span>
-                </button>
-                """
+                if tab_pre_expanded:
+                    auto_expand_indices.append(idx)
+                    lbl_show_less = get_text("tab_show_less", lang=lang)
+                    expand_btn = f"""
+                    <button type="button" class="btn-tab-action" id="expand-btn-{idx}" onclick="toggleTabMatches({idx}, {len(cards_list)})">
+                        <span>{lbl_show_less}</span>
+                    </button>
+                    """
+                else:
+                    lbl_show_more = get_text("show_more_matches", lang=lang, count=len(cards_list) - 8)
+                    expand_btn = f"""
+                    <button type="button" class="btn-tab-action" id="expand-btn-{idx}" onclick="toggleTabMatches({idx}, {len(cards_list)})">
+                        <span>▼ {lbl_show_more}</span>
+                    </button>
+                    """
 
             # Parse game_name and tag_line for refresh & load more
             load_more_btn = ""
@@ -695,6 +706,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 {js_i18n}
 <script>
     {hub_js}
+    {"".join(f"tabExpandedState[{i}] = true;" for i in auto_expand_indices)}
 </script>
 </body>
 </html>
