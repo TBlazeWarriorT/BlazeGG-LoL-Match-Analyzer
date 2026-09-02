@@ -11,16 +11,14 @@ from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
 from src.ddragon import DataDragon
-from src.i18n import get_text
+from src.i18n import get_text, SUPPORTED_LANGUAGES, render_language_dropdown
 
 PORT = int(os.environ.get("PORT", 8000))
 HUB_CSS_FILE = Path(__file__).parent / "src" / "static" / "css" / "hub.css"
 HUB_JS_FILE = Path(__file__).parent / "src" / "static" / "js" / "report.js"
-ddragon = DataDragon(language="pt_BR")
-ddragon_en = DataDragon(language="en_US")
 
 def get_ddragon(lang: str = "en_US") -> DataDragon:
-    return ddragon if lang == "pt_BR" else ddragon_en
+    return DataDragon(language=lang)
 
 def format_relative_time(creation_ms: int, lang: str = "en_US") -> str:
     import time
@@ -618,14 +616,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
     </div>
-    <div class="lang-picker">
-        <a href="/?lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
-            <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
-        </a>
-        <a href="/?lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
-            <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
-        </a>
-    </div>
+    {render_language_dropdown(current_lang=lang)}
 </div>
 
 <div class="container">
@@ -710,7 +701,6 @@ class AppHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         qs = parse_qs(parsed.query)
-        lang = qs.get("lang", ["en_US"])[0].strip() or "en_US"
 
         host_header = self.headers.get("Host", "").lower()
         x_forwarded_for = self.headers.get("X-Forwarded-For", "")
@@ -727,6 +717,12 @@ class AppHandler(BaseHTTPRequestHandler):
                 cookie_obj.load(cookies_raw)
             except Exception:
                 pass
+
+        cookie_lang = urllib.parse.unquote(cookie_obj.get("blaze_lang").value) if "blaze_lang" in cookie_obj else ""
+        lang = qs.get("lang", [""])[0].strip() or cookie_lang or "en_US"
+        if lang not in SUPPORTED_LANGUAGES:
+            lang = "en_US"
+
         sess_key = urllib.parse.unquote(cookie_obj.get("blaze_dev_key").value) if "blaze_dev_key" in cookie_obj else ""
         sess_exp = urllib.parse.unquote(cookie_obj.get("blaze_dev_exp").value) if "blaze_dev_exp" in cookie_obj else ""
         

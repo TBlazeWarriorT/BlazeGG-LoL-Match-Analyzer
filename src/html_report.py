@@ -2,7 +2,7 @@ import webbrowser
 from pathlib import Path
 from typing import Dict, Any
 from .config import CACHE_DIR
-from .i18n import get_text
+from .i18n import get_text, render_language_dropdown
 import src.report_components as rc
 
 REPORT_FILE = CACHE_DIR / "last_report.html"
@@ -195,14 +195,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         <div class="kofi-container" title="Support TBlazeWarriorT on ko-fi.com" data-tooltip="Support TBlazeWarriorT on ko-fi.com">
             <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('{get_text("kofi_btn", lang=lang)}', '#ea580c', 'Q5Q1IZ1W');kofiwidget2.draw();</script>
         </div>
-        <div class="lang-picker">
-            <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=en_US" class="{'lang-btn active' if lang=='en_US' else 'lang-btn'}" title="English (US)">
-                <img class="flag-icon" src="https://flagcdn.com/w40/us.png" alt="US Flag"/> EN
-            </a>
-            <a href="/analyze?match_id={data.get('match_id')}&puuid={target_puuid}&lang=pt_BR" class="{'lang-btn active' if lang=='pt_BR' else 'lang-btn'}" title="Português (Brasil)">
-                <img class="flag-icon" src="https://flagcdn.com/w40/br.png" alt="BR Flag"/> PT
-            </a>
-        </div>
+        {render_language_dropdown(current_lang=lang)}
     </div>
 
     <div class="container">

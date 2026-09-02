@@ -570,6 +570,30 @@ function initRiotIdSmartPaste() {
 document.addEventListener("DOMContentLoaded", initRiotIdSmartPaste);
 window.addEventListener("load", initRiotIdSmartPaste);
 
+/* Language Dropdown Functions */
+function toggleLanguageDropdown(e) {
+    if (e) e.stopPropagation();
+    var menu = document.getElementById("lang-dropdown-menu");
+    if (menu) {
+        menu.classList.toggle("show");
+    }
+}
+
+function changeLanguage(langCode) {
+    document.cookie = "blaze_lang=" + encodeURIComponent(langCode) + "; path=/; max-age=31536000; SameSite=Lax";
+    var url = new URL(window.location.href);
+    url.searchParams.set("lang", langCode);
+    window.location.href = url.toString();
+}
+
+document.addEventListener("click", function(e) {
+    var wrapper = document.getElementById("lang-dropdown-wrapper");
+    if (wrapper && !wrapper.contains(e.target)) {
+        var menu = document.getElementById("lang-dropdown-menu");
+        if (menu) menu.classList.remove("show");
+    }
+});
+
 
 
 

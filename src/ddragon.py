@@ -214,7 +214,7 @@ class DataDragon:
         cached_aug = load_json(aug_cache)
         if not cached_aug:
             try:
-                lang_code = "pt_br" if self.language == "pt_BR" else "default"
+                lang_code = "default" if self.language == "en_US" else self.language.lower().replace("-", "_")
                 url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/{lang_code}/v1/cherry-augments.json"
                 resp = requests.get(url, timeout=10)
                 if resp.status_code == 200:
