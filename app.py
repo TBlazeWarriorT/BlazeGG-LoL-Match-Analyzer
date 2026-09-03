@@ -118,6 +118,13 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._send_html(render_home_html(error_msg=err_msg, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
                 return
 
+            searched_riot_id = f"{name}#{tag}"
+            # If the live fetch below fails (no/expired key, Riot API hiccup), still
+            # show this summoner's tab with whatever is already cached for them —
+            # for this render only, not persisted to the history cookie, since a typo'd
+            # name that never resolves shouldn't permanently clutter search history.
+            fallback_hist = user_history if searched_riot_id.lower() in [h.lower() for h in user_history] else user_history + [searched_riot_id]
+
             try:
                 client = RiotClient(session_key=sess_key, lang=lang)
                 puuid = client.get_puuid(name, tag)
@@ -186,7 +193,6 @@ class AppHandler(BaseHTTPRequestHandler):
                     results = [item for item in fetched_items if item is not None]
 
                 # Add summoner to user's history list
-                searched_riot_id = f"{name}#{tag}"
                 new_hist = [h for h in user_history if h.lower() != searched_riot_id.lower()]
                 new_hist.insert(0, searched_riot_id)
                 new_hist = new_hist[:10]  # Store up to 10 recent summoners
@@ -204,9 +210,9 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.wfile.write(rendered_html.encode("utf-8"))
 
             except RiotAPIError as e:
-                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
             except Exception as e:
-                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
 
         elif path == "/load_more":
             name = qs.get("game_name", [""])[0].strip()
@@ -248,13 +254,20 @@ class AppHandler(BaseHTTPRequestHandler):
             is_raw_id_search = not puuid
 
             try:
-                client = RiotClient(session_key=sess_key, lang=lang)
-                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                    f_match = executor.submit(client.get_match_detail, match_id)
-                    f_timeline = executor.submit(client.get_match_timeline, match_id)
-                    m = f_match.result()
-                    t = f_timeline.result()
-                
+                # If both files are already on disk, skip the Riot API (and the
+                # RiotClient it would need) entirely — a cached match should never
+                # fail just because there's no valid key configured right now.
+                from src.cache_manager import get_cached_match, get_cached_timeline
+                m = get_cached_match(match_id)
+                t = get_cached_timeline(match_id)
+                if not (m and t):
+                    client = RiotClient(session_key=sess_key, lang=lang)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                        f_match = executor.submit(client.get_match_detail, match_id)
+                        f_timeline = executor.submit(client.get_match_timeline, match_id)
+                        m = f_match.result()
+                        t = f_timeline.result()
+
                 if not puuid:
                     last_sess = get_last_session() or {}
                     puuid = last_sess.get("puuid")
