@@ -302,5 +302,12 @@
   "cache_storage_used": "Stockage utilisé : {mb} Mo",
   "minions_killed_stat": "Sbires Éliminés",
   "tab_raw_stats": "Statistiques",
-  "tab_raw_timeline": "Chronologie"
+  "tab_raw_timeline": "Chronologie",
+  "tower_outer": "Tourelle Extérieure",
+  "tower_inner": "Tourelle Intérieure",
+  "tower_nexus": "Tourelle du Nexus",
+  "minions_label": "Sbires",
+  "tower_inhibitor": "Tourelle de l'Inhibiteur",
+  "structure_destroyed_by": "a été détruit par",
+  "structure_destroyed_by_f": "a été détruite par"
 }

@@ -302,5 +302,12 @@
   "cache_storage_used": "Almacenamiento usado: {mb} MB",
   "minions_killed_stat": "Súbditos Eliminados",
   "tab_raw_stats": "Estadísticas",
-  "tab_raw_timeline": "Cronología"
+  "tab_raw_timeline": "Cronología",
+  "tower_outer": "Torre Externa",
+  "tower_inner": "Torre Interna",
+  "tower_nexus": "Torre del Nexo",
+  "minions_label": "Súbditos",
+  "tower_inhibitor": "Torre del Inhibidor",
+  "structure_destroyed_by": "fue destruido por",
+  "structure_destroyed_by_f": "fue destruida por"
 }

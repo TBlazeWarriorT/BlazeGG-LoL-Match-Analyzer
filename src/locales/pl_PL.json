@@ -302,5 +302,12 @@
   "cache_storage_used": "Wykorzystane miejsce: {mb} MB",
   "minions_killed_stat": "Zabici Słudzy",
   "tab_raw_stats": "Statystyki",
-  "tab_raw_timeline": "Oś czasu"
+  "tab_raw_timeline": "Oś czasu",
+  "tower_outer": "Zewnętrzna Wieża",
+  "tower_inner": "Wewnętrzna Wieża",
+  "tower_nexus": "Wieża Nexusa",
+  "minions_label": "Słudzy",
+  "tower_inhibitor": "Wieża Inhibitora",
+  "structure_destroyed_by": "został zniszczony przez",
+  "structure_destroyed_by_f": "została zniszczona przez"
 }

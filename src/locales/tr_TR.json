@@ -302,5 +302,12 @@
   "cache_storage_used": "Kullanılan depolama: {mb} MB",
   "minions_killed_stat": "Öldürülen Askerler",
   "tab_raw_stats": "İstatistikler",
-  "tab_raw_timeline": "Zaman Çizelgesi"
+  "tab_raw_timeline": "Zaman Çizelgesi",
+  "tower_outer": "Dış Kule",
+  "tower_inner": "İç Kule",
+  "tower_nexus": "Nexus Kulesi",
+  "minions_label": "Askerler",
+  "tower_inhibitor": "İnhibitör Kulesi",
+  "structure_destroyed_by": "tarafından yıkıldı",
+  "structure_destroyed_by_f": "tarafından yıkıldı"
 }

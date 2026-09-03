@@ -1646,6 +1646,23 @@ body {
     border-left-color: #f59e0b !important;
     border-color: rgba(245, 158, 11, 0.3) !important;
 }
+.event-structure {
+    /* TODO: a cracked-wall corner accent would be a nice touch here, but two CSS
+       attempts (crossed diagonals, then a zigzag SVG) both looked wrong ("an X",
+       "rotated grass") — dropped for now until we find/draw a decent crack asset. */
+    background: linear-gradient(90deg, rgba(148, 163, 184, 0.18) 0%, #151d30 100%) !important;
+    border-left-color: #94a3b8 !important;
+    border-color: rgba(148, 163, 184, 0.3) !important;
+}
+.event-structure-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background-color: transparent;
+    flex-shrink: 0;
+    display: block;
+}
 .event-multi {
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.22) 0%, #151d30 100%);
     border-left-color: #ef4444;

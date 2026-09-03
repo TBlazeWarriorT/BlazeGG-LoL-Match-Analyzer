@@ -302,5 +302,12 @@
   "cache_storage_used": "已用儲存空間：{mb} MB",
   "minions_killed_stat": "擊殺小兵數",
   "tab_raw_stats": "數據",
-  "tab_raw_timeline": "時間軸"
+  "tab_raw_timeline": "時間軸",
+  "tower_outer": "外塔",
+  "tower_inner": "內塔",
+  "tower_nexus": "水晶塔",
+  "minions_label": "小兵",
+  "tower_inhibitor": "高地塔",
+  "structure_destroyed_by": "被摧毀，摧毀者為",
+  "structure_destroyed_by_f": "被摧毀，摧毀者為"
 }

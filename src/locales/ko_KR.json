@@ -302,5 +302,12 @@
   "cache_storage_used": "사용된 저장 공간: {mb} MB",
   "minions_killed_stat": "처치한 미니언",
   "tab_raw_stats": "통계",
-  "tab_raw_timeline": "타임라인"
+  "tab_raw_timeline": "타임라인",
+  "tower_outer": "외곽 포탑",
+  "tower_inner": "내곽 포탑",
+  "tower_nexus": "넥서스 포탑",
+  "minions_label": "미니언",
+  "tower_inhibitor": "억제기 포탑",
+  "structure_destroyed_by": "에 의해 파괴됨",
+  "structure_destroyed_by_f": "에 의해 파괴됨"
 }

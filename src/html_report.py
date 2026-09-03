@@ -196,6 +196,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
         "gromp_circle", "gromp_icon", "oracle_lens", "stealth_ward", "control_ward",
         "award_visionary", "award_crown", "award_smite", "award_ie", "award_avarice",
         "award_might", "award_demolisher",
+        "turret_blue_circle", "turret_red_circle", "inhibitor_blue_circle", "inhibitor_red_circle",
     ]
     reusable_icon_css = "\n    " + AssetManager.get_icon_css_block(reusable_icon_keys)
 

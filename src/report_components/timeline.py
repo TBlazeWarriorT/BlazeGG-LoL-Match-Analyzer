@@ -119,6 +119,27 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 <span class="event-desc"><b>{obj_desc}</b> {slain_txt} <b>{ev['killer_champ']}</b> ({ev['killer_name']})</span>
             </li>
             """)
+        elif ev_type == "structure":
+            struct_desc = ev.get("desc", "")
+            struct_asset_key = ev.get("asset_key", "")
+            is_inhib = ev.get("is_inhibitor", False)
+            fell_txt = get_text("structure_destroyed_by" if is_inhib else "structure_destroyed_by_f", lang=lang)
+            # Team is said in words in the tooltip, not the visible line — the icon is
+            # already colored for the team, so repeating it inline would just be noise
+            # (colorblind users still get it from the tooltip, no color-only info lost).
+            team_lbl = get_text("blue_team", lang=lang) if ev.get("destroyed_team") == 100 else get_text("red_team", lang=lang)
+            if ev.get("killer_champ"):
+                who_str = f"<b>{ev['killer_champ']}</b> ({ev['killer_name']})"
+            else:
+                who_str = f"<b>{get_text('minions_label', lang=lang)}</b>"
+
+            kills_list_items.append(f"""
+            <li class="event-item event-structure" data-phase="{ev_phase}">
+                <span class="event-time">{t}</span>
+                <i class="event-structure-icon icon-bg aico-{struct_asset_key}" title="{team_lbl}: {struct_desc}"></i>
+                <span class="event-desc"><b>{struct_desc}</b> {fell_txt} {who_str}</span>
+            </li>
+            """)
         else:
             streak = ev.get("streak", "normal")
             life_streak = ev.get("life_streak", "none")

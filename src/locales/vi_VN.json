@@ -302,5 +302,12 @@
   "cache_storage_used": "Dung lượng đã dùng: {mb} MB",
   "minions_killed_stat": "Lính Đã Hạ",
   "tab_raw_stats": "Thống Kê",
-  "tab_raw_timeline": "Dòng Thời Gian"
+  "tab_raw_timeline": "Dòng Thời Gian",
+  "tower_outer": "Trụ Ngoài",
+  "tower_inner": "Trụ Trong",
+  "tower_nexus": "Trụ Nexus",
+  "minions_label": "Lính",
+  "tower_inhibitor": "Trụ Nhà Lính",
+  "structure_destroyed_by": "đã bị phá hủy bởi",
+  "structure_destroyed_by_f": "đã bị phá hủy bởi"
 }

@@ -302,5 +302,12 @@
   "cache_storage_used": "Armazenamento usado: {mb} MB",
   "minions_killed_stat": "Tropas Abatidas",
   "tab_raw_stats": "Estatísticas",
-  "tab_raw_timeline": "Linha do Tempo"
+  "tab_raw_timeline": "Linha do Tempo",
+  "tower_outer": "Torre Externa",
+  "tower_inner": "Torre Interna",
+  "tower_nexus": "Torre do Nexus",
+  "minions_label": "Tropas",
+  "tower_inhibitor": "Torre do Inibidor",
+  "structure_destroyed_by": "foi destruído por",
+  "structure_destroyed_by_f": "foi destruída por"
 }

@@ -63,6 +63,24 @@ def clean_monster_name(monster_type: str, sub_type: str = "", lang: str = "pt_BR
         return get_text("baron", lang=lang)
     return monster_type
 
+_TOWER_TIER_KEYS = {
+    "OUTER_TURRET": "tower_outer",
+    "INNER_TURRET": "tower_inner",
+    "BASE_TURRET": "tower_inhibitor",
+    "NEXUS_TURRET": "tower_nexus",
+}
+_LANE_KEYS = {"TOP_LANE": "top", "MID_LANE": "mid", "BOT_LANE": "bot"}
+
+def clean_structure_name(building_type: str, tower_type: str, lane_type: str, lang: str = "pt_BR") -> str:
+    from .i18n import get_text
+    lane_key = _LANE_KEYS.get(lane_type)
+    lane_suffix = f" ({get_text(lane_key, lang=lang)})" if lane_key else ""
+    if building_type == "INHIBITOR_BUILDING":
+        return f"{get_text('inhibitor', lang=lang)}{lane_suffix}"
+    tier_key = _TOWER_TIER_KEYS.get(tower_type)
+    tier_lbl = get_text(tier_key, lang=lang) if tier_key else get_text("turret", lang=lang)
+    return f"{tier_lbl}{lane_suffix}"
+
 class MatchAnalysis:
     def __init__(self, match_data: Dict[str, Any], timeline_data: Dict[str, Any], target_puuid: Optional[str] = None, ddragon: Optional[DataDragon] = None):
         self.match = match_data
@@ -364,6 +382,11 @@ class MatchAnalysis:
             elif ev["type"] == "objective":
                 text = f"{ev['time']} {ev['desc'].upper()} by {ev['killer_champ']}"
                 entries.append((ts_ms, text))
+            elif ev["type"] == "structure":
+                team_lbl = "BLUE" if ev.get("destroyed_team") == 100 else "RED"
+                killer_str = ev["killer_champ"] or "MINIONS"
+                text = f"{ev['time']} {team_lbl} {ev['desc'].upper()} destroyed by {killer_str}"
+                entries.append((ts_ms, text))
 
         for group in data.get("item_events", []):
             ts_ms = group.get("ts", parse_time_str(group.get("time", "0:00")))
@@ -401,6 +424,14 @@ class MatchAnalysis:
         j1_str = ", ".join([f"{x['name']}({x['time']})" for x in j1]) or "None"
         j2_str = ", ".join([f"{x['name']}({x['time']})" for x in j2]) or "None"
         lines.append(f"\n[OBJECTIVES]\n• Blue Team: {j1_str}\n• Red Team: {j2_str}")
+
+        # 1b. ESTRUTURAS DESTRUÍDAS (grouped by whoever destroyed them, mirroring OBJECTIVES above)
+        structures = [ev for ev in data.get("key_events", []) if ev.get("type") == "structure"]
+        blue_destroyed = [ev for ev in structures if ev.get("destroyed_team") == 200]
+        red_destroyed = [ev for ev in structures if ev.get("destroyed_team") == 100]
+        b_struct_str = ", ".join([f"{ev['desc']}({ev['time']})" for ev in blue_destroyed]) or "None"
+        r_struct_str = ", ".join([f"{ev['desc']}({ev['time']})" for ev in red_destroyed]) or "None"
+        lines.append(f"\n[STRUCTURES]\n• Blue Team destroyed: {b_struct_str}\n• Red Team destroyed: {r_struct_str}")
 
         # 2. CONFRONTOS DE LANE E DELTAS
         lines.append("\n[LANE MATCHUPS & GOLD DELTAS (Blue vs Red)]")
@@ -615,7 +646,7 @@ class MatchAnalysis:
                         elif "BARON" in m_type:
                             asset_key = "baron_circle"
 
-                        clean_name = clean_monster_name(m_type, m_sub)
+                        clean_name = clean_monster_name(m_type, m_sub, lang=self.ddragon.language)
                         if is_soul:
                             clean_name = f"{clean_name} (SOUL 🐉)"
 
@@ -934,7 +965,7 @@ class MatchAnalysis:
                     m_sub = ev.get("monsterSubType", "")
                     killer = ev.get("killerId")
                     k_p = self._get_part_dict(killer)
-                    desc = clean_monster_name(m_type, m_sub)
+                    desc = clean_monster_name(m_type, m_sub, lang=self.ddragon.language)
                     
                     asset_key = "dragon_circle"
                     is_soul = False
@@ -965,6 +996,32 @@ class MatchAnalysis:
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw),
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw),
                         "killer_name": k_p.get("riotIdGameName", "")
+                    })
+
+                elif ev_type == "BUILDING_KILL":
+                    building_type = ev.get("buildingType", "")
+                    tower_type = ev.get("towerType", "")
+                    lane_type = ev.get("laneType", "")
+                    destroyed_team = ev.get("teamId")
+                    is_inhib = building_type == "INHIBITOR_BUILDING"
+                    team_color = "blue" if destroyed_team == 100 else "red"
+                    asset_key = f"{'inhibitor' if is_inhib else 'turret'}_{team_color}_circle"
+                    killer = ev.get("killerId", 0)
+                    k_p = self._get_part_dict(killer) if killer else {}
+                    k_raw = k_p.get("championName", "")
+                    events_log.append({
+                        "type": "structure",
+                        "time": t_str,
+                        "building_type": building_type,
+                        "tower_type": tower_type,
+                        "lane_type": lane_type,
+                        "destroyed_team": destroyed_team,
+                        "is_inhibitor": is_inhib,
+                        "asset_key": asset_key,
+                        "desc": clean_structure_name(building_type, tower_type, lane_type, lang=self.ddragon.language),
+                        "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if killer else "",
+                        "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if killer else "",
+                        "killer_name": k_p.get("riotIdGameName", "") if killer else ""
                     })
 
         # Post-process multikill consecutive visual segments

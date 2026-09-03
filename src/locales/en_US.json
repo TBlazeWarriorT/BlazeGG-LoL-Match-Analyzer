@@ -302,5 +302,12 @@
   "cache_storage_used": "Storage used: {mb} MB",
   "minions_killed_stat": "Minions Killed",
   "tab_raw_stats": "Stats",
-  "tab_raw_timeline": "Timeline"
+  "tab_raw_timeline": "Timeline",
+  "tower_outer": "Outer Turret",
+  "tower_inner": "Inner Turret",
+  "tower_nexus": "Nexus Turret",
+  "minions_label": "Minions",
+  "tower_inhibitor": "Inhibitor Turret",
+  "structure_destroyed_by": "was destroyed by",
+  "structure_destroyed_by_f": "was destroyed by"
 }

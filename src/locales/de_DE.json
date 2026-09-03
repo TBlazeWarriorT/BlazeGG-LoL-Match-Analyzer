@@ -302,5 +302,12 @@
   "cache_storage_used": "Speicher belegt: {mb} MB",
   "minions_killed_stat": "Getötete Vasallen",
   "tab_raw_stats": "Statistiken",
-  "tab_raw_timeline": "Zeitachse"
+  "tab_raw_timeline": "Zeitachse",
+  "tower_outer": "Äußerer Turm",
+  "tower_inner": "Innerer Turm",
+  "tower_nexus": "Nexusturm",
+  "minions_label": "Vasallen",
+  "tower_inhibitor": "Hemmerturm",
+  "structure_destroyed_by": "wurde zerstört von",
+  "structure_destroyed_by_f": "wurde zerstört von"
 }

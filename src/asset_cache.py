@@ -59,6 +59,22 @@ ASSETS = {
         "url": f"{CD_DRAGON_BASE}/baron_circle.png",
         "fallback": "https://wiki.leagueoflegends.com/en-us/images/thumb/Baron_NashorSquare.png/48px-Baron_NashorSquare.png"
     },
+    "turret_blue_circle": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/characters/turret/hud/turret_blue_circle.png",
+        "fallback": "https://raw.communitydragon.org/latest/game/assets/characters/turret/hud/turret_blue_circle.png"
+    },
+    "turret_red_circle": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/characters/turret/hud/turret_red_circle.png",
+        "fallback": "https://raw.communitydragon.org/latest/game/assets/characters/turret/hud/turret_red_circle.png"
+    },
+    "inhibitor_blue_circle": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/characters/inhibitor/hud/inhibitor_blue_circle.png",
+        "fallback": "https://raw.communitydragon.org/latest/game/assets/characters/inhibitor/hud/inhibitor_blue_circle.png"
+    },
+    "inhibitor_red_circle": {
+        "url": "https://raw.communitydragon.org/latest/game/assets/characters/inhibitor/hud/inhibitor_red_circle.png",
+        "fallback": "https://raw.communitydragon.org/latest/game/assets/characters/inhibitor/hud/inhibitor_red_circle.png"
+    },
     "gromp_circle": {
         "url": "https://raw.communitydragon.org/latest/game/assets/characters/sru_gromp/hud/gromp_circle.png",
         "fallback": "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png"

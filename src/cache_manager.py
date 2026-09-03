@@ -102,9 +102,10 @@ def cleanup_cache_if_needed():
 # there's no plan to ever show more timeline detail than a kill/objective/item-purchase
 # breakpoint, so if that changes later the fix is to re-fetch (cache is disposable),
 # not to keep hedging disk space against a feature that isn't coming.
-_KEEP_EVENT_TYPES = {"CHAMPION_KILL", "ELITE_MONSTER_KILL", "ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"}
+_KEEP_EVENT_TYPES = {"CHAMPION_KILL", "ELITE_MONSTER_KILL", "BUILDING_KILL", "ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"}
 _KILL_EVENT_FIELDS = {"type", "timestamp", "killerId", "victimId", "assistingParticipantIds", "victimDamageReceived", "killerTeamId", "monsterType", "monsterSubType"}
 _ITEM_EVENT_FIELDS = {"type", "timestamp", "participantId", "itemId", "beforeId", "afterId"}
+_BUILDING_EVENT_FIELDS = {"type", "timestamp", "teamId", "buildingType", "towerType", "laneType", "killerId", "assistingParticipantIds"}
 
 def _filter_kill_damage(dmg_rec):
     """Keeps only the ultimate + summoner-spell damage instances in victimDamageReceived
@@ -152,6 +153,8 @@ def sanitize_timeline(data: dict) -> dict:
                         needed_pids.add(ev["killerId"])
                     if ev.get("victimId"):
                         needed_pids.add(ev["victimId"])
+            elif ev_type == "BUILDING_KILL":
+                trimmed = {k: v for k, v in ev.items() if k in _BUILDING_EVENT_FIELDS}
             else:
                 trimmed = {k: v for k, v in ev.items() if k in _ITEM_EVENT_FIELDS}
             kept_events.append(trimmed)

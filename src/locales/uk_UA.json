@@ -302,5 +302,12 @@
   "cache_storage_used": "Використано пам'яті: {mb} МБ",
   "minions_killed_stat": "Вбито крипів",
   "tab_raw_stats": "Статистика",
-  "tab_raw_timeline": "Хронологія"
+  "tab_raw_timeline": "Хронологія",
+  "tower_outer": "Зовнішня вежа",
+  "tower_inner": "Внутрішня вежа",
+  "tower_nexus": "Вежа Нексуса",
+  "minions_label": "Кріпи",
+  "tower_inhibitor": "Вежа інгібітора",
+  "structure_destroyed_by": "знищено гравцем",
+  "structure_destroyed_by_f": "знищено гравцем"
 }
