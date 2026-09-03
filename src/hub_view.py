@@ -460,7 +460,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     <input type="hidden" name="game_name" value="{g_n}"/>
                     <input type="hidden" name="tag_line" value="{t_l}"/>
                     <input type="hidden" name="lang" value="{lang}"/>
-                    <button type="submit" class="btn-tab-action btn-tab-refresh" onclick="this.innerText='{get_text('refreshing_btn', lang=lang)}';">
+                    <button type="submit" class="btn-tab-action btn-tab-refresh" data-label="{lbl_refresh}" onclick="this.querySelector('span').innerText='{get_text('refreshing_btn', lang=lang)}';">
                         <span>{lbl_refresh}</span>
                     </button>
                 </form>
@@ -473,7 +473,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     <input type="hidden" name="tag_line" value="{t_l}"/>
                     <input type="hidden" name="start" value="{len(cards_list)}"/>
                     <input type="hidden" name="lang" value="{lang}"/>
-                    <button type="submit" class="btn-tab-action btn-tab-load-more" onclick="this.innerText='{get_text('loading_more_btn', lang=lang)}';">
+                    <button type="submit" class="btn-tab-action btn-tab-load-more" data-label="{lbl_load_more}" onclick="this.querySelector('span').innerText='{get_text('loading_more_btn', lang=lang)}';">
                         <span>{lbl_load_more}</span>
                     </button>
                 </form>
@@ -689,7 +689,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     <input type="text" name="tag_line" class="input-tag-line" placeholder="{get_text('search_tag_ph', lang=lang)}" value="{def_tag}" required/>
                 </div>
                 <div class="search-btn-container">
-                    <button type="submit" class="btn btn-search-action" id="btnSearch" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
+                    <button type="submit" class="btn btn-search-action" id="btnSearch" data-label="{get_text('search_btn', lang=lang)}" onclick="this.innerText='{get_text('searching_btn', lang=lang)}';">{get_text('search_btn', lang=lang)}</button>
                 </div>
             </form>
         </div>

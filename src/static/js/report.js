@@ -555,11 +555,42 @@ function initCustomTooltips() {
 }
 window.addEventListener("DOMContentLoaded", initCustomTooltips);
 
-// Trigger sleek loading bar on analyze button click
+// Buttons that show a "working..." state on click (the analyze link's loading
+// bar via .is-loading, or a plain text swap via data-label) rely on a real
+// page navigation to reset them — there's nothing else to put them back.
+// That breaks in two ways: (1) the browser restores this exact page from
+// bfcache on Back, DOM mid-navigation and all, so the button comes back
+// permanently stuck; (2) the request behind the click hangs or fails without
+// ever navigating anywhere, so it's stuck for the same reason. Both get the
+// same fix: a stored original state we can restore.
+function resetLoadingButton(btn) {
+    btn.classList.remove("is-loading");
+    if (btn.dataset.label) {
+        var span = btn.querySelector("span");
+        if (span) {
+            span.innerText = btn.dataset.label;
+        } else {
+            btn.innerText = btn.dataset.label;
+        }
+    }
+}
+
 document.addEventListener("click", function(e) {
-    var btn = e.target.closest(".btn-analyze");
+    var btn = e.target.closest(".btn-analyze, [data-label]");
     if (btn) {
-        btn.classList.add("is-loading");
+        if (btn.classList.contains("btn-analyze")) {
+            btn.classList.add("is-loading");
+        }
+        // Safety-net timeout: if navigation hasn't happened by then (hung
+        // request, dropped connection), self-heal instead of staying stuck.
+        // Long enough to not fire during a normal slow Riot API fetch.
+        setTimeout(function() { resetLoadingButton(btn); }, 8000);
+    }
+});
+
+window.addEventListener("pageshow", function(e) {
+    if (e.persisted) {
+        document.querySelectorAll(".btn-analyze.is-loading, [data-label]").forEach(resetLoadingButton);
     }
 });
 
