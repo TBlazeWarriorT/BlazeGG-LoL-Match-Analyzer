@@ -4,6 +4,101 @@ from .utils import calculate_gold_bar_share
 from .jungle_strip import render_jungle_chronological
 from .lane_duel import render_duel_row
 
+def make_combined_player_dict(players: List[Dict[str, Any]], team_name: str, target_puuid: str = "", is_5v5: bool = False, lang: str = "pt_BR") -> Dict[str, Any]:
+    kills = sum(p.get("kills", 0) for p in players)
+    deaths = sum(p.get("deaths", 0) for p in players)
+    assists = sum(p.get("assists", 0) for p in players)
+    cs = sum(p.get("cs", 0) for p in players)
+    csm = round(sum(p.get("cs_per_min", 0) for p in players), 1)
+    dmg = sum(p.get("damage_to_champions", 0) for p in players)
+    gold = sum(p.get("gold_total", 0) or p.get("gold_earned", 0) for p in players)
+    ratio = (kills + assists) / max(deaths, 1)
+
+    if is_5v5:
+        def make_mini_avatar(p):
+            c_name = p.get("champion", "")
+            r_id = p.get("riot_id") or p.get("summoner_name") or c_name
+            kda = p.get("kda", "0/0/0")
+            p_dmg = p.get("damage_to_champions", 0)
+            p_gold = p.get("gold_total", 0) or p.get("gold_earned", 0)
+            p_cs = p.get("cs", 0)
+            r_raw = str(p.get("role", "")).upper()
+            role_str = "SUPPORT" if r_raw == "UTILITY" else r_raw
+            role_label = f" ({role_str})" if role_str else ""
+            tt_lines = [
+                f"<b>{c_name}</b>{role_label} - <i>{r_id}</i>",
+                f"• KDA: <b>{kda}</b>",
+                f"• {get_text('dmg_dealt', lang=lang)}: <b>{p_dmg:,}</b>",
+                f"• {get_text('gold', lang=lang)}: <b>{p_gold:,}</b>",
+                f"• CS: <b>{p_cs}</b>"
+            ]
+            tt_html = "<br/>".join(tt_lines).replace('"', '&quot;')
+            return f'<div class="team-champ-mini-wrap" data-tooltip="{tt_html}"><img class="team-champ-mini" src="{p.get("champion_icon", "")}" alt="{c_name}"/></div>'
+
+        team_icons_html = "".join([make_mini_avatar(p) for p in players])
+        champion_label = team_name
+        champ_icon = ""
+    else:
+        team_icons_html = ""
+        champion_label = " & ".join(p.get("champion", "") for p in players)
+        champ_icon = players[0].get("champion_icon", "") if players else ""
+
+    p1_first = players[0] if len(players) > 0 else {}
+    p2_second = players[1] if len(players) > 1 else {}
+
+    return {
+        "champion": champion_label,
+        "champion_icon": champ_icon,
+        "champ1": p1_first.get("champion", ""),
+        "icon1": p1_first.get("champion_icon", ""),
+        "lvl1": p1_first.get("champ_level", 1),
+        "champ2": p2_second.get("champion", ""),
+        "icon2": p2_second.get("champion_icon", ""),
+        "lvl2": p2_second.get("champ_level", 1),
+        "summoner_name": team_name,
+        "riot_id": team_name,
+        "is_team_combined": is_5v5,
+        "team_icons_html": team_icons_html,
+        "kills": kills,
+        "deaths": deaths,
+        "assists": assists,
+        "kda": f"{kills}/{deaths}/{assists}",
+        "kda_ratio": f"{ratio:.2f}:1" if deaths > 0 else "Perfect",
+        "cs": cs,
+        "cs_per_min": csm,
+        "damage_to_champions": dmg,
+        "damage_physical": sum(p.get("damage_physical", 0) for p in players),
+        "damage_magic": sum(p.get("damage_magic", 0) for p in players),
+        "damage_true": sum(p.get("damage_true", 0) for p in players),
+        "damage_total_all": sum(p.get("damage_total_all", 0) for p in players),
+        "damage_to_objectives": sum(p.get("damage_to_objectives", 0) for p in players),
+        "damage_to_turrets": sum(p.get("damage_to_turrets", 0) or p.get("damage_to_buildings", 0) for p in players),
+        "turret_kills": sum(p.get("turret_kills", 0) for p in players),
+        "inhibitor_kills": sum(p.get("inhibitor_kills", 0) for p in players),
+        "damage_taken": sum(p.get("damage_taken", 0) for p in players),
+        "damage_taken_physical": sum(p.get("damage_taken_physical", 0) for p in players),
+        "damage_taken_magic": sum(p.get("damage_taken_magic", 0) for p in players),
+        "damage_taken_true": sum(p.get("damage_taken_true", 0) for p in players),
+        "damage_mitigated": sum(p.get("damage_mitigated", 0) for p in players),
+        "total_heal": sum(p.get("total_heal", 0) for p in players),
+        "vision_score": sum(p.get("vision_score", 0) for p in players),
+        "detector_wards": sum(p.get("detector_wards", 0) for p in players),
+        "vision_wards_bought": sum(p.get("vision_wards_bought", 0) for p in players),
+        "wards_placed": sum(p.get("wards_placed", 0) for p in players),
+        "wards_killed": sum(p.get("wards_killed", 0) for p in players),
+        "enemy_jungle_monsters": sum(p.get("enemy_jungle_monsters", 0) for p in players),
+        "minions_killed": sum(p.get("minions_killed", 0) for p in players),
+        "neutral_monsters_killed": sum(p.get("neutral_monsters_killed", 0) for p in players),
+        "gold_earned": gold,
+        "gold_total": gold,
+        "damage_per_gold": round(dmg / max(gold, 1), 2),
+        "executions": sum(p.get("executions", 0) for p in players),
+        "spells": [],
+        "rune": {},
+        "items": [],
+        "puuid": target_puuid if any(p.get("puuid") == target_puuid for p in players) else ""
+    }
+
 def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "pt_BR") -> str:
     matchups = data.get("matchups", [])
     jungle = data.get("jungle_stats", {})
@@ -228,101 +323,6 @@ def render_all_duels(data: Dict[str, Any], target_puuid: str = "", lang: str = "
                 m_sup["gold_delta"], m_sup["xp_delta"],
                 target_puuid=target_puuid, lang=lang
             ))
-
-        def make_combined_player_dict(players: List[Dict[str, Any]], team_name: str, target_puuid: str = "", is_5v5: bool = False, lang: str = "pt_BR") -> Dict[str, Any]:
-            kills = sum(p.get("kills", 0) for p in players)
-            deaths = sum(p.get("deaths", 0) for p in players)
-            assists = sum(p.get("assists", 0) for p in players)
-            cs = sum(p.get("cs", 0) for p in players)
-            csm = round(sum(p.get("cs_per_min", 0) for p in players), 1)
-            dmg = sum(p.get("damage_to_champions", 0) for p in players)
-            gold = sum(p.get("gold_total", 0) or p.get("gold_earned", 0) for p in players)
-            ratio = (kills + assists) / max(deaths, 1)
-
-            if is_5v5:
-                def make_mini_avatar(p):
-                    c_name = p.get("champion", "")
-                    r_id = p.get("riot_id") or p.get("summoner_name") or c_name
-                    kda = p.get("kda", "0/0/0")
-                    p_dmg = p.get("damage_to_champions", 0)
-                    p_gold = p.get("gold_total", 0) or p.get("gold_earned", 0)
-                    p_cs = p.get("cs", 0)
-                    r_raw = str(p.get("role", "")).upper()
-                    role_str = "SUPPORT" if r_raw == "UTILITY" else r_raw
-                    role_label = f" ({role_str})" if role_str else ""
-                    tt_lines = [
-                        f"<b>{c_name}</b>{role_label} - <i>{r_id}</i>",
-                        f"• KDA: <b>{kda}</b>",
-                        f"• {get_text('dmg_dealt', lang=lang)}: <b>{p_dmg:,}</b>",
-                        f"• {get_text('gold', lang=lang)}: <b>{p_gold:,}</b>",
-                        f"• CS: <b>{p_cs}</b>"
-                    ]
-                    tt_html = "<br/>".join(tt_lines).replace('"', '&quot;')
-                    return f'<div class="team-champ-mini-wrap" data-tooltip="{tt_html}"><img class="team-champ-mini" src="{p.get("champion_icon", "")}" alt="{c_name}"/></div>'
-
-                team_icons_html = "".join([make_mini_avatar(p) for p in players])
-                champion_label = team_name
-                champ_icon = ""
-            else:
-                team_icons_html = ""
-                champion_label = " & ".join(p.get("champion", "") for p in players)
-                champ_icon = players[0].get("champion_icon", "") if players else ""
-
-            p1_first = players[0] if len(players) > 0 else {}
-            p2_second = players[1] if len(players) > 1 else {}
-
-            return {
-                "champion": champion_label,
-                "champion_icon": champ_icon,
-                "champ1": p1_first.get("champion", ""),
-                "icon1": p1_first.get("champion_icon", ""),
-                "lvl1": p1_first.get("champ_level", 1),
-                "champ2": p2_second.get("champion", ""),
-                "icon2": p2_second.get("champion_icon", ""),
-                "lvl2": p2_second.get("champ_level", 1),
-                "summoner_name": team_name,
-                "riot_id": team_name,
-                "is_team_combined": is_5v5,
-                "team_icons_html": team_icons_html,
-                "kills": kills,
-                "deaths": deaths,
-                "assists": assists,
-                "kda": f"{kills}/{deaths}/{assists}",
-                "kda_ratio": f"{ratio:.2f}:1" if deaths > 0 else "Perfect",
-                "cs": cs,
-                "cs_per_min": csm,
-                "damage_to_champions": dmg,
-                "damage_physical": sum(p.get("damage_physical", 0) for p in players),
-                "damage_magic": sum(p.get("damage_magic", 0) for p in players),
-                "damage_true": sum(p.get("damage_true", 0) for p in players),
-                "damage_total_all": sum(p.get("damage_total_all", 0) for p in players),
-                "damage_to_objectives": sum(p.get("damage_to_objectives", 0) for p in players),
-                "damage_to_turrets": sum(p.get("damage_to_turrets", 0) or p.get("damage_to_buildings", 0) for p in players),
-                "turret_kills": sum(p.get("turret_kills", 0) for p in players),
-                "inhibitor_kills": sum(p.get("inhibitor_kills", 0) for p in players),
-                "damage_taken": sum(p.get("damage_taken", 0) for p in players),
-                "damage_taken_physical": sum(p.get("damage_taken_physical", 0) for p in players),
-                "damage_taken_magic": sum(p.get("damage_taken_magic", 0) for p in players),
-                "damage_taken_true": sum(p.get("damage_taken_true", 0) for p in players),
-                "damage_mitigated": sum(p.get("damage_mitigated", 0) for p in players),
-                "total_heal": sum(p.get("total_heal", 0) for p in players),
-                "vision_score": sum(p.get("vision_score", 0) for p in players),
-                "detector_wards": sum(p.get("detector_wards", 0) for p in players),
-                "vision_wards_bought": sum(p.get("vision_wards_bought", 0) for p in players),
-                "wards_placed": sum(p.get("wards_placed", 0) for p in players),
-                "wards_killed": sum(p.get("wards_killed", 0) for p in players),
-                "enemy_jungle_monsters": sum(p.get("enemy_jungle_monsters", 0) for p in players),
-                "minions_killed": sum(p.get("minions_killed", 0) for p in players),
-                "neutral_monsters_killed": sum(p.get("neutral_monsters_killed", 0) for p in players),
-                "gold_earned": gold,
-                "gold_total": gold,
-                "damage_per_gold": round(dmg / max(gold, 1), 2),
-                "executions": sum(p.get("executions", 0) for p in players),
-                "spells": [],
-                "rune": {},
-                "items": [],
-                "puuid": target_puuid if any(p.get("puuid") == target_puuid for p in players) else ""
-            }
 
         # BOT DUO (2v2)
         if m_bot and m_sup:
