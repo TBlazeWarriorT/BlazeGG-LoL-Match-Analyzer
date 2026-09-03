@@ -154,7 +154,6 @@
   "cc_score": "Puntuación de CC",
   "largest_multikill": "Mayor Baja Múltiple",
   "largest_crit": "Mayor Golpe Crítico",
-  "lane_minions": "Súbditos de Línea",
   "neutral_minions": "Monstruos Neutrales",
   "ally_jungle": "Jungla Aliada",
   "enemy_jungle": "Jungla Enemiga",
@@ -300,5 +299,6 @@
   "first_blood": "¡PRIMERA SANGRE! 🩸",
   "btn_view_cached": "📂 Ver todo el caché",
   "btn_view_recent": "🕒 Ver solo recientes",
-  "cache_storage_used": "Almacenamiento usado: {mb} MB"
+  "cache_storage_used": "Almacenamiento usado: {mb} MB",
+  "minions_killed_stat": "Súbditos Eliminados"
 }

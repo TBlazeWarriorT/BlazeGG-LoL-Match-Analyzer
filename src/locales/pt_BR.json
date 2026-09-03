@@ -167,7 +167,6 @@
   "cc_score": "Placar de Controle de Grupo",
   "largest_multikill": "Maior Multiabate",
   "largest_crit": "Maior Acerto Crítico",
-  "lane_minions": "Tropas na Rota",
   "neutral_minions": "Monstros Neutros",
   "ally_jungle": "Selva Aliada",
   "enemy_jungle": "Selva Inimiga",
@@ -300,5 +299,6 @@
   "streak_godlike": "INVENCÍVEL",
   "streak_legendary": "LENDÁRIO",
   "first_blood": "FIRST BLOOD! 🩸",
-  "cache_storage_used": "Armazenamento usado: {mb} MB"
+  "cache_storage_used": "Armazenamento usado: {mb} MB",
+  "minions_killed_stat": "Tropas Abatidas"
 }

@@ -156,7 +156,6 @@
   "cc_score": "Crowd Control Score",
   "largest_multikill": "Largest Multikill",
   "largest_crit": "Largest Critical Strike",
-  "lane_minions": "Lane Minions",
   "neutral_minions": "Neutral Monsters",
   "ally_jungle": "Ally Jungle",
   "enemy_jungle": "Enemy Jungle",
@@ -300,5 +299,6 @@
   "streak_godlike": "GODLIKE",
   "streak_legendary": "LEGENDARY",
   "first_blood": "FIRST BLOOD! 🩸",
-  "cache_storage_used": "Storage used: {mb} MB"
+  "cache_storage_used": "Storage used: {mb} MB",
+  "minions_killed_stat": "Minions Killed"
 }

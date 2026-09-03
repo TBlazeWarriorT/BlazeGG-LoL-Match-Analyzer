@@ -154,7 +154,6 @@
   "cc_score": "Điểm Khống Chế",
   "largest_multikill": "Multikill Lớn Nhất",
   "largest_crit": "Chí Mạng Cao Nhất",
-  "lane_minions": "Lính Đường",
   "neutral_minions": "Quái Rừng",
   "ally_jungle": "Rừng Nhà",
   "enemy_jungle": "Rừng Địch",
@@ -300,5 +299,6 @@
   "first_blood": "CHIẾN CÔNG ĐẦU! 🩸",
   "btn_view_cached": "📂 Xem tất cả cache",
   "btn_view_recent": "🕒 Chỉ xem gần đây",
-  "cache_storage_used": "Dung lượng đã dùng: {mb} MB"
+  "cache_storage_used": "Dung lượng đã dùng: {mb} MB",
+  "minions_killed_stat": "Lính Đã Hạ"
 }

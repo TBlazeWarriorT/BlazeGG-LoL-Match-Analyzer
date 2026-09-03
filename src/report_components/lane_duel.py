@@ -315,31 +315,12 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
         gold_lbl = get_text('gold', lang=lang)
         dmg_g_display = f"{p['damage_per_gold']} dmg/g"
-        if p.get("is_team_combined") and is_arena:
-            anvils_cnt = p.get("purchased_anvils", 0)
-            anvil_lbl = get_text("purchased_stat_anvils", lang=lang)
-            anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
-            gold_cs_tooltip_lines = [
-                f"<b><i class='mini-icon icon-bg ico-gold'></i> {gold_lbl}: {p['gold_total']:,}</b>",
-                f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
-                f"• {get_text('efficiency', lang=lang)}: <b>{p['damage_per_gold']} dmg/g</b>",
-                f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
-                f"<b><img class='mini-icon mini-icon-round' src='{anvil_icon_url}'/> {anvil_lbl}: {anvils_cnt}</b>"
-            ]
-            gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
-            cs_or_anvils_slot = f"""
-            <div class="anvil-purchased-badge" style="display:inline-flex; align-items:center; gap:4px; padding:1px 6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; font-size:0.72rem; font-weight:700; color:#f8fafc;">
-                <img src="{anvil_icon_url}" style="width:14px; height:14px; border-radius:50%; display:block;" alt="Anvil"/>
-                <span style="color:#f8fafc;">{anvils_cnt}</span>
-                <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>
-            </div>
-            """
-        elif is_arena:
-            # Arena has no meaningful CS or dmg/g to track — swap the dmg/g slot for
-            # the purchased-anvils count instead. This pill always has room to spare
-            # (unlike the items/augments rows, which are already tight in Arena), and
-            # CS/dmg-per-gold and anvil count never both matter in the same mode, so
-            # nothing of value is lost.
+        if is_arena:
+            # dmg/g doesn't mean much in Arena, so that slot becomes the purchased-anvils
+            # count instead — but CS (minions still exist and get last-hit in Arena) stays
+            # in its usual slot on the right, same as every other mode. Applies the same
+            # way whether this card is one player or a combined team (both already carry
+            # correctly-aggregated cs/cs_per_min/purchased_anvils/gold fields).
             anvils_cnt = p.get("purchased_anvils", 0)
             anvil_lbl = get_text("purchased_stat_anvils", lang=lang)
             anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
@@ -348,10 +329,13 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 f"<b><i class='mini-icon icon-bg ico-gold'></i> {gold_lbl}: {p['gold_total']:,}</b>",
                 f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
                 f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
-                f"<b><img class='mini-icon mini-icon-round' src='{anvil_icon_url}'/> {anvil_lbl}: {anvils_cnt}</b>"
+                f"<b><img class='mini-icon mini-icon-round' src='{anvil_icon_url}'/> {anvil_lbl}: {anvils_cnt}</b>",
+                f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+                f"<b><i class='mini-icon icon-bg ico-cs'></i> CS Total: {p['cs']} ({p['cs_per_min']}/min)</b>",
+                f"• {get_text('minions_killed_stat', lang=lang)}: <b>{minions_val}</b>"
             ]
             gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
-            cs_or_anvils_slot = ""
+            cs_or_anvils_slot = f"""<span><i class="mini-icon icon-bg ico-cs"></i> {cs_display}</span>"""
         else:
             gold_cs_tooltip_lines = [
                 f"<b><i class='mini-icon icon-bg ico-gold'></i> {gold_lbl}: {p['gold_total']:,}</b>",
@@ -359,7 +343,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 f"• {get_text('efficiency', lang=lang)}: <b>{p['damage_per_gold']} dmg/g</b>",
                 f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
                 f"<b><i class='mini-icon icon-bg ico-cs'></i> CS Total: {p['cs']} ({p['cs_per_min']}/min)</b>",
-                f"• {get_text('lane_minions', lang=lang)}: <b>{minions_val}</b>"
+                f"• {get_text('minions_killed_stat', lang=lang)}: <b>{minions_val}</b>"
             ]
             if neutral_val > 0 or ally_jg_val > 0 or enemy_jg_val > 0:
                 gold_cs_tooltip_lines.append(f"• {get_text('neutral_minions', lang=lang)}: <b>{neutral_val}</b> (<i class='mini-icon mini-icon-round icon-bg aico-gromp_icon'></i> {get_text('ally_jungle', lang=lang)}: {ally_jg_val} • ⚔️ {get_text('enemy_jungle', lang=lang)}: {enemy_jg_val})")

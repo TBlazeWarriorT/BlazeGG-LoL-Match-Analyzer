@@ -154,7 +154,6 @@
   "cc_score": "Score de Contrôle de Foule",
   "largest_multikill": "Plus Grand Multikill",
   "largest_crit": "Plus Gros Coup Critique",
-  "lane_minions": "Sbires de Voie",
   "neutral_minions": "Monstres Neutres",
   "ally_jungle": "Jungle Alliée",
   "enemy_jungle": "Jungle Ennemie",
@@ -300,5 +299,6 @@
   "first_blood": "PREMIER SANG ! 🩸",
   "btn_view_cached": "📂 Voir tout le cache",
   "btn_view_recent": "🕒 Voir seulement les récents",
-  "cache_storage_used": "Stockage utilisé : {mb} Mo"
+  "cache_storage_used": "Stockage utilisé : {mb} Mo",
+  "minions_killed_stat": "Sbires Éliminés"
 }

@@ -154,7 +154,6 @@
   "cc_score": "군중 제어 점수",
   "largest_multikill": "최대 멀티킬",
   "largest_crit": "최대 치명타 피해",
-  "lane_minions": "라인 미니언",
   "neutral_minions": "정글 몬스터",
   "ally_jungle": "아군 정글",
   "enemy_jungle": "적 정글",
@@ -300,5 +299,6 @@
   "first_blood": "퍼스트 블러드! 🩸",
   "btn_view_cached": "📂 전체 캐시 보기",
   "btn_view_recent": "🕒 최근 항목만 보기",
-  "cache_storage_used": "사용된 저장 공간: {mb} MB"
+  "cache_storage_used": "사용된 저장 공간: {mb} MB",
+  "minions_killed_stat": "처치한 미니언"
 }

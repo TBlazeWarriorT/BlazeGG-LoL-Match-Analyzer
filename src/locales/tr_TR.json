@@ -154,7 +154,6 @@
   "cc_score": "Kitle Kontrol Skoru",
   "largest_multikill": "En Yüksek Çoklu Katletme",
   "largest_crit": "En Yüksek Kritik Vuruş",
-  "lane_minions": "Koridor Minyonları",
   "neutral_minions": "Orman Canavarları",
   "ally_jungle": "Dost Orman",
   "enemy_jungle": "Rakip Orman",
@@ -300,5 +299,6 @@
   "first_blood": "İLK KAN! 🩸",
   "btn_view_cached": "📂 Önbelleğin tümünü göster",
   "btn_view_recent": "🕒 Sadece son aramaları göster",
-  "cache_storage_used": "Kullanılan depolama: {mb} MB"
+  "cache_storage_used": "Kullanılan depolama: {mb} MB",
+  "minions_killed_stat": "Öldürülen Askerler"
 }

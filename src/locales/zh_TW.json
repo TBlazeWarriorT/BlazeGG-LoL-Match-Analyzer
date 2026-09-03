@@ -165,7 +165,6 @@
   "cc_score": "控制評分",
   "largest_multikill": "最多連殺",
   "largest_crit": "最高暴擊傷害",
-  "lane_minions": "兵線小兵",
   "neutral_minions": "野怪",
   "ally_jungle": "友方野區",
   "enemy_jungle": "敵方野區",
@@ -300,5 +299,6 @@
   "first_blood": "第一滴血！🩸",
   "btn_view_cached": "📂 檢視所有快取",
   "btn_view_recent": "🕒 只顯示最近",
-  "cache_storage_used": "已用儲存空間：{mb} MB"
+  "cache_storage_used": "已用儲存空間：{mb} MB",
+  "minions_killed_stat": "擊殺小兵數"
 }

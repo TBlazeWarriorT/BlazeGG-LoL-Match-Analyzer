@@ -165,7 +165,6 @@
   "cc_score": "Оцінка контролю",
   "largest_multikill": "Макс. серія вбивств",
   "largest_crit": "Найвищий критичний удар",
-  "lane_minions": "Міньйони на лінії",
   "neutral_minions": "Лісові монстри",
   "ally_jungle": "Свій ліс",
   "enemy_jungle": "Ворожий ліс",
@@ -300,5 +299,6 @@
   "first_blood": "ПЕРША КРОВ! 🩸",
   "btn_view_cached": "📂 Показати весь кеш",
   "btn_view_recent": "🕒 Показати тільки останні",
-  "cache_storage_used": "Використано пам'яті: {mb} МБ"
+  "cache_storage_used": "Використано пам'яті: {mb} МБ",
+  "minions_killed_stat": "Вбито крипів"
 }

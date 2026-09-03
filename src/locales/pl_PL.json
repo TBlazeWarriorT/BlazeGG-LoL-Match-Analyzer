@@ -154,7 +154,6 @@
   "cc_score": "Wynik Kontroli Tłumu",
   "largest_multikill": "Największy Multikill",
   "largest_crit": "Najwyższy Cios Krytyczny",
-  "lane_minions": "Stwory z Alei",
   "neutral_minions": "Potwory w Dżungli",
   "ally_jungle": "Własna Dżungla",
   "enemy_jungle": "Wroga Dżungla",
@@ -300,5 +299,6 @@
   "first_blood": "PIERWSZA KREW! 🩸",
   "btn_view_cached": "📂 Pokaż wszystko z pamięci",
   "btn_view_recent": "🕒 Pokaż tylko ostatnie",
-  "cache_storage_used": "Wykorzystane miejsce: {mb} MB"
+  "cache_storage_used": "Wykorzystane miejsce: {mb} MB",
+  "minions_killed_stat": "Zabici Słudzy"
 }
