@@ -41,7 +41,6 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         spells_runes_strip = ""
         items_html = ""
         augments_strip = ""
-        anvil_badge_html = ""
 
         if p.get("is_team_combined"):
             icons_render = p.get("team_icons_html", "")
@@ -169,12 +168,16 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
             rune_html = f'<img class="rune-icon" src="{rune_info["icon"]}" data-tooltip="{full_tree_tt}" alt="{rune_info.get("name", "")}"/>' if rune_info.get("icon") else ""
             sub_rune_html = f'<img class="sub-rune-icon" src="{sub_rune_info["icon"]}" data-tooltip="{full_tree_tt}" alt="{sub_rune_info.get("name", "")}"/>' if sub_rune_info.get("icon") else ""
 
-            spells_runes_strip = f"""
-            <div class="spells-runes-strip">
+            runes_col_html = f"""
                 <div class="runes-col" data-tooltip="{full_tree_tt}">
                     {rune_html}
                     {sub_rune_html}
                 </div>
+            """ if (rune_html or sub_rune_html) else ""
+
+            spells_runes_strip = f"""
+            <div class="spells-runes-strip">
+                {runes_col_html}
                 <div class="spells-row">{spells_html}</div>
             </div>
             """ if (spells_html or rune_html or sub_rune_html) else ""
@@ -195,24 +198,10 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 """)
             lbl_augs = get_text("lbl_augments", lang=lang)
 
-            # Purchased Stat Anvils Badge
-            purchased_anvils_cnt = p.get("purchased_anvils", 0)
-            anvil_badge_html = ""
-            if is_arena or purchased_anvils_cnt > 0:
-                anvil_tt = get_text("purchased_stat_anvils", lang=lang)
-                anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
-                anvil_badge_html = f"""
-                <div class="anvil-purchased-badge" data-tooltip="{anvil_tt}" style="display:inline-flex; align-items:center; gap:3px; padding:2px 5px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:6px; font-size:0.72rem; font-weight:700; color:#f8fafc; cursor:help; flex-shrink:0;">
-                    <img src="{anvil_icon_url}" style="width:14px; height:14px; border-radius:50%; display:block;" alt="Anvil"/>
-                    <span style="color:#f8fafc;">{purchased_anvils_cnt}</span>
-                    <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>
-                </div>
-                """
-
-            # The anvil badge lives with the items row instead of the augments strip —
-            # that row (label + up to 7 augment icons) is already tight on space in
-            # pt_BR ("Aprimoramentos:" alone eats ~107px), so cramming a badge in too
-            # reliably forced an ugly wrap. The items row has room to spare.
+            # Purchased-anvils count lives in the gold pill (see line_3_gold_cs below),
+            # not here — this row (label + up to 7 augment icons) is already tight on
+            # space in pt_BR ("Aprimoramentos:" alone eats ~107px), so cramming a badge
+            # in too reliably forced an ugly wrap. The gold pill always has room.
             augments_strip = f"""
             <div class="arena-augments-strip" style="display:flex; align-items:center; gap:5px; margin-top:6px; padding:3px 8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; flex-wrap:wrap;">
                 <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-right:2px;">{lbl_augs}:</span>
@@ -325,6 +314,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         enemy_jg_val = p.get("enemy_jungle_monsters", 0)
 
         gold_lbl = get_text('gold', lang=lang)
+        dmg_g_display = f"{p['damage_per_gold']} dmg/g"
         if p.get("is_team_combined") and is_arena:
             anvils_cnt = p.get("purchased_anvils", 0)
             anvil_lbl = get_text("purchased_stat_anvils", lang=lang)
@@ -344,6 +334,24 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>
             </div>
             """
+        elif is_arena:
+            # Arena has no meaningful CS or dmg/g to track — swap the dmg/g slot for
+            # the purchased-anvils count instead. This pill always has room to spare
+            # (unlike the items/augments rows, which are already tight in Arena), and
+            # CS/dmg-per-gold and anvil count never both matter in the same mode, so
+            # nothing of value is lost.
+            anvils_cnt = p.get("purchased_anvils", 0)
+            anvil_lbl = get_text("purchased_stat_anvils", lang=lang)
+            anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
+            dmg_g_display = f"<img class='mini-icon mini-icon-round' src='{anvil_icon_url}' style='width:15px; height:15px; vertical-align:-3px;'/> <span style='color:#f8fafc; font-weight:700;'>{anvils_cnt}</span>"
+            gold_cs_tooltip_lines = [
+                f"<b><i class='mini-icon icon-bg ico-gold'></i> {gold_lbl}: {p['gold_total']:,}</b>",
+                f"• {get_text('gold_spent', lang=lang)}: <b>{gold_spent_val:,}</b>",
+                f"<hr style='border:0; border-top:1px solid #334155; margin:4px 0;'/>",
+                f"<b><img class='mini-icon mini-icon-round' src='{anvil_icon_url}'/> {anvil_lbl}: {anvils_cnt}</b>"
+            ]
+            gold_cs_tooltip_html = "<br/>".join(gold_cs_tooltip_lines).replace('"', '&quot;')
+            cs_or_anvils_slot = ""
         else:
             gold_cs_tooltip_lines = [
                 f"<b><i class='mini-icon icon-bg ico-gold'></i> {gold_lbl}: {p['gold_total']:,}</b>",
@@ -360,7 +368,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
         line_3_gold_cs = f"""
         <div class="pill pill-wide" data-tooltip="{gold_cs_tooltip_html}">
-            <span><i class="mini-icon icon-bg ico-gold"></i> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({p['damage_per_gold']} dmg/g)</span></span>
+            <span><i class="mini-icon icon-bg ico-gold"></i> <b>{p['gold_total']:,}</b> {gold_delta_tag} <span style="color:var(--text-muted); font-size:0.75rem;">({dmg_g_display})</span></span>
             {cs_or_anvils_slot}
         </div>
         """
@@ -395,11 +403,8 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
 
         footer_bottom = f"""
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <div class="items-flex">{items_html}</div>
-                {anvil_badge_html}
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; min-width:0;">
+            <div class="items-flex">{items_html}</div>
             {spells_runes_strip}
         </div>
         {augments_strip}
