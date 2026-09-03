@@ -309,5 +309,6 @@
   "minions_label": "小兵",
   "tower_inhibitor": "高地塔",
   "structure_destroyed_by": "被摧毀，摧毀者為",
-  "structure_destroyed_by_f": "被摧毀，摧毀者為"
+  "structure_destroyed_by_f": "被摧毀，摧毀者為",
+  "empty_recent_hint": "最近瀏覽紀錄目前是空的，但本機快取裡還有已儲存的資料。"
 }

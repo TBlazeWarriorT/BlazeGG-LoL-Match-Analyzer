@@ -309,5 +309,6 @@
   "minions_label": "Lính",
   "tower_inhibitor": "Trụ Nhà Lính",
   "structure_destroyed_by": "đã bị phá hủy bởi",
-  "structure_destroyed_by_f": "đã bị phá hủy bởi"
+  "structure_destroyed_by_f": "đã bị phá hủy bởi",
+  "empty_recent_hint": "Chưa có gì trong lịch sử gần đây, nhưng có dữ liệu đã lưu trong bộ nhớ đệm cục bộ."
 }

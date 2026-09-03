@@ -309,5 +309,6 @@
   "minions_label": "Askerler",
   "tower_inhibitor": "İnhibitör Kulesi",
   "structure_destroyed_by": "tarafından yıkıldı",
-  "structure_destroyed_by_f": "tarafından yıkıldı"
+  "structure_destroyed_by_f": "tarafından yıkıldı",
+  "empty_recent_hint": "Son geçmişinizde henüz bir şey yok, ama yerel önbellekte kayıtlı veriler var."
 }

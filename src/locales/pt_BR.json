@@ -309,5 +309,6 @@
   "minions_label": "Tropas",
   "tower_inhibitor": "Torre do Inibidor",
   "structure_destroyed_by": "foi destruído por",
-  "structure_destroyed_by_f": "foi destruída por"
+  "structure_destroyed_by_f": "foi destruída por",
+  "empty_recent_hint": "Nada no seu histórico recente ainda, mas tem dados salvos no cache local."
 }

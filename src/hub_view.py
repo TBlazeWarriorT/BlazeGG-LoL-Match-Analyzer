@@ -350,23 +350,32 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     if p_label in u_hist_lower:
                         matched_summoners.append(part)
                         matched_puuids.add(part["puuid"])
-            if not matched_summoners and m["match_id"].lower() in id_search_lower and m["participants"]:
+            if is_local and last_sess.get("puuid"):
+                for part in m["participants"]:
+                    if part["puuid"] in matched_puuids:
+                        continue
+                    if part["puuid"] == last_sess.get("puuid"):
+                        matched_summoners.append(part)
+                        matched_puuids.add(part["puuid"])
+            if m["match_id"].lower() in id_search_lower and m["participants"]:
                 # This browser itself searched this exact match by ID (tracked via the
                 # blaze_id_searches cookie) — show it under "ID Searches" regardless of
                 # local/prod, same as a named-summoner match shows under user_history.
+                # Deliberately NOT deduped against matched_puuids: this is a distinct
+                # tab/perspective from any named attribution above, not a duplicate of
+                # it, so the same player's match can legitimately show under both their
+                # own name tab and this browser's "ID Searches" tab at the same time.
                 first_p = dict(m["participants"][0])
                 first_p["_is_global_tab"] = True
                 matched_summoners.append(first_p)
-            if not matched_summoners and is_local:
-                if last_sess.get("puuid"):
-                    for part in m["participants"]:
-                        if part["puuid"] == last_sess.get("puuid"):
-                            matched_summoners.append(part)
-                if not matched_summoners and m["participants"]:
-                    # Generic / Neutral match searched by Match ID (assign to Global tab with 1st participant perspective)
-                    first_p = dict(m["participants"][0])
-                    first_p["_is_global_tab"] = True
-                    matched_summoners.append(first_p)
+            if not matched_summoners and is_local and m["participants"]:
+                # True last resort: nothing above claims this match at all (not the
+                # recorded target_puuid owner, not your history, not this browser's ID
+                # search list, not even your active local session) — dump it in the
+                # generic bucket so "cached" view can still show/manage it somewhere.
+                first_p = dict(m["participants"][0])
+                first_p["_is_global_tab"] = True
+                matched_summoners.append(first_p)
 
             if not matched_summoners:
                 continue
@@ -408,6 +417,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         # Locally, "recent" (the default) applies that same filter as a lightweight view;
         # "cached" is the edit/inspect mode showing everything on disk, unfiltered.
         show_recent_only = (not is_local) or view_mode != "cached"
+        had_unfiltered_cache_data = bool(summoner_groups)
         if show_recent_only:
             user_hist_list = user_history if user_history is not None else []
             user_history_lower = [h.strip().lower() for h in user_hist_list if h.strip()]
@@ -538,8 +548,15 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </div>
                 """
 
-            del_prompt = get_text("del_summoner_prompt", lang=lang) if is_local else get_text("close_summoner_prompt", lang=lang)
-            tab_delete_title = get_text("tooltip_delete_tab", lang=lang) if is_local else get_text("tooltip_close_tab", lang=lang)
+            # Only "cached" view (the full-disk inspect/edit mode) actually deletes
+            # anything. In "recent" view — even locally — the X just drops this
+            # summoner from your own browsing history, same as it already does in
+            # prod: hitting X while glancing at your recent searches should never be
+            # able to nuke cache that "cached" view (or someone else's recent tab
+            # sharing the same match) still relies on.
+            is_destructive_delete = is_local and view_mode == "cached"
+            del_prompt = get_text("del_summoner_prompt", lang=lang) if is_destructive_delete else get_text("close_summoner_prompt", lang=lang)
+            tab_delete_title = get_text("tooltip_delete_tab", lang=lang) if is_destructive_delete else get_text("tooltip_close_tab", lang=lang)
             lbl_saved = get_text("lbl_saved_matches", lang=lang)
             lbl_v = get_text("lbl_victories", lang=lang)
             lbl_d = get_text("lbl_defeats", lang=lang)
@@ -552,7 +569,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             ]
             tab_tip_html = "<br/>".join(tab_tip_lines).replace('"', '&quot;')
 
-            onsubmit_str = f"event.stopPropagation(); return confirmDeleteSummonerModal(this, '{s_label}');" if is_local else "event.stopPropagation();"
+            onsubmit_str = f"event.stopPropagation(); return confirmDeleteSummonerModal(this, '{s_label}');" if is_destructive_delete else "event.stopPropagation();"
 
             tab_buttons.append(f"""
             <div class="cache-tab-btn {btn_active_cls}" onclick="switchCacheTab({idx})" data-tooltip="{tab_tip_html}">
@@ -617,6 +634,16 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 <div class="cache-tabs-container">
                     {"".join(tab_panes)}
                 </div>
+            </div>
+            """
+        elif is_local and show_recent_only and had_unfiltered_cache_data:
+            # "Recent" filtered everything away, but there IS cached data on disk —
+            # don't just render nothing, point at "cached" view instead of leaving
+            # the section silently blank as if there were no data anywhere at all.
+            cached_html = f"""
+            <div class="section-card" style="margin-top: 24px; text-align:center;">
+                <p style="color:var(--text-muted); margin:0 0 10px 0;">{get_text('empty_recent_hint', lang=lang)}</p>
+                <a href="/?lang={lang}&view=cached" class="btn-tab-action" style="text-decoration:none; display:inline-block;">{get_text('btn_view_cached', lang=lang)}</a>
             </div>
             """
         else:

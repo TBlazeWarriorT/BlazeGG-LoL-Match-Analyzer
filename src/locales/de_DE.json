@@ -309,5 +309,6 @@
   "minions_label": "Vasallen",
   "tower_inhibitor": "Hemmerturm",
   "structure_destroyed_by": "wurde zerstört von",
-  "structure_destroyed_by_f": "wurde zerstört von"
+  "structure_destroyed_by_f": "wurde zerstört von",
+  "empty_recent_hint": "Noch nichts im Verlauf, aber es gibt lokal gespeicherte Cache-Daten."
 }

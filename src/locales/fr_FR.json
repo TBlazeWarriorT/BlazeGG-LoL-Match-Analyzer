@@ -309,5 +309,6 @@
   "minions_label": "Sbires",
   "tower_inhibitor": "Tourelle de l'Inhibiteur",
   "structure_destroyed_by": "a été détruit par",
-  "structure_destroyed_by_f": "a été détruite par"
+  "structure_destroyed_by_f": "a été détruite par",
+  "empty_recent_hint": "Rien dans votre historique récent pour l'instant, mais des données sont sauvegardées en cache local."
 }

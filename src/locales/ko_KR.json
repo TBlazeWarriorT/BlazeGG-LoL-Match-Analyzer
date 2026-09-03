@@ -309,5 +309,6 @@
   "minions_label": "미니언",
   "tower_inhibitor": "억제기 포탑",
   "structure_destroyed_by": "에 의해 파괴됨",
-  "structure_destroyed_by_f": "에 의해 파괴됨"
+  "structure_destroyed_by_f": "에 의해 파괴됨",
+  "empty_recent_hint": "최근 기록은 없지만, 로컬 캐시에 저장된 데이터가 있습니다."
 }

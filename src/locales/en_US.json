@@ -309,5 +309,6 @@
   "minions_label": "Minions",
   "tower_inhibitor": "Inhibitor Turret",
   "structure_destroyed_by": "was destroyed by",
-  "structure_destroyed_by_f": "was destroyed by"
+  "structure_destroyed_by_f": "was destroyed by",
+  "empty_recent_hint": "Nothing in your recent history yet, but there's cached data saved locally."
 }

@@ -309,5 +309,6 @@
   "minions_label": "Súbditos",
   "tower_inhibitor": "Torre del Inhibidor",
   "structure_destroyed_by": "fue destruido por",
-  "structure_destroyed_by_f": "fue destruida por"
+  "structure_destroyed_by_f": "fue destruida por",
+  "empty_recent_hint": "Nada en tu historial reciente todavía, pero hay datos guardados en la caché local."
 }

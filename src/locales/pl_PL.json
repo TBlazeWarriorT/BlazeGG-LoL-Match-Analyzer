@@ -309,5 +309,6 @@
   "minions_label": "Słudzy",
   "tower_inhibitor": "Wieża Inhibitora",
   "structure_destroyed_by": "został zniszczony przez",
-  "structure_destroyed_by_f": "została zniszczona przez"
+  "structure_destroyed_by_f": "została zniszczona przez",
+  "empty_recent_hint": "Brak czegokolwiek w historii, ale w lokalnej pamięci podręcznej są zapisane dane."
 }

@@ -309,5 +309,6 @@
   "minions_label": "Кріпи",
   "tower_inhibitor": "Вежа інгібітора",
   "structure_destroyed_by": "знищено гравцем",
-  "structure_destroyed_by_f": "знищено гравцем"
+  "structure_destroyed_by_f": "знищено гравцем",
+  "empty_recent_hint": "У недавній історії поки нічого немає, але в локальному кеші є збережені дані."
 }

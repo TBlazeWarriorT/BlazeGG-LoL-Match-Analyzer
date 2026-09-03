@@ -375,13 +375,15 @@ class AppHandler(BaseHTTPRequestHandler):
             id_hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_id_searches").value) if "blaze_id_searches" in cookie_obj else ""
             id_search_history = [h.strip() for h in id_hist_cookie.split("|") if h.strip()] if id_hist_cookie else []
             id_search_lower = set(h.lower() for h in id_search_history)
-            # In "recent" view the ID Searches tab only shows matches this browser's
-            # cookie tracked, so deleting it should only remove those, not every
-            # ID-searched match on disk (that full wipe is what "cached" view is for).
-            scope_to_cookie = is_global and view_mode != "cached"
             deleted_match_ids = []
+            # Only "cached" view (the full-disk inspect/edit mode) actually deletes
+            # anything from disk. Clicking X in "recent" view — even locally — must
+            # only ever touch this browser's own history/cookies, never files that
+            # "cached" view (or someone else's recent tab sharing the same match)
+            # still relies on.
+            is_destructive_delete = is_local and view_mode == "cached"
 
-            if s_label and is_local:
+            if s_label and is_destructive_delete:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
                 from src.cache_manager import list_cache_files, load_json
 
@@ -406,9 +408,6 @@ class AppHandler(BaseHTTPRequestHandler):
                                     or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
                                     for part in participants
                                 )
-                                if p_match and scope_to_cookie:
-                                    this_m_id = meta.get("matchId", f.name.split(".")[0])
-                                    p_match = this_m_id.lower() in id_search_lower
                             else:
                                 # Match by actual participant identity, never by target_puuid
                                 # alone — target_puuid only ever records whoever got this match
@@ -449,6 +448,11 @@ class AppHandler(BaseHTTPRequestHandler):
             if deleted_match_ids:
                 new_id_hist = [h for h in id_search_history if h.lower() not in deleted_match_ids]
                 del_cookie.append(f"blaze_id_searches={urllib.parse.quote('|'.join(new_id_hist))}; Path=/; SameSite=Lax; Max-Age=31536000")
+            elif is_global and not is_destructive_delete:
+                # "Recent" view: X on the ID Searches tab can't delete files, but it
+                # should still clear this browser's own tracked IDs so the tab (and
+                # whatever it showed) actually disappears from "recent" as expected.
+                del_cookie.append("blaze_id_searches=; Path=/; SameSite=Lax; Max-Age=31536000")
             redirect_url = f"/?lang={lang}" + (f"&view={view_mode}" if view_mode == "cached" else "")
             self._redirect(redirect_url, cookies=del_cookie)
         elif parsed.path == "/clear_cache":
