@@ -1289,7 +1289,7 @@ body {
     gap: 8px;
     align-items: center;
 }
-.timeline-tab-btn {
+.timeline-tab-btn, .raw-tab-btn {
     background: #0d1527;
     border: 1px solid #24324d;
     color: #e2e8f0;
@@ -1304,12 +1304,12 @@ body {
     align-items: center;
     gap: 8px;
 }
-.timeline-tab-btn:hover {
+.timeline-tab-btn:hover, .raw-tab-btn:hover {
     color: #fff;
     border-color: #f97316;
     background: rgba(249, 115, 22, 0.12);
 }
-.timeline-tab-btn.active {
+.timeline-tab-btn.active, .raw-tab-btn.active {
     background: linear-gradient(135deg, rgba(154, 52, 18, 0.95) 0%, rgba(67, 20, 7, 0.95) 100%);
     color: #ffffff;
     border-color: #f97316;

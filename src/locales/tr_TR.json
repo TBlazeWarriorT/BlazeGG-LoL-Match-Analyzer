@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 Önbelleğin tümünü göster",
   "btn_view_recent": "🕒 Sadece son aramaları göster",
   "cache_storage_used": "Kullanılan depolama: {mb} MB",
-  "minions_killed_stat": "Öldürülen Askerler"
+  "minions_killed_stat": "Öldürülen Askerler",
+  "tab_raw_stats": "İstatistikler",
+  "tab_raw_timeline": "Zaman Çizelgesi"
 }

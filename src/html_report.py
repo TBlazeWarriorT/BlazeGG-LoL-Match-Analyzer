@@ -28,6 +28,7 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
     team_200 = data.get("team_200", {})
     target_puuid = data.get("target_puuid", "")
     raw_summary = data.get("raw_summary_text", "")
+    raw_phase_timeline = data.get("raw_phase_timeline_text", "")
     raw_game_mode = str(data.get("game_mode", "")).upper()
     is_aram = "ARAM" in raw_game_mode
     is_arena = "CHERRY" in raw_game_mode or "ARENA" in raw_game_mode
@@ -259,7 +260,14 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
                 <h3 style="margin:0;">{get_text('raw_summary_title', lang=lang)}</h3>
                 <button class="copy-btn" onclick="copyRawSummary()">{get_text('copy_summary_btn', lang=lang)}</button>
             </div>
-            <textarea id="rawSummaryText" class="raw-textarea" readonly>{raw_summary}</textarea>
+            {f'''
+            <div class="timeline-tabs-header" style="margin-bottom:10px;">
+                <button class="raw-tab-btn active" onclick="switchRawSummaryTab('stats', this)"><span>{get_text('tab_raw_stats', lang=lang)}</span></button>
+                <button class="raw-tab-btn" onclick="switchRawSummaryTab('timeline', this)"><span>{get_text('tab_raw_timeline', lang=lang)}</span></button>
+            </div>
+            ''' if raw_phase_timeline else ''}
+            <textarea id="rawSummaryStatsText" class="raw-textarea" data-raw-tab="stats" readonly>{raw_summary}</textarea>
+            {f'<textarea id="rawSummaryTimelineText" class="raw-textarea" data-raw-tab="timeline" readonly style="display:none;">{raw_phase_timeline}</textarea>' if raw_phase_timeline else ''}
         </div>
 
         <div class="legal-footer">

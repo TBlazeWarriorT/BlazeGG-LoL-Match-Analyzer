@@ -80,6 +80,7 @@ class DataDragon:
                 cached_items = {}
         self._item_crit: Dict[int, int] = {}
         self._item_tooltips: Dict[str, str] = {}
+        self._item_gold: Dict[int, int] = {}
         if cached_items and "data" in cached_items:
             for item_id, details in cached_items["data"].items():
                 name = details.get("name", f"Item {item_id}")
@@ -89,6 +90,7 @@ class DataDragon:
                     self._item_crit[int(item_id)] = round(crit * 100)
 
                 gold_total = details.get("gold", {}).get("total", 0)
+                self._item_gold[int(item_id)] = gold_total
                 raw_desc = details.get("description", "")
                 plaintext = details.get("plaintext", "")
 
@@ -487,6 +489,11 @@ class DataDragon:
         if not item_id or item_id == 0:
             return ""
         return self._item_tooltips.get(str(item_id), self._items.get(str(item_id), f"Item {item_id}"))
+
+    def get_item_gold_cost(self, item_id: int) -> int:
+        if not item_id or item_id == 0:
+            return 0
+        return self._item_gold.get(int(item_id), 0)
 
     def get_item_crit_chance(self, item_id: int) -> int:
         if not item_id or item_id == 0:

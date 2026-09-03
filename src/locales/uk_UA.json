@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 Показати весь кеш",
   "btn_view_recent": "🕒 Показати тільки останні",
   "cache_storage_used": "Використано пам'яті: {mb} МБ",
-  "minions_killed_stat": "Вбито крипів"
+  "minions_killed_stat": "Вбито крипів",
+  "tab_raw_stats": "Статистика",
+  "tab_raw_timeline": "Хронологія"
 }

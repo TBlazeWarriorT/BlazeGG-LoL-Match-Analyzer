@@ -445,6 +445,7 @@ window.addEventListener("DOMContentLoaded", function() {
         sessionStorage.setItem("blaze_last_match_id", currentMatchId);
         sessionStorage.setItem("blaze_timeline_tab", "kills");
         sessionStorage.setItem("blaze_timeline_phase", "early");
+        sessionStorage.setItem("blaze_raw_summary_tab", "stats");
         currentTimelinePhase = "early";
         switchTimelineTab("kills");
     } else {
@@ -456,11 +457,22 @@ window.addEventListener("DOMContentLoaded", function() {
             syncTimelineState();
         }
     }
+
+    if (document.getElementById("rawSummaryTimelineText")) {
+        var savedRawTab = sessionStorage.getItem("blaze_raw_summary_tab");
+        switchRawSummaryTab((savedRawTab === "timeline") ? "timeline" : "stats");
+    }
+
     initSmartTooltips();
 });
 
+function getActiveRawSummaryTextarea() {
+    return document.querySelector('#rawSummaryStatsText:not([style*="display: none"]), #rawSummaryTimelineText:not([style*="display: none"])')
+        || document.getElementById("rawSummaryStatsText");
+}
+
 function autoResizeTextarea() {
-    var ta = document.getElementById("rawSummaryText");
+    var ta = getActiveRawSummaryTextarea();
     if (ta) {
         ta.style.height = "auto";
         ta.style.height = (ta.scrollHeight + 10) + "px";
@@ -468,13 +480,28 @@ function autoResizeTextarea() {
 }
 window.addEventListener("load", autoResizeTextarea);
 
+function switchRawSummaryTab(tab, btnEl) {
+    sessionStorage.setItem("blaze_raw_summary_tab", tab);
+    document.querySelectorAll('[data-raw-tab]').forEach(function(ta) {
+        ta.style.display = (ta.dataset.rawTab === tab) ? "" : "none";
+    });
+    if (!btnEl) {
+        btnEl = document.querySelector(".raw-tab-btn[onclick*=\"'" + tab + "'\"]");
+    }
+    if (!btnEl) return;
+    var siblings = btnEl.parentElement.querySelectorAll(".raw-tab-btn");
+    siblings.forEach(function(b) { b.classList.remove("active"); });
+    btnEl.classList.add("active");
+    autoResizeTextarea();
+}
+
 function copyRawSummary() {
-    var copyText = document.getElementById("rawSummaryText");
+    var copyText = getActiveRawSummaryTextarea();
     if (!copyText) return;
     copyText.select();
     copyText.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(copyText.value);
-    
+
     var btn = document.querySelector(".copy-btn");
     if (btn) {
         var originalText = btn.innerText;

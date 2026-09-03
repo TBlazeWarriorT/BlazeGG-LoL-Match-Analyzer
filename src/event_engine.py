@@ -306,7 +306,89 @@ class MatchAnalysis:
             "multikills": self._extract_multikill_sequences()
         }
         analysis_dict["raw_summary_text"] = self._generate_compact_raw_summary(analysis_dict)
+        analysis_dict["raw_phase_timeline_text"] = self._generate_phase_timeline_text(analysis_dict)
         return analysis_dict
+
+    def _generate_phase_timeline_text(self, data: Dict[str, Any]) -> str:
+        # Arena has no epic objectives and is mostly nonstop skirmishing (100+ kills
+        # is common) — a kill-by-kill log there is both noisy and not very meaningful.
+        # This view is for objective-driven 5v5 modes (Classic, ARAM) where seeing kills
+        # alongside dragons/baron/herald actually tells the story of the game.
+        mode_upper = str(data.get("game_mode", "")).upper()
+        queue_id = data.get("queue_id", 0)
+        is_arena = ("CHERRY" in mode_upper or "ARENA" in mode_upper or queue_id in (1700, 1710))
+        if is_arena:
+            return ""
+
+        LEGENDARY_GOLD_THRESHOLD = 2300
+
+        def fmt_summoner(p: Dict[str, Any]) -> str:
+            return f"{p['champion']} ({p['riot_id']})"
+
+        # Repeated here (not just in the Stats tab) so this tab's text is self-contained
+        # when copied on its own — whoever pastes it shouldn't need the other tab too.
+        winner = "BLUE" if data["team_100"]["win"] else "RED"
+        summ_lines = [
+            f"MATCH: {data['match_id']} | DURATION: {data['duration']} | WINNER: {winner}",
+            "\n[SUMMONERS]",
+            f"BLUE: {', '.join(fmt_summoner(p) for p in data['team_100']['players'])}",
+            f"RED: {', '.join(fmt_summoner(p) for p in data['team_200']['players'])}"
+        ]
+
+        # Build one compact string per raw event, then bucket into early/mid/late by
+        # the same 0-14 / 14-25 / 25+ minute boundaries the visual timeline tab uses.
+        entries = []  # list of (timestamp_ms, text)
+
+        for ev in data.get("key_events", []):
+            ts_ms = parse_time_str(ev["time"])
+            if ev["type"] == "kill":
+                if ev.get("is_execution"):
+                    killer_str = "EXECUTION"
+                else:
+                    killer_str = f"{ev['killer_champ']}(lv{ev['killer_level']},{ev['killer_gold']}g)"
+                victim_str = f"{ev['victim_champ']}(lv{ev['victim_level']},{ev['victim_gold']}g)"
+                text = f"{ev['time']} {killer_str} x {victim_str}"
+
+                extras = []
+                if ev.get("assists_count"):
+                    extras.append(f"assist:{'/'.join(a['champ'] for a in ev['assisters'])}")
+                spell_names = sorted(set(s['spell_name'] for s in ev.get('combat_spells', []) if s.get('is_killer')))
+                if spell_names:
+                    extras.append(", ".join(spell_names))
+                streak = ev.get("streak")
+                if streak in ("penta", "quadra", "triple"):
+                    extras.append(streak.upper())
+                if extras:
+                    text += f" [{'; '.join(extras)}]"
+                entries.append((ts_ms, text))
+            elif ev["type"] == "objective":
+                text = f"{ev['time']} {ev['desc'].upper()} by {ev['killer_champ']}"
+                entries.append((ts_ms, text))
+
+        for group in data.get("item_events", []):
+            ts_ms = group.get("ts", parse_time_str(group.get("time", "0:00")))
+            for it in group.get("items", []):
+                if self.ddragon.get_item_gold_cost(it["item_id"]) >= LEGENDARY_GOLD_THRESHOLD:
+                    entries.append((ts_ms, f"{group['time']} {group['champ']} bought {it['item_name']}"))
+
+        entries.sort(key=lambda e: e[0])
+
+        phases = {"early": [], "mid": [], "late": []}
+        for ts_ms, text in entries:
+            minute = ts_ms // 60000
+            if minute < 14:
+                phases["early"].append(text)
+            elif minute < 25:
+                phases["mid"].append(text)
+            else:
+                phases["late"].append(text)
+
+        phase_lines = []
+        for key, title in (("early", "EARLY GAME (0-14min)"), ("mid", "MID GAME (14-25min)"), ("late", "LATE GAME (25min+)")):
+            if phases[key]:
+                phase_lines.append(f"\n[{title}]\n" + "; ".join(phases[key]))
+
+        return "\n".join(summ_lines) + "\n" + "\n".join(phase_lines)
 
     def _generate_compact_raw_summary(self, data: Dict[str, Any]) -> str:
         lines = []

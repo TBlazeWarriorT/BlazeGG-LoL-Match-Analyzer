@@ -300,5 +300,7 @@
   "streak_legendary": "LEGENDARY",
   "first_blood": "FIRST BLOOD! 🩸",
   "cache_storage_used": "Storage used: {mb} MB",
-  "minions_killed_stat": "Minions Killed"
+  "minions_killed_stat": "Minions Killed",
+  "tab_raw_stats": "Stats",
+  "tab_raw_timeline": "Timeline"
 }

@@ -92,7 +92,7 @@
   "purchased_item": "comprou",
   "show_more_events": "Ver Mais ({count}) ⬇",
   "show_less_events": "Recolher ⬆",
-  "raw_summary_title": "📋 Resumo Factual Bruto (Pronto para IA / Copiar)",
+  "raw_summary_title": "📋 Resumão Bruto (Pronto para IA / Copiar)",
   "copy_summary_btn": "Copiar Resumo",
   "copied_btn": "Copiado! ✓",
   "eliminated": "eliminou",
@@ -300,5 +300,7 @@
   "streak_legendary": "LENDÁRIO",
   "first_blood": "FIRST BLOOD! 🩸",
   "cache_storage_used": "Armazenamento usado: {mb} MB",
-  "minions_killed_stat": "Tropas Abatidas"
+  "minions_killed_stat": "Tropas Abatidas",
+  "tab_raw_stats": "Estatísticas",
+  "tab_raw_timeline": "Linha do Tempo"
 }

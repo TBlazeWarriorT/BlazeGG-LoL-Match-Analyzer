@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 Xem tất cả cache",
   "btn_view_recent": "🕒 Chỉ xem gần đây",
   "cache_storage_used": "Dung lượng đã dùng: {mb} MB",
-  "minions_killed_stat": "Lính Đã Hạ"
+  "minions_killed_stat": "Lính Đã Hạ",
+  "tab_raw_stats": "Thống Kê",
+  "tab_raw_timeline": "Dòng Thời Gian"
 }

@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 Ver todo el caché",
   "btn_view_recent": "🕒 Ver solo recientes",
   "cache_storage_used": "Almacenamiento usado: {mb} MB",
-  "minions_killed_stat": "Súbditos Eliminados"
+  "minions_killed_stat": "Súbditos Eliminados",
+  "tab_raw_stats": "Estadísticas",
+  "tab_raw_timeline": "Cronología"
 }

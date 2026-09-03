@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 Voir tout le cache",
   "btn_view_recent": "🕒 Voir seulement les récents",
   "cache_storage_used": "Stockage utilisé : {mb} Mo",
-  "minions_killed_stat": "Sbires Éliminés"
+  "minions_killed_stat": "Sbires Éliminés",
+  "tab_raw_stats": "Statistiques",
+  "tab_raw_timeline": "Chronologie"
 }

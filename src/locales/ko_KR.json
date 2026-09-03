@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 전체 캐시 보기",
   "btn_view_recent": "🕒 최근 항목만 보기",
   "cache_storage_used": "사용된 저장 공간: {mb} MB",
-  "minions_killed_stat": "처치한 미니언"
+  "minions_killed_stat": "처치한 미니언",
+  "tab_raw_stats": "통계",
+  "tab_raw_timeline": "타임라인"
 }

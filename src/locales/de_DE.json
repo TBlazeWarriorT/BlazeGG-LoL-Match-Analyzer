@@ -300,5 +300,7 @@
   "btn_view_cached": "📂 Alle im Cache anzeigen",
   "btn_view_recent": "🕒 Nur die letzten anzeigen",
   "cache_storage_used": "Speicher belegt: {mb} MB",
-  "minions_killed_stat": "Getötete Vasallen"
+  "minions_killed_stat": "Getötete Vasallen",
+  "tab_raw_stats": "Statistiken",
+  "tab_raw_timeline": "Zeitachse"
 }
