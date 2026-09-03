@@ -267,7 +267,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True, auto_expand=False):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True, auto_expand=False, view_mode="recent"):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
     def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
@@ -373,8 +373,11 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 else:
                     group_entry["losses"] += 1
 
-        # In remote/production, filter visible tabs to only summoners searched by THIS user
-        if not is_local:
+        # In remote/production, always filter to only summoners searched by THIS user.
+        # Locally, "recent" (the default) applies that same filter as a lightweight view;
+        # "cached" is the edit/inspect mode showing everything on disk, unfiltered.
+        show_recent_only = (not is_local) or view_mode != "cached"
+        if show_recent_only:
             user_hist_list = user_history if user_history is not None else []
             user_history_lower = [h.strip().lower() for h in user_hist_list if h.strip()]
             filtered_groups = {k: v for k, v in summoner_groups.items() if k.lower() in user_history_lower}
@@ -529,13 +532,25 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         """ if is_local else ""
 
         if tab_buttons:
-            title_key = "cached_matches_title" if is_local else "recent_summoners_title"
+            title_key = "recent_summoners_title" if show_recent_only else "cached_matches_title"
             c_title = get_text(title_key, lang=lang, count=sum(len(v["cards"]) for v in summoner_groups.values()))
+
+            view_toggle_html = ""
+            if is_local:
+                other_mode = "cached" if show_recent_only else "recent"
+                other_label = get_text("btn_view_cached", lang=lang) if show_recent_only else get_text("btn_view_recent", lang=lang)
+                view_toggle_html = f"""
+                <a href="/?lang={lang}&view={other_mode}" class="btn-tab-action" style="text-decoration:none;">{other_label}</a>
+                """
+
             cached_html = f"""
             <div class="section-card" style="margin-top: 24px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
                     <h3 style="margin:0;">{c_title}</h3>
-                    {clear_cache_btn}
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        {view_toggle_html}
+                        {clear_cache_btn}
+                    </div>
                 </div>
                 
                 <div class="cache-tabs-nav">

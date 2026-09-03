@@ -80,7 +80,8 @@ class AppHandler(BaseHTTPRequestHandler):
             return
 
         if path in ("", "/"):
-            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local))
+            view_mode = qs.get("view", ["recent"])[0].strip().lower()
+            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, view_mode=view_mode))
 
         elif path == "/search_match":
             mid_input = qs.get("match_id", [""])[0].strip()

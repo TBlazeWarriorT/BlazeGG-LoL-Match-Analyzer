@@ -18,6 +18,8 @@
   "cached_matches_title": "💾 Locally Cached Matches ({count})",
   "recent_summoners_title": "🕒 Recently Viewed ({count})",
   "btn_clear_cache": "🗑️ Clear Cache",
+  "btn_view_cached": "📂 View all cached",
+  "btn_view_recent": "🕒 View recent only",
   "confirm_clear_cache": "Do you really want to clear cached matches?",
   "btn_analyze": "Analyze Match ➔",
   "btn_cached": "Open Analysis ➔",

@@ -18,6 +18,8 @@
   "cached_matches_title": "💾 Partidas Salvas no Cache Local ({count})",
   "recent_summoners_title": "🕒 Invocadores Recentes ({count})",
   "btn_clear_cache": "🗑️ Limpar Cache",
+  "btn_view_cached": "📂 Ver tudo do cache",
+  "btn_view_recent": "🕒 Ver só recentes",
   "confirm_clear_cache": "Deseja realmente apagar o cache de partidas salvas?",
   "btn_analyze": "Analisar Partida ➔",
   "btn_cached": "Abrir Análise ➔",
