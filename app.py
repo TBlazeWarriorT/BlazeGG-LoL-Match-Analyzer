@@ -372,15 +372,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
                 from src.cache_manager import list_cache_files, load_json
 
-                last_sess_puuid = ""
-                if is_global:
-                    # The "ID Searches" group only ever holds matches searched by raw
-                    # match ID: no target_puuid was recorded, and none of the participants
-                    # match this browser's search history or last session. Mirror that exact
-                    # classification here instead of comparing against the localized tab
-                    # label (which never matches a real riotIdGameName#riotIdTagline).
-                    last_sess = get_last_session() or {}
-                    last_sess_puuid = last_sess.get("puuid", "")
+                last_sess = get_last_session() or {}
+                last_sess_puuid = last_sess.get("puuid", "")
 
                 if MATCH_CACHE_DIR.exists():
                     for f in list_cache_files(MATCH_CACHE_DIR):
@@ -404,16 +397,29 @@ class AppHandler(BaseHTTPRequestHandler):
                                     this_m_id = meta.get("matchId", f.name.split(".")[0])
                                     p_match = this_m_id.lower() in id_search_lower
                             else:
-                                p_match = False
-                                for part in participants:
-                                    p_label = f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}"
-                                    if target_puuid and part.get("puuid") == target_puuid:
-                                        if p_label.lower() == s_label.lower():
-                                            p_match = True
-                                            break
-                                    elif not target_puuid and p_label.lower() == s_label.lower():
-                                        p_match = True
-                                        break
+                                # Match by actual participant identity, never by target_puuid
+                                # alone — target_puuid only ever records whoever got this match
+                                # cached first, so relying on it here would (a) miss deleting a
+                                # match for a summoner who isn't that recorded owner and (b), far
+                                # worse, delete it out from under a DIFFERENT summoner's tab that
+                                # still needs it (see the recent duo-partner bug).
+                                p_match = any(
+                                    f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() == s_label.lower()
+                                    for part in participants
+                                )
+                                if p_match:
+                                    # Orphan check: this match is only actually deleted once no
+                                    # OTHER summoner still tracked (post-deletion history, or the
+                                    # active local session) also played in it. Deleting one tab
+                                    # must never punch a hole in another tab that still shows it.
+                                    still_needed_elsewhere = any(
+                                        f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() in
+                                        [h.lower() for h in new_hist]
+                                        or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
+                                        for part in participants
+                                    )
+                                    if still_needed_elsewhere:
+                                        p_match = False
 
                             if p_match:
                                 m_id = meta.get("matchId", f.name.split(".")[0])
