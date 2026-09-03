@@ -252,6 +252,8 @@ class AppHandler(BaseHTTPRequestHandler):
             # (/search_match), not from clicking a hub card (which always carries
             # one) — that's the one case worth remembering as an "ID search".
             is_raw_id_search = not puuid
+            m = None  # populated from cache before any exception can occur; used below
+                      # to recover the summoner's identity if the analysis then fails
 
             try:
                 # If both files are already on disk, skip the Riot API (and the
@@ -316,7 +318,21 @@ class AppHandler(BaseHTTPRequestHandler):
                 pass
             except Exception as e:
                 err_text = get_text("err_analyze_match", lang=lang, match_id=match_id, err=str(e))
-                self._send_html(render_home_html(error_msg=err_text, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+                # The match itself may already be cached (this is common: a summoner
+                # search only ever caches match details, never the timeline — that's
+                # fetched lazily here on first "Open Analysis") even though the timeline
+                # fetch that just failed needs a working key. If so, recover whose tab
+                # this was from the cached participant data so it doesn't vanish from
+                # "recent" just because opening one match from it hit an API error.
+                fallback_hist = user_history
+                if m and puuid:
+                    for part in m.get("info", {}).get("participants", []):
+                        if part.get("puuid") == puuid:
+                            identity = f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}"
+                            if identity.lower() not in [h.lower() for h in user_history]:
+                                fallback_hist = user_history + [identity]
+                            break
+                self._send_html(render_home_html(error_msg=err_text, lang=lang, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
 
         else:
             self._send_html(render_home_html(error_msg=get_text("err_page_not_found", lang=lang), lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
