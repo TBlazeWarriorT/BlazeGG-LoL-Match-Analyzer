@@ -329,18 +329,27 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         # Group cached matches by target summoner
         summoner_groups = {}
         for m in cached_list:
-            # Find which participant matches target_puuid or user history
+            # Find which participant(s) match target_puuid or user history. A single
+            # match can rightfully belong to more than one tab (e.g. two searched
+            # summoners who duo'd together) — target_puuid only records whoever got
+            # cached first, so it must never short-circuit checking user_history too,
+            # or a later searcher's own matches silently vanish into someone else's tab.
             matched_summoners = []
+            matched_puuids = set()
             if m.get("target_puuid"):
                 for part in m["participants"]:
                     if part["puuid"] == m["target_puuid"]:
                         matched_summoners.append(part)
-            if not matched_summoners and user_history:
+                        matched_puuids.add(part["puuid"])
+            if user_history:
                 u_hist_lower = [h.strip().lower() for h in user_history if h.strip()]
                 for part in m["participants"]:
+                    if part["puuid"] in matched_puuids:
+                        continue
                     p_label = f"{part.get('name', '')}#{part.get('tag', '')}".lower()
                     if p_label in u_hist_lower:
                         matched_summoners.append(part)
+                        matched_puuids.add(part["puuid"])
             if not matched_summoners and m["match_id"].lower() in id_search_lower and m["participants"]:
                 # This browser itself searched this exact match by ID (tracked via the
                 # blaze_id_searches cookie) — show it under "ID Searches" regardless of
