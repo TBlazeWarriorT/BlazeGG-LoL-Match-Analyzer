@@ -7,7 +7,7 @@
   "key_missing": "API Anahtarı Eksik ⚠️",
   "search_title": "Sihirdar Ara (Riot ID)",
   "search_match_id_title": "Maç ID ile Ara",
-  "search_match_id_ph": "Maç ID (Örn: KR_8326219860)",
+  "search_match_id_ph": "Maç ID (Örn: {example_match_id})",
   "search_match_id_btn": "Maçı Aç ➔",
   "search_game_name_ph": "İsim (Örn: Hide on bush)",
   "search_tag_ph": "TAG (Örn: KR1)",
@@ -25,10 +25,10 @@
   "key_config_title": "🔑 Riot API Anahtarı Yapılandırması",
   "key_portal_link": "🔗 Riot Geliştirici Portalını Aç ➔",
   "key_current": "Mevcut anahtar: <b>{masked}</b> • Durum: {status}",
-  "key_status_expired": "<span style='color:#ef4444; font-weight:bold;'>Süresi Doldu!</span>",
-  "key_status_valid": "<span style='color:#86efac; font-weight:bold;'>Geçerlilik: {hours} sa {mins} dk</span>",
+  "key_status_expired": "Süresi Doldu!",
+  "key_status_valid": "Geçerlilik: {hours} sa {mins} dk",
   "key_status_none": "Yapılandırılmış anahtar yok",
-  "key_status_no_info": "<span style='color:var(--text-muted);'>Bitiş tarihi belirtilmedi</span>",
+  "key_status_no_info": "Bitiş tarihi belirtilmedi",
   "err_key_missing": "Riot API'ye bağlanılamadı. Lütfen aşağıdaki panelden API anahtarınızı girin.",
   "err_key_expired": "Riot geliştirici anahtarınızın SÜRESİ DOLDU! developer.riotgames.com adresinden yenileyin.",
   "err_dev_key_invalid": "Girdiğiniz anahtar geçersiz veya süresi dolmuş.{detail}",
@@ -297,5 +297,7 @@
   "streak_dominating": "HÂKİM",
   "streak_godlike": "EFSANEVİ",
   "streak_legendary": "DESTANSI",
-  "first_blood": "İLK KAN! 🩸"
+  "first_blood": "İLK KAN! 🩸",
+  "btn_view_cached": "📂 Önbelleğin tümünü göster",
+  "btn_view_recent": "🕒 Sadece son aramaları göster"
 }

@@ -31,16 +31,25 @@ def _load_languages() -> Dict[str, Dict[str, str]]:
 
 LANGUAGES: Dict[str, Dict[str, str]] = _load_languages()
 
+# Example values used in placeholder text (search box hints, etc). These are facts
+# (a real, working Riot ID / match ID), not translatable content — every locale's
+# placeholder string should reference {example_name}/{example_tag}/{example_match_id}
+# instead of hardcoding its own copy, so there's exactly one place to fix if it ever
+# goes stale, and no way for a locale to drift to an invented, non-functional example.
+SHARED_EXAMPLES: Dict[str, str] = {
+    "example_name": "Hide on bush",
+    "example_tag": "KR1",
+    "example_match_id": "KR_8326219860",
+}
+
 def get_text(key: str, lang: str = "en_US", **kwargs: Any) -> str:
     lang_dict = LANGUAGES.get(lang) or LANGUAGES.get("en_US", {})
     fallback_dict = LANGUAGES.get("en_US", {})
     text = lang_dict.get(key, fallback_dict.get(key, key))
-    if kwargs:
-        try:
-            return text.format(**kwargs)
-        except Exception:
-            return text
-    return text
+    try:
+        return text.format(**SHARED_EXAMPLES, **kwargs)
+    except Exception:
+        return text
 
 def render_language_dropdown(current_lang: str = "en_US", on_change_callback: str = "changeLanguage") -> str:
     active_info = SUPPORTED_LANGUAGES.get(current_lang, SUPPORTED_LANGUAGES["en_US"])

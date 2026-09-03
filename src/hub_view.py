@@ -295,15 +295,15 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             diff_s = exp_ts - time.time()
             if diff_s <= 0:
                 is_expired = True
-                expiry_msg = get_text("key_status_expired", lang=lang)
+                expiry_msg = f'<span style="color:#ef4444; font-weight:bold;">{get_text("key_status_expired", lang=lang)}</span>'
                 key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_expired", lang=lang, masked=masked_key)}</span>'
             else:
                 hours = int(diff_s // 3600)
                 mins = int((diff_s % 3600) // 60)
-                expiry_msg = get_text("key_status_valid", lang=lang, hours=hours, mins=mins)
+                expiry_msg = f'<span style="color:#86efac; font-weight:bold;">{get_text("key_status_valid", lang=lang, hours=hours, mins=mins)}</span>'
                 key_status_badge = f'<span style="color:#86efac; background:#166534; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_active", lang=lang, masked=masked_key, hours=hours, mins=mins)}</span>'
         else:
-            expiry_msg = get_text("key_status_no_info", lang=lang)
+            expiry_msg = f'<span style="color:var(--text-muted);">{get_text("key_status_no_info", lang=lang)}</span>'
             key_status_badge = f'<span style="color:#86efac; background:#166534; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_active_no_exp", lang=lang, masked=masked_key)}</span>'
     else:
         masked_key = get_text("none_label", lang=lang)
