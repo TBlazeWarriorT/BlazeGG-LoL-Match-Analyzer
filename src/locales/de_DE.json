@@ -213,7 +213,7 @@
   "direct_opponent_title": "Direkter Lane-Gegner: {champ} ({riot_id})",
   "prod_key_active": "Produktionsschlüssel aktiv",
   "none_label": "Keine",
-  "global_other_tab": "Gesamt / Sonstige",
+  "global_other_tab": "ID-Suchen",
   "lbl_saved_matches": "Gespeicherte Spiele",
   "lbl_victories": "Siege",
   "lbl_defeats": "Niederlagen",

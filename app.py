@@ -60,6 +60,9 @@ class AppHandler(BaseHTTPRequestHandler):
         hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_history").value) if "blaze_history" in cookie_obj else ""
         user_history = [h.strip() for h in hist_cookie.split("|") if h.strip()] if hist_cookie else []
 
+        id_hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_id_searches").value) if "blaze_id_searches" in cookie_obj else ""
+        id_search_history = [h.strip() for h in id_hist_cookie.split("|") if h.strip()] if id_hist_cookie else []
+
         if path in ("/ping", "/health"):
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
@@ -81,7 +84,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
         if path in ("", "/"):
             view_mode = qs.get("view", ["recent"])[0].strip().lower()
-            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, view_mode=view_mode))
+            self._send_html(render_home_html(lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, view_mode=view_mode, id_search_history=id_search_history))
 
         elif path == "/search_match":
             mid_input = qs.get("match_id", [""])[0].strip()
@@ -112,7 +115,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
             if not name or not tag:
                 err_msg = get_text("err_provide_name_tag", lang=lang)
-                self._send_html(render_home_html(error_msg=err_msg, lang=lang, session_key=sess_key, session_expiry=sess_exp))
+                self._send_html(render_home_html(error_msg=err_msg, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
                 return
 
             try:
@@ -197,13 +200,13 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
                 self.end_headers()
                 
-                rendered_html = render_home_html(search_results=results, search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=new_hist, is_local=is_local)
+                rendered_html = render_home_html(search_results=results, search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=new_hist, is_local=is_local, id_search_history=id_search_history)
                 self.wfile.write(rendered_html.encode("utf-8"))
 
             except RiotAPIError as e:
-                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))
+                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
             except Exception as e:
-                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang))
+                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
         elif path == "/load_more":
             name = qs.get("game_name", [""])[0].strip()
@@ -219,17 +222,17 @@ class AppHandler(BaseHTTPRequestHandler):
                 puuid = client.get_puuid(name, tag)
                 save_session(name, tag, puuid)
                 match_ids = client.get_recent_matches(puuid, count=8, start=start_offset)
-                
+
                 dd = get_ddragon(lang)
                 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     list(executor.map(lambda mid: client.get_match_detail(mid, target_puuid=puuid), match_ids))
 
-                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang, auto_expand=True))
+                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang, auto_expand=True, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
             except RiotAPIError as e:
-                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang))
+                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
             except Exception as e:
-                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang))
+                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
         elif path == "/analyze":
 
@@ -238,6 +241,11 @@ class AppHandler(BaseHTTPRequestHandler):
             if not match_id:
                 self._redirect(f"/?lang={lang}")
                 return
+
+            # No puuid in the URL means this came from a raw match-ID search
+            # (/search_match), not from clicking a hub card (which always carries
+            # one) — that's the one case worth remembering as an "ID search".
+            is_raw_id_search = not puuid
 
             try:
                 client = RiotClient(session_key=sess_key, lang=lang)
@@ -281,16 +289,24 @@ class AppHandler(BaseHTTPRequestHandler):
                 data = analyzer.generate_full_analysis()
                 
                 content = src.html_report.generate_html_report(data, open_browser=False, lang=lang)
-                
-                self._send_html(content)
+
+                cookies_out = None
+                if is_raw_id_search:
+                    new_id_hist = [h for h in id_search_history if h.lower() != match_id.lower()]
+                    new_id_hist.insert(0, match_id)
+                    new_id_hist = new_id_hist[:10]
+                    id_cookie_val = urllib.parse.quote("|".join(new_id_hist))
+                    cookies_out = [f"blaze_id_searches={id_cookie_val}; Path=/; SameSite=Lax; Max-Age=31536000"]
+
+                self._send_html(content, cookies=cookies_out)
             except (ConnectionError, BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
                 pass
             except Exception as e:
                 err_text = get_text("err_analyze_match", lang=lang, match_id=match_id, err=str(e))
-                self._send_html(render_home_html(error_msg=err_text, lang=lang))
+                self._send_html(render_home_html(error_msg=err_text, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
         else:
-            self._send_html(render_home_html(error_msg=get_text("err_page_not_found", lang=lang), lang=lang))
+            self._send_html(render_home_html(error_msg=get_text("err_page_not_found", lang=lang), lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -343,13 +359,22 @@ class AppHandler(BaseHTTPRequestHandler):
             new_hist = [h for h in user_history if h.lower() != s_label.lower()]
             hist_cookie_val = urllib.parse.quote("|".join(new_hist))
 
+            id_hist_cookie = urllib.parse.unquote(cookie_obj.get("blaze_id_searches").value) if "blaze_id_searches" in cookie_obj else ""
+            id_search_history = [h.strip() for h in id_hist_cookie.split("|") if h.strip()] if id_hist_cookie else []
+            id_search_lower = set(h.lower() for h in id_search_history)
+            # In "recent" view the ID Searches tab only shows matches this browser's
+            # cookie tracked, so deleting it should only remove those, not every
+            # ID-searched match on disk (that full wipe is what "cached" view is for).
+            scope_to_cookie = is_global and view_mode != "cached"
+            deleted_match_ids = []
+
             if s_label and is_local:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
                 from src.cache_manager import list_cache_files, load_json
 
                 last_sess_puuid = ""
                 if is_global:
-                    # The "Global / Diversos" group only ever holds matches searched by raw
+                    # The "ID Searches" group only ever holds matches searched by raw
                     # match ID: no target_puuid was recorded, and none of the participants
                     # match this browser's search history or last session. Mirror that exact
                     # classification here instead of comparing against the localized tab
@@ -375,6 +400,9 @@ class AppHandler(BaseHTTPRequestHandler):
                                     or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
                                     for part in participants
                                 )
+                                if p_match and scope_to_cookie:
+                                    this_m_id = meta.get("matchId", f.name.split(".")[0])
+                                    p_match = this_m_id.lower() in id_search_lower
                             else:
                                 p_match = False
                                 for part in participants:
@@ -389,6 +417,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
                             if p_match:
                                 m_id = meta.get("matchId", f.name.split(".")[0])
+                                deleted_match_ids.append(m_id.lower())
                                 f.unlink(missing_ok=True)
                                 if TIMELINE_CACHE_DIR.exists():
                                     (TIMELINE_CACHE_DIR / f"{m_id}.json").unlink(missing_ok=True)
@@ -398,6 +427,9 @@ class AppHandler(BaseHTTPRequestHandler):
                             continue
 
             del_cookie = [f"blaze_history={hist_cookie_val}; Path=/; SameSite=Lax; Max-Age=31536000"]
+            if deleted_match_ids:
+                new_id_hist = [h for h in id_search_history if h.lower() not in deleted_match_ids]
+                del_cookie.append(f"blaze_id_searches={urllib.parse.quote('|'.join(new_id_hist))}; Path=/; SameSite=Lax; Max-Age=31536000")
             redirect_url = f"/?lang={lang}" + (f"&view={view_mode}" if view_mode == "cached" else "")
             self._redirect(redirect_url, cookies=del_cookie)
         elif parsed.path == "/clear_cache":
@@ -415,13 +447,16 @@ class AppHandler(BaseHTTPRequestHandler):
             self._redirect("/")
 
 
-    def _send_html(self, html_str: str):
+    def _send_html(self, html_str: str, cookies: list = None):
         try:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.send_header("Pragma", "no-cache")
             self.send_header("Expires", "0")
+            if cookies:
+                for c in cookies:
+                    self.send_header("Set-Cookie", c)
             self.end_headers()
             self.wfile.write(html_str.encode("utf-8"))
         except (ConnectionError, BrokenPipeError, ConnectionAbortedError, ConnectionResetError):

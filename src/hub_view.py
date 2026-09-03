@@ -278,7 +278,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
 
 
-def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True, auto_expand=False, view_mode="recent"):
+def render_home_html(search_results=None, error_msg="", search_name="", search_tag="", lang="en_US", session_key="", session_expiry="", user_history=None, is_local=True, auto_expand=False, view_mode="recent", id_search_history=None):
     cached_list = get_cached_matches_list(lang=lang)
     last_sess = get_last_session() or {}
     def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
@@ -321,6 +321,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         expiry_msg = get_text("key_status_none", lang=lang)
         key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_missing", lang=lang)}</span>'
 
+    id_search_lower = set(i.strip().lower() for i in (id_search_history or []) if i.strip())
+
     cached_html = ""
     auto_expand_indices = []
     if cached_list:
@@ -339,6 +341,13 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     p_label = f"{part.get('name', '')}#{part.get('tag', '')}".lower()
                     if p_label in u_hist_lower:
                         matched_summoners.append(part)
+            if not matched_summoners and m["match_id"].lower() in id_search_lower and m["participants"]:
+                # This browser itself searched this exact match by ID (tracked via the
+                # blaze_id_searches cookie) — show it under "ID Searches" regardless of
+                # local/prod, same as a named-summoner match shows under user_history.
+                first_p = dict(m["participants"][0])
+                first_p["_is_global_tab"] = True
+                matched_summoners.append(first_p)
             if not matched_summoners and is_local:
                 if last_sess.get("puuid"):
                     for part in m["participants"]:
@@ -377,8 +386,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     if place_val:
                         is_match_win = (place_val <= 4)
                 
-                group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0, "is_global": bool(p.get("_is_global_tab"))})
+                group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0, "is_global": bool(p.get("_is_global_tab")), "card_match_ids": [], "card_wins": []})
                 group_entry["cards"].append(card_html)
+                group_entry["card_match_ids"].append(m["match_id"])
+                group_entry["card_wins"].append(is_match_win)
                 if is_match_win:
                     group_entry["wins"] += 1
                 else:
@@ -391,7 +402,25 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         if show_recent_only:
             user_hist_list = user_history if user_history is not None else []
             user_history_lower = [h.strip().lower() for h in user_hist_list if h.strip()]
-            filtered_groups = {k: v for k, v in summoner_groups.items() if k.lower() in user_history_lower}
+            filtered_groups = {}
+            for k, v in summoner_groups.items():
+                if k.lower() in user_history_lower:
+                    filtered_groups[k] = v
+                    continue
+                if v.get("is_global") and id_search_lower:
+                    # The "ID Searches" group may also hold matches nobody's cookie
+                    # tracked (the full-disk fallback used by "cached" view) — only
+                    # keep the cards *this browser* actually searched by ID.
+                    keep_idx = [i for i, mid in enumerate(v.get("card_match_ids", [])) if mid.lower() in id_search_lower]
+                    if keep_idx:
+                        filtered_groups[k] = {
+                            "cards": [v["cards"][i] for i in keep_idx],
+                            "wins": sum(1 for i in keep_idx if v["card_wins"][i]),
+                            "losses": sum(1 for i in keep_idx if not v["card_wins"][i]),
+                            "is_global": True,
+                            "card_match_ids": [v["card_match_ids"][i] for i in keep_idx],
+                            "card_wins": [v["card_wins"][i] for i in keep_idx],
+                        }
             summoner_groups = filtered_groups
 
         # Build tabs: Order by user's recent search order (user_history) so newest is always first on the left

@@ -224,7 +224,7 @@
   "direct_opponent_title": "對線對手: {champ} ({riot_id})",
   "prod_key_active": "正式 Production Key 已啟用",
   "none_label": "無",
-  "global_other_tab": "全域 / 其他",
+  "global_other_tab": "ID 搜尋",
   "lbl_saved_matches": "已存對局",
   "lbl_victories": "勝場",
   "lbl_defeats": "敗場",

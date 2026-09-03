@@ -224,7 +224,7 @@
   "direct_opponent_title": "Прямий опонент: {champ} ({riot_id})",
   "prod_key_active": "Продакшн ключ активний",
   "none_label": "Немає",
-  "global_other_tab": "Загальне / Інше",
+  "global_other_tab": "Пошуки за ID",
   "lbl_saved_matches": "Збережені матчі",
   "lbl_victories": "Перемоги",
   "lbl_defeats": "Поразки",

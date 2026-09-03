@@ -213,7 +213,7 @@
   "direct_opponent_title": "Oponente Directo: {champ} ({riot_id})",
   "prod_key_active": "Clave de Producción Activa",
   "none_label": "Ninguno",
-  "global_other_tab": "Global / Otros",
+  "global_other_tab": "Búsquedas por ID",
   "lbl_saved_matches": "Partidas Guardadas",
   "lbl_victories": "Victorias",
   "lbl_defeats": "Derrotas",

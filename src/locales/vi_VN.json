@@ -213,7 +213,7 @@
   "direct_opponent_title": "Đối Thủ Trực Tiếp: {champ} ({riot_id})",
   "prod_key_active": "Production Key Hoạt Động",
   "none_label": "Không có",
-  "global_other_tab": "Chung / Khác",
+  "global_other_tab": "Tìm theo ID",
   "lbl_saved_matches": "Trận Đã Lưu",
   "lbl_victories": "Thắng",
   "lbl_defeats": "Thua",

@@ -213,7 +213,7 @@
   "direct_opponent_title": "맞라이너: {champ} ({riot_id})",
   "prod_key_active": "프로덕션 키 활성",
   "none_label": "없음",
-  "global_other_tab": "전체 / 기타",
+  "global_other_tab": "ID 검색",
   "lbl_saved_matches": "저장된 매치",
   "lbl_victories": "승리",
   "lbl_defeats": "패배",
