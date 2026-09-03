@@ -299,5 +299,6 @@
   "streak_legendary": "超神",
   "first_blood": "第一滴血！🩸",
   "btn_view_cached": "📂 檢視所有快取",
-  "btn_view_recent": "🕒 只顯示最近"
+  "btn_view_recent": "🕒 只顯示最近",
+  "cache_storage_used": "已用儲存空間：{mb} MB"
 }

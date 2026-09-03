@@ -299,5 +299,6 @@
   "streak_legendary": "DESTANSI",
   "first_blood": "İLK KAN! 🩸",
   "btn_view_cached": "📂 Önbelleğin tümünü göster",
-  "btn_view_recent": "🕒 Sadece son aramaları göster"
+  "btn_view_recent": "🕒 Sadece son aramaları göster",
+  "cache_storage_used": "Kullanılan depolama: {mb} MB"
 }

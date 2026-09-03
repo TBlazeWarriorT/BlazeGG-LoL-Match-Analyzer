@@ -299,5 +299,6 @@
   "streak_legendary": "LÉGENDAIRE",
   "first_blood": "PREMIER SANG ! 🩸",
   "btn_view_cached": "📂 Voir tout le cache",
-  "btn_view_recent": "🕒 Voir seulement les récents"
+  "btn_view_recent": "🕒 Voir seulement les récents",
+  "cache_storage_used": "Stockage utilisé : {mb} Mo"
 }

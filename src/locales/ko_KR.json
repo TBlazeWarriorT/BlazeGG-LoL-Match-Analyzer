@@ -299,5 +299,6 @@
   "streak_legendary": "전설의 탄생",
   "first_blood": "퍼스트 블러드! 🩸",
   "btn_view_cached": "📂 전체 캐시 보기",
-  "btn_view_recent": "🕒 최근 항목만 보기"
+  "btn_view_recent": "🕒 최근 항목만 보기",
+  "cache_storage_used": "사용된 저장 공간: {mb} MB"
 }

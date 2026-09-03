@@ -299,5 +299,6 @@
   "streak_legendary": "HUYỀN THOẠI",
   "first_blood": "CHIẾN CÔNG ĐẦU! 🩸",
   "btn_view_cached": "📂 Xem tất cả cache",
-  "btn_view_recent": "🕒 Chỉ xem gần đây"
+  "btn_view_recent": "🕒 Chỉ xem gần đây",
+  "cache_storage_used": "Dung lượng đã dùng: {mb} MB"
 }

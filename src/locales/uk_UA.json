@@ -299,5 +299,6 @@
   "streak_legendary": "ЛЕГЕНДАРНИЙ",
   "first_blood": "ПЕРША КРОВ! 🩸",
   "btn_view_cached": "📂 Показати весь кеш",
-  "btn_view_recent": "🕒 Показати тільки останні"
+  "btn_view_recent": "🕒 Показати тільки останні",
+  "cache_storage_used": "Використано пам'яті: {mb} МБ"
 }

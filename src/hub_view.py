@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import concurrent.futures
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
@@ -44,6 +44,17 @@ def format_relative_time(creation_ms: int, lang: str = "en_US") -> str:
 
 _MATCHES_CACHE_STORE = {}
 _MATCHES_CACHE_TIMESTAMP = 0
+
+def get_cache_storage_mb() -> float:
+    from src.cache_manager import list_cache_files
+    total_bytes = 0
+    for directory in (MATCH_CACHE_DIR, TIMELINE_CACHE_DIR):
+        for f in list_cache_files(directory):
+            try:
+                total_bytes += f.stat().st_size
+            except OSError:
+                pass
+    return total_bytes / (1024 * 1024)
 
 def get_cached_matches_list(lang: str = "en_US"):
     global _MATCHES_CACHE_STORE, _MATCHES_CACHE_TIMESTAMP
@@ -542,6 +553,12 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 view_toggle_html = f"""
                 <a href="/?lang={lang}&view={other_mode}" class="btn-tab-action" style="text-decoration:none;">{other_label}</a>
                 """
+                if not show_recent_only:
+                    storage_mb = get_cache_storage_mb()
+                    view_toggle_html = f"""
+                    <span class="m-sub">{get_text('cache_storage_used', lang=lang, mb=f"{storage_mb:.1f}")}</span>
+                    {view_toggle_html}
+                    """
 
             cached_html = f"""
             <div class="section-card" style="margin-top: 24px;">

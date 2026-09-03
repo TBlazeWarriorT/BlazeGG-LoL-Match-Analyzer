@@ -299,5 +299,6 @@
   "streak_dominating": "DOMINATING",
   "streak_godlike": "GODLIKE",
   "streak_legendary": "LEGENDARY",
-  "first_blood": "FIRST BLOOD! 🩸"
+  "first_blood": "FIRST BLOOD! 🩸",
+  "cache_storage_used": "Storage used: {mb} MB"
 }

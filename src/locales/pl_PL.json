@@ -299,5 +299,6 @@
   "streak_legendary": "LEGENDARNY",
   "first_blood": "PIERWSZA KREW! 🩸",
   "btn_view_cached": "📂 Pokaż wszystko z pamięci",
-  "btn_view_recent": "🕒 Pokaż tylko ostatnie"
+  "btn_view_recent": "🕒 Pokaż tylko ostatnie",
+  "cache_storage_used": "Wykorzystane miejsce: {mb} MB"
 }

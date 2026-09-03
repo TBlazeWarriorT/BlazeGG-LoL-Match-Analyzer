@@ -299,5 +299,6 @@
   "streak_dominating": "DOMINANDO",
   "streak_godlike": "INVENCÍVEL",
   "streak_legendary": "LENDÁRIO",
-  "first_blood": "FIRST BLOOD! 🩸"
+  "first_blood": "FIRST BLOOD! 🩸",
+  "cache_storage_used": "Armazenamento usado: {mb} MB"
 }
