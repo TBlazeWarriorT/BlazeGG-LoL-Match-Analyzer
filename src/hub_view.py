@@ -377,7 +377,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     if place_val:
                         is_match_win = (place_val <= 4)
                 
-                group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0})
+                group_entry = summoner_groups.setdefault(s_label, {"cards": [], "wins": 0, "losses": 0, "is_global": bool(p.get("_is_global_tab"))})
                 group_entry["cards"].append(card_html)
                 if is_match_win:
                     group_entry["wins"] += 1
@@ -523,6 +523,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 <form action="/delete_summoner_cache" method="POST" style="display:inline; margin:0;" onsubmit="{onsubmit_str}">
                     <input type="hidden" name="summoner_label" value="{s_label}"/>
                     <input type="hidden" name="lang" value="{lang}"/>
+                    <input type="hidden" name="view" value="{'cached' if not show_recent_only else 'recent'}"/>
+                    <input type="hidden" name="is_global" value="{'1' if s_data.get('is_global') else '0'}"/>
                     <button type="submit" class="cache-tab-delete" data-tooltip="{tab_delete_title}" style="background:none; border:none; cursor:pointer;" onclick="event.stopPropagation();">✕</button>
                 </form>
             </div>

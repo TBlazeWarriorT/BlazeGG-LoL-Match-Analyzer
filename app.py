@@ -322,7 +322,9 @@ class AppHandler(BaseHTTPRequestHandler):
             form_data = parse_qs(body)
             s_label = form_data.get("summoner_label", [""])[0].strip()
             lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
-            
+            view_mode = form_data.get("view", ["recent"])[0].strip() or "recent"
+            is_global = form_data.get("is_global", ["0"])[0].strip() == "1"
+
             host_header = self.headers.get("Host", "").lower()
             x_forwarded_for = self.headers.get("X-Forwarded-For", "")
             is_local = not is_production_mode()
@@ -344,6 +346,17 @@ class AppHandler(BaseHTTPRequestHandler):
             if s_label and is_local:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
                 from src.cache_manager import list_cache_files, load_json
+
+                last_sess_puuid = ""
+                if is_global:
+                    # The "Global / Diversos" group only ever holds matches searched by raw
+                    # match ID: no target_puuid was recorded, and none of the participants
+                    # match this browser's search history or last session. Mirror that exact
+                    # classification here instead of comparing against the localized tab
+                    # label (which never matches a real riotIdGameName#riotIdTagline).
+                    last_sess = get_last_session() or {}
+                    last_sess_puuid = last_sess.get("puuid", "")
+
                 if MATCH_CACHE_DIR.exists():
                     for f in list_cache_files(MATCH_CACHE_DIR):
                         try:
@@ -353,29 +366,40 @@ class AppHandler(BaseHTTPRequestHandler):
                             info = data.get("info", {})
                             meta = data.get("metadata", {})
                             target_puuid = meta.get("target_puuid", "")
-                            
-                            p_match = False
-                            for part in info.get("participants", []):
-                                p_label = f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}"
-                                if target_puuid and part.get("puuid") == target_puuid:
-                                    if p_label.lower() == s_label.lower():
+                            participants = info.get("participants", [])
+
+                            if is_global:
+                                p_match = (not target_puuid) and not any(
+                                    f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() in
+                                    [h.lower() for h in user_history]
+                                    or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
+                                    for part in participants
+                                )
+                            else:
+                                p_match = False
+                                for part in participants:
+                                    p_label = f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}"
+                                    if target_puuid and part.get("puuid") == target_puuid:
+                                        if p_label.lower() == s_label.lower():
+                                            p_match = True
+                                            break
+                                    elif not target_puuid and p_label.lower() == s_label.lower():
                                         p_match = True
                                         break
-                                elif not target_puuid and p_label.lower() == s_label.lower():
-                                    p_match = True
-                                    break
-                            
+
                             if p_match:
                                 m_id = meta.get("matchId", f.name.split(".")[0])
                                 f.unlink(missing_ok=True)
                                 if TIMELINE_CACHE_DIR.exists():
                                     (TIMELINE_CACHE_DIR / f"{m_id}.json").unlink(missing_ok=True)
                                     (TIMELINE_CACHE_DIR / f"{m_id}.json.gz").unlink(missing_ok=True)
+                                    (TIMELINE_CACHE_DIR / f"{m_id}.json.xz").unlink(missing_ok=True)
                         except Exception:
                             continue
-            
+
             del_cookie = [f"blaze_history={hist_cookie_val}; Path=/; SameSite=Lax; Max-Age=31536000"]
-            self._redirect(f"/?lang={lang}", cookies=del_cookie)
+            redirect_url = f"/?lang={lang}" + (f"&view={view_mode}" if view_mode == "cached" else "")
+            self._redirect(redirect_url, cookies=del_cookie)
         elif parsed.path == "/clear_cache":
             from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
             from src.cache_manager import list_cache_files
