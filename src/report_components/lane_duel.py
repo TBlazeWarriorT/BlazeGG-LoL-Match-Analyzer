@@ -201,7 +201,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 anvil_tt = get_text("purchased_stat_anvils", lang=lang)
                 anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
                 anvil_badge_html = f"""
-                <div class="anvil-purchased-badge" data-tooltip="{anvil_tt}" style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; margin-left:auto; font-size:0.72rem; font-weight:700; color:#f8fafc; cursor:help;">
+                <div class="anvil-purchased-badge" data-tooltip="{anvil_tt}" style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; font-size:0.72rem; font-weight:700; color:#f8fafc; cursor:help;">
                     <img src="{anvil_icon_url}" style="width:16px; height:16px; border-radius:50%; display:block;" alt="Anvil"/>
                     <span style="color:#f8fafc;">{purchased_anvils_cnt}</span>
                     <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>

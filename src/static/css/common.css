@@ -213,6 +213,7 @@
     padding: 6px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
     min-width: 170px;
+    max-width: 220px;
     max-height: 380px;
     overflow-y: auto;
     z-index: 1001;
@@ -265,6 +266,9 @@
 
 .lang-name {
     flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .lang-code-tag {
