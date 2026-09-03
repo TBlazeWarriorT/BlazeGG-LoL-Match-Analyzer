@@ -41,6 +41,7 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
         spells_runes_strip = ""
         items_html = ""
         augments_strip = ""
+        anvil_badge_html = ""
 
         if p.get("is_team_combined"):
             icons_render = p.get("team_icons_html", "")
@@ -201,20 +202,23 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
                 anvil_tt = get_text("purchased_stat_anvils", lang=lang)
                 anvil_icon_url = "https://ddragon.leagueoflegends.com/cdn/14.16.1/img/item/220000.png"
                 anvil_badge_html = f"""
-                <div class="anvil-purchased-badge" data-tooltip="{anvil_tt}" style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; font-size:0.72rem; font-weight:700; color:#f8fafc; cursor:help;">
-                    <img src="{anvil_icon_url}" style="width:16px; height:16px; border-radius:50%; display:block;" alt="Anvil"/>
+                <div class="anvil-purchased-badge" data-tooltip="{anvil_tt}" style="display:inline-flex; align-items:center; gap:3px; padding:2px 5px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:6px; font-size:0.72rem; font-weight:700; color:#f8fafc; cursor:help; flex-shrink:0;">
+                    <img src="{anvil_icon_url}" style="width:14px; height:14px; border-radius:50%; display:block;" alt="Anvil"/>
                     <span style="color:#f8fafc;">{purchased_anvils_cnt}</span>
                     <i class="stat-ico ico-gold" style="width:11px; height:11px; display:inline-block;"></i>
                 </div>
                 """
 
+            # The anvil badge lives with the items row instead of the augments strip —
+            # that row (label + up to 7 augment icons) is already tight on space in
+            # pt_BR ("Aprimoramentos:" alone eats ~107px), so cramming a badge in too
+            # reliably forced an ugly wrap. The items row has room to spare.
             augments_strip = f"""
-            <div class="arena-augments-strip" style="display:flex; align-items:center; gap:6px; margin-top:6px; padding:3px 8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; flex-wrap:wrap;">
+            <div class="arena-augments-strip" style="display:flex; align-items:center; gap:5px; margin-top:6px; padding:3px 8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; flex-wrap:wrap;">
                 <span style="font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-right:2px;">{lbl_augs}:</span>
                 {''.join(aug_items_html)}
-                {anvil_badge_html}
             </div>
-            """ if (aug_items_html or anvil_badge_html) else ""
+            """ if aug_items_html else ""
 
             items_html = "".join([
                 f'<img class="item-icon{" item-role-bound" if it.get("is_role_bound") else ""}" src="{it["icon"]}" data-tooltip="{it.get("tooltip") or it.get("name", "")}" alt="{it.get("name", "")}"/>'
@@ -392,7 +396,10 @@ def render_duel_row(p1, p2, role_title, stats_1=None, stats_2=None, gold_d=None,
 
         footer_bottom = f"""
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px;">
-            <div class="items-flex">{items_html}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div class="items-flex">{items_html}</div>
+                {anvil_badge_html}
+            </div>
             {spells_runes_strip}
         </div>
         {augments_strip}
