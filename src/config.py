@@ -94,11 +94,8 @@ def get_dev_key() -> str:
 def get_dev_expires_at() -> str:
     return os.getenv("DEV_EXPIRY") or os.getenv("DEV_KEY_EXPIRES_AT") or os.getenv("RIOT_KEY_EXPIRES_AT") or ""
 
-_key_preference = "prod"  # in-memory only: a fresh boot (local restart or Render
-# redeploy) always re-assumes PROD_KEY is good again. This is deliberate — a
-# reboot is usually exactly the moment someone fixed/rotated the key and wants
-# it retried, so persisting the "dev was preferred" state to disk across
-# restarts would fight that instead of helping it.
+_key_preference = "prod"  # in-memory only: a reboot always re-assumes PROD_KEY is
+# good again, since a reboot is usually exactly when someone fixed/rotated it.
 
 def get_key_preference() -> str:
     """Which of PROD_KEY/DEV_KEY last worked. Not a permanent blacklist —

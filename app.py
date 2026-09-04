@@ -119,10 +119,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
 
             searched_riot_id = f"{name}#{tag}"
-            # If the live fetch below fails (no/expired key, Riot API hiccup), still
-            # show this summoner's tab with whatever is already cached for them —
-            # for this render only, not persisted to the history cookie, since a typo'd
-            # name that never resolves shouldn't permanently clutter search history.
+            # If the fetch below fails, still show this tab with whatever's cached —
+            # this render only, not saved to the cookie (a typo shouldn't stick around).
             fallback_hist = user_history if searched_riot_id.lower() in [h.lower() for h in user_history] else user_history + [searched_riot_id]
 
             try:
@@ -318,12 +316,11 @@ class AppHandler(BaseHTTPRequestHandler):
                 pass
             except Exception as e:
                 err_text = get_text("err_analyze_match", lang=lang, match_id=match_id, err=str(e))
-                # The match itself may already be cached (this is common: a summoner
-                # search only ever caches match details, never the timeline — that's
-                # fetched lazily here on first "Open Analysis") even though the timeline
-                # fetch that just failed needs a working key. If so, recover whose tab
-                # this was from the cached participant data so it doesn't vanish from
-                # "recent" just because opening one match from it hit an API error.
+                # A summoner search only ever caches match details, never the timeline
+                # (fetched lazily here on first "Open Analysis"), so the match may already
+                # be cached even though the timeline fetch that just failed needs a key.
+                # Recover whose tab this was from the cached data so it doesn't vanish
+                # from "recent" just because this one open hit an API error.
                 fallback_hist = user_history
                 if m and puuid:
                     for part in m.get("info", {}).get("participants", []):
@@ -392,11 +389,8 @@ class AppHandler(BaseHTTPRequestHandler):
             id_search_history = [h.strip() for h in id_hist_cookie.split("|") if h.strip()] if id_hist_cookie else []
             id_search_lower = set(h.lower() for h in id_search_history)
             deleted_match_ids = []
-            # Only "cached" view (the full-disk inspect/edit mode) actually deletes
-            # anything from disk. Clicking X in "recent" view — even locally — must
-            # only ever touch this browser's own history/cookies, never files that
-            # "cached" view (or someone else's recent tab sharing the same match)
-            # still relies on.
+            # Only "cached" view deletes from disk. X in "recent" (even locally) must
+            # only touch this browser's own cookies, never files another tab relies on.
             is_destructive_delete = is_local and view_mode == "cached"
 
             if s_label and is_destructive_delete:
@@ -423,13 +417,10 @@ class AppHandler(BaseHTTPRequestHandler):
                             this_m_id = meta.get("matchId", f.name.split(".")[0])
 
                             if is_global:
-                                # "ID Searches" in cached view is the union of true orphans and
-                                # anything this browser tracked by ID — even one with a
-                                # target_puuid owner elsewhere, since the same match can
-                                # legitimately show under both a named tab and "ID Searches" at
-                                # once. So deleting this tab must not touch an id-tracked match
-                                # that a named tab in this browser's own history (or its active
-                                # local session) still needs.
+                                # "ID Searches" here = true orphans + anything this browser
+                                # id-tracked, even with a target_puuid owner elsewhere (the same
+                                # match can show under both a named tab and this one). Don't
+                                # delete an id-tracked match a named tab still needs.
                                 classification = classify_match_ownership(
                                     norm_participants, target_puuid=target_puuid, user_history=user_history,
                                     id_search_lower=id_search_lower, last_sess_puuid=last_sess_puuid,
@@ -438,18 +429,14 @@ class AppHandler(BaseHTTPRequestHandler):
                                 still_needed_by_named_tab = bool(classification["history_matched_puuids"])
                                 p_match = classification["is_true_orphan"] or (classification["is_id_tracked"] and not still_needed_by_named_tab)
                             else:
-                                # Match by actual participant identity, never by target_puuid
-                                # alone — target_puuid only ever records whoever got this match
-                                # cached first, so relying on it here would (a) miss deleting a
-                                # match for a summoner who isn't that recorded owner and (b), far
-                                # worse, delete it out from under a DIFFERENT summoner's tab that
-                                # still needs it (see the recent duo-partner bug).
+                                # Match by participant identity, never target_puuid alone — it
+                                # only records whoever got cached first, and trusting it here
+                                # could delete a match out from under a different tab that still
+                                # needs it (the duo-partner bug).
                                 p_match = any(p["label"].lower() == s_label.lower() for p in norm_participants)
                                 if p_match:
-                                    # Orphan check: this match is only actually deleted once no
-                                    # OTHER summoner still tracked (post-deletion history, or the
-                                    # active local session) also played in it. Deleting one tab
-                                    # must never punch a hole in another tab that still shows it.
+                                    # Only delete once no other tracked summoner (post-deletion
+                                    # history, or the active session) also played in it.
                                     post_removal = classify_match_ownership(
                                         norm_participants, target_puuid=target_puuid, user_history=new_hist,
                                         id_search_lower=set(), last_sess_puuid=last_sess_puuid,

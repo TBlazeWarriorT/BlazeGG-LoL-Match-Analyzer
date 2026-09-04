@@ -284,17 +284,12 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
     def_tag = search_tag or (last_sess.get("tag_line", "") if is_local else "")
     
-    # A visitor who has their own session_key cookie set gets that key's own status
-    # shown directly — never the priority-blended get_api_key() result. That blend
-    # tries PROD_KEY first whenever it's *configured* (non-empty), regardless of
-    # whether it's actually still valid; the app only learns a configured prod key
-    # is dead when a real request fails with it (RiotClient._switch_to_alternate_key),
-    # which never happens on a page load alone. Right after a fresh deploy — the
-    # exact moment a visitor has just pasted in their own key because prod died —
-    # that live-tried-and-failed signal hasn't fired yet, so get_api_key() still
-    # confidently returns the dead prod key, and the UI would show/manage the wrong
-    # one entirely. Session key presence is a much more immediate, reliable signal
-    # than waiting on that.
+    # A visitor's own session_key shows its own status directly, never the blended
+    # get_api_key() result — that blend trusts a configured PROD_KEY until a real
+    # request fails with it, which never happens on a page load alone. Right after a
+    # deploy (the exact moment someone pastes in their own key because prod died),
+    # that failure hasn't fired yet, so get_api_key() would still confidently return
+    # the dead prod key.
     has_own_session_key = bool(session_key)
     curr_key = session_key if has_own_session_key else get_api_key(session_key=session_key)
     exp_val = session_expiry if has_own_session_key else get_key_expires_at(session_expiry=session_expiry)
@@ -305,12 +300,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     is_expired = False
 
     prod_mode = is_production_mode(session_key=session_key)
-    # prod_mode means "this deployment runs in production" (BLAZE_ENV=production on
-    # Render, always true there) — it says nothing about which key is actually active.
-    # A visitor's own dev/session key is just as "production deployment" as the
-    # official key, but unlike the official key, they need to see its real countdown
-    # to renew it in time. Only the official key is centrally managed / not theirs to
-    # watch, so it's the one thing that should ever get the clean no-countdown header.
+    # prod_mode = "this deployment runs in production", not "which key is active" —
+    # a visitor's own session key is just as "production" as the official one, but
+    # unlike it, they need the real countdown to renew it. Only the official key is
+    # centrally managed / not theirs to watch, so only it gets the clean header.
     is_official_prod_key = (not has_own_session_key) and bool(curr_key) and curr_key == get_prod_key()
     err_lower = str(error_msg).lower()
     has_api_error = bool(error_msg and ("expir" in err_lower or "401" in err_lower or "403" in err_lower or "chave" in err_lower or "key" in err_lower or "unauthorized" in err_lower or "forbidden" in err_lower))
@@ -364,10 +357,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             matched_summoners = [part for part in m["participants"] if part["puuid"] in named_puuids]
 
             if classification["is_id_tracked"] and m["participants"]:
-                # A single match can rightfully belong to more than one tab (e.g. two
-                # searched summoners who duo'd together, or a named tab AND this
-                # browser's own "ID Searches") — never deduped against named_puuids,
-                # since this is a distinct tab/perspective, not a duplicate of one.
+                # A match can belong to more than one tab (a named tab AND this
+                # browser's own "ID Searches") — not deduped, it's a distinct tab.
                 first_p = dict(m["participants"][0])
                 first_p["_is_global_tab"] = True
                 matched_summoners.append(first_p)
@@ -549,12 +540,9 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 </div>
                 """
 
-            # Only "cached" view (the full-disk inspect/edit mode) actually deletes
-            # anything. In "recent" view — even locally — the X just drops this
-            # summoner from your own browsing history, same as it already does in
-            # prod: hitting X while glancing at your recent searches should never be
-            # able to nuke cache that "cached" view (or someone else's recent tab
-            # sharing the same match) still relies on.
+            # Only "cached" view (full-disk inspect/edit mode) actually deletes anything.
+            # In "recent" — even locally — X just drops this summoner from your own
+            # history, same as prod: it must never nuke cache another tab still needs.
             is_destructive_delete = is_local and view_mode == "cached"
             del_prompt = get_text("del_summoner_prompt", lang=lang) if is_destructive_delete else get_text("close_summoner_prompt", lang=lang)
             tab_delete_title = get_text("tooltip_delete_tab", lang=lang) if is_destructive_delete else get_text("tooltip_close_tab", lang=lang)
@@ -688,11 +676,9 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     </div>
     """
 
-    # Dynamic positioning: if expired/invalid or has API error, put config above cached matches
-    # If in production mode AND the active key is the official prod key (nothing for
-    # this visitor to manage — it's centrally administered), hide the box completely.
-    # A visitor using their own dev/session key still needs to see it to refresh it
-    # before it expires, even though the deployment itself is "production".
+    # Error/expired/missing: config goes above cached matches. Official prod key in
+    # prod: hide it entirely (nothing to manage). Otherwise (incl. own session key
+    # in prod): show it below, so it can still be refreshed before it expires.
     if has_api_error or is_expired or not key_configured:
         body_sections_html = f"""
         {config_card_html}

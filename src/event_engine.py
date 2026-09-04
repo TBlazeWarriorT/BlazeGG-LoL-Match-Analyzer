@@ -328,10 +328,8 @@ class MatchAnalysis:
         return analysis_dict
 
     def _generate_phase_timeline_text(self, data: Dict[str, Any]) -> str:
-        # Arena has no epic objectives and is mostly nonstop skirmishing (100+ kills
-        # is common) — a kill-by-kill log there is both noisy and not very meaningful.
-        # This view is for objective-driven 5v5 modes (Classic, ARAM) where seeing kills
-        # alongside dragons/baron/herald actually tells the story of the game.
+        # Arena has no epic objectives and 100+ kills is common — a kill log there is
+        # just noise. This view is for objective-driven modes (Classic, ARAM).
         mode_upper = str(data.get("game_mode", "")).upper()
         queue_id = data.get("queue_id", 0)
         is_arena = ("CHERRY" in mode_upper or "ARENA" in mode_upper or queue_id in (1700, 1710))
@@ -902,11 +900,9 @@ class MatchAnalysis:
                             "is_killer": (p_src == killer)
                         })
 
-                    # Check if the ultimate contributed damage to this kill.
-                    # NOTE: victimDamageReceived is NOT chronologically ordered (Riot API
-                    # doesn't provide per-instance timestamps), so we can't reliably tell
-                    # which hit was the literal last one. Instead we flag any kill where
-                    # the ult (spellSlot == 3, non-basic) dealt damage in this event.
+                    # Flag any kill where the ult (spellSlot 3, non-basic) dealt damage —
+                    # victimDamageReceived has no per-hit timestamps, so we can't tell
+                    # which hit was literally last.
                     is_ult_kill = False
                     if killer and killer != 0 and dmg_received:
                         is_ult_kill = any(

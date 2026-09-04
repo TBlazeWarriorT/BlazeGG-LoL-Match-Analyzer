@@ -167,11 +167,9 @@ def cleanup_cache_if_needed():
     except Exception:
         pass
 
-# event_engine.py never reads any other event type or field than these — verified by
-# auditing every ev.get(...)/frame.get(...) call in that module. Deliberately narrow:
-# there's no plan to ever show more timeline detail than a kill/objective/item-purchase
-# breakpoint, so if that changes later the fix is to re-fetch (cache is disposable),
-# not to keep hedging disk space against a feature that isn't coming.
+# event_engine.py never reads any other event type/field than these. Adding a new
+# one (see BUILDING_KILL) only benefits matches fetched afterward — cache is
+# disposable, so re-fetch rather than trying to backfill older files.
 _KEEP_EVENT_TYPES = {"CHAMPION_KILL", "ELITE_MONSTER_KILL", "BUILDING_KILL", "ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"}
 _KILL_EVENT_FIELDS = {"type", "timestamp", "killerId", "victimId", "assistingParticipantIds", "victimDamageReceived", "killerTeamId", "monsterType", "monsterSubType"}
 _ITEM_EVENT_FIELDS = {"type", "timestamp", "participantId", "itemId", "beforeId", "afterId"}
