@@ -8,7 +8,7 @@ import concurrent.futures
 
 from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str, get_prod_key
 from src.riot_client import RiotClient, RiotAPIError
-from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
+from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session, classify_match_ownership
 from src.event_engine import MatchAnalysis
 from src.ddragon import DataDragon
 from src.i18n import get_text, SUPPORTED_LANGUAGES, render_language_dropdown, render_kofi_button
@@ -348,50 +348,32 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         # Group cached matches by target summoner
         summoner_groups = {}
         for m in cached_list:
-            # Find which participant(s) match target_puuid or user history. A single
-            # match can rightfully belong to more than one tab (e.g. two searched
-            # summoners who duo'd together) — target_puuid only records whoever got
-            # cached first, so it must never short-circuit checking user_history too,
-            # or a later searcher's own matches silently vanish into someone else's tab.
-            matched_summoners = []
-            matched_puuids = set()
-            if m.get("target_puuid"):
-                for part in m["participants"]:
-                    if part["puuid"] == m["target_puuid"]:
-                        matched_summoners.append(part)
-                        matched_puuids.add(part["puuid"])
-            if user_history:
-                u_hist_lower = [h.strip().lower() for h in user_history if h.strip()]
-                for part in m["participants"]:
-                    if part["puuid"] in matched_puuids:
-                        continue
-                    p_label = f"{part.get('name', '')}#{part.get('tag', '')}".lower()
-                    if p_label in u_hist_lower:
-                        matched_summoners.append(part)
-                        matched_puuids.add(part["puuid"])
-            if is_local and last_sess.get("puuid"):
-                for part in m["participants"]:
-                    if part["puuid"] in matched_puuids:
-                        continue
-                    if part["puuid"] == last_sess.get("puuid"):
-                        matched_summoners.append(part)
-                        matched_puuids.add(part["puuid"])
-            if m["match_id"].lower() in id_search_lower and m["participants"]:
-                # This browser itself searched this exact match by ID (tracked via the
-                # blaze_id_searches cookie) — show it under "ID Searches" regardless of
-                # local/prod, same as a named-summoner match shows under user_history.
-                # Deliberately NOT deduped against matched_puuids: this is a distinct
-                # tab/perspective from any named attribution above, not a duplicate of
-                # it, so the same player's match can legitimately show under both their
-                # own name tab and this browser's "ID Searches" tab at the same time.
+            # Who this match belongs to (named tabs, ID Searches, or a true orphan) is
+            # decided once, centrally — see classify_match_ownership's docstring for why.
+            norm_participants = [{"puuid": p.get("puuid"), "label": f"{p.get('name', '')}#{p.get('tag', '')}"} for p in m["participants"]]
+            classification = classify_match_ownership(
+                norm_participants,
+                target_puuid=m.get("target_puuid", ""),
+                user_history=user_history,
+                id_search_lower=id_search_lower,
+                last_sess_puuid=last_sess.get("puuid", ""),
+                match_id=m["match_id"],
+                is_local=is_local,
+            )
+            named_puuids = classification["named_puuids"]
+            matched_summoners = [part for part in m["participants"] if part["puuid"] in named_puuids]
+
+            if classification["is_id_tracked"] and m["participants"]:
+                # A single match can rightfully belong to more than one tab (e.g. two
+                # searched summoners who duo'd together, or a named tab AND this
+                # browser's own "ID Searches") — never deduped against named_puuids,
+                # since this is a distinct tab/perspective, not a duplicate of one.
                 first_p = dict(m["participants"][0])
                 first_p["_is_global_tab"] = True
                 matched_summoners.append(first_p)
-            if not matched_summoners and is_local and m["participants"]:
-                # True last resort: nothing above claims this match at all (not the
-                # recorded target_puuid owner, not your history, not this browser's ID
-                # search list, not even your active local session) — dump it in the
-                # generic bucket so "cached" view can still show/manage it somewhere.
+            if not matched_summoners and is_local and classification["is_true_orphan"] and m["participants"]:
+                # True last resort: nothing above claims this match at all — dump it in
+                # the generic bucket so "cached" view can still show/manage it somewhere.
                 first_p = dict(m["participants"][0])
                 first_p["_is_global_tab"] = True
                 matched_summoners.append(first_p)

@@ -401,7 +401,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
             if s_label and is_destructive_delete:
                 from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
-                from src.cache_manager import list_cache_files, load_json
+                from src.cache_manager import list_cache_files, load_json, classify_match_ownership
 
                 last_sess = get_last_session() or {}
                 last_sess_puuid = last_sess.get("puuid", "")
@@ -416,29 +416,27 @@ class AppHandler(BaseHTTPRequestHandler):
                             meta = data.get("metadata", {})
                             target_puuid = meta.get("target_puuid", "")
                             participants = info.get("participants", [])
+                            norm_participants = [
+                                {"puuid": part.get("puuid"), "label": f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}"}
+                                for part in participants
+                            ]
+                            this_m_id = meta.get("matchId", f.name.split(".")[0])
 
                             if is_global:
-                                # Must mirror hub_view.py's grouping exactly: "ID Searches" in
-                                # cached view is the union of true orphans (nothing else claims
-                                # this match) AND anything this browser tracked by ID — even one
-                                # with a target_puuid owner elsewhere, since the same match can
+                                # "ID Searches" in cached view is the union of true orphans and
+                                # anything this browser tracked by ID — even one with a
+                                # target_puuid owner elsewhere, since the same match can
                                 # legitimately show under both a named tab and "ID Searches" at
-                                # once (see the id-search-vs-target_puuid bug). So deleting this
-                                # tab must NOT touch an id-tracked match that a named tab in this
-                                # browser's own history (or its active local session) still needs
-                                # — same orphan-protection principle as the named-summoner branch
-                                # below, just checked against user_history directly since this
-                                # tab's own deletion never changes blaze_history.
-                                this_m_id = meta.get("matchId", f.name.split(".")[0])
-                                still_needed_by_named_tab = any(
-                                    f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() in
-                                    [h.lower() for h in user_history]
-                                    or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
-                                    for part in participants
+                                # once. So deleting this tab must not touch an id-tracked match
+                                # that a named tab in this browser's own history (or its active
+                                # local session) still needs.
+                                classification = classify_match_ownership(
+                                    norm_participants, target_puuid=target_puuid, user_history=user_history,
+                                    id_search_lower=id_search_lower, last_sess_puuid=last_sess_puuid,
+                                    match_id=this_m_id, is_local=True,
                                 )
-                                is_orphan = (not target_puuid) and not still_needed_by_named_tab
-                                is_id_tracked = this_m_id.lower() in id_search_lower
-                                p_match = is_orphan or (is_id_tracked and not still_needed_by_named_tab)
+                                still_needed_by_named_tab = bool(classification["history_matched_puuids"])
+                                p_match = classification["is_true_orphan"] or (classification["is_id_tracked"] and not still_needed_by_named_tab)
                             else:
                                 # Match by actual participant identity, never by target_puuid
                                 # alone — target_puuid only ever records whoever got this match
@@ -446,32 +444,27 @@ class AppHandler(BaseHTTPRequestHandler):
                                 # match for a summoner who isn't that recorded owner and (b), far
                                 # worse, delete it out from under a DIFFERENT summoner's tab that
                                 # still needs it (see the recent duo-partner bug).
-                                p_match = any(
-                                    f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() == s_label.lower()
-                                    for part in participants
-                                )
+                                p_match = any(p["label"].lower() == s_label.lower() for p in norm_participants)
                                 if p_match:
                                     # Orphan check: this match is only actually deleted once no
                                     # OTHER summoner still tracked (post-deletion history, or the
                                     # active local session) also played in it. Deleting one tab
                                     # must never punch a hole in another tab that still shows it.
-                                    still_needed_elsewhere = any(
-                                        f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() in
-                                        [h.lower() for h in new_hist]
-                                        or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
-                                        for part in participants
+                                    post_removal = classify_match_ownership(
+                                        norm_participants, target_puuid=target_puuid, user_history=new_hist,
+                                        id_search_lower=set(), last_sess_puuid=last_sess_puuid,
+                                        match_id=this_m_id, is_local=True,
                                     )
-                                    if still_needed_elsewhere:
+                                    if post_removal["history_matched_puuids"]:
                                         p_match = False
 
                             if p_match:
-                                m_id = meta.get("matchId", f.name.split(".")[0])
-                                deleted_match_ids.append(m_id.lower())
+                                deleted_match_ids.append(this_m_id.lower())
                                 f.unlink(missing_ok=True)
                                 if TIMELINE_CACHE_DIR.exists():
-                                    (TIMELINE_CACHE_DIR / f"{m_id}.json").unlink(missing_ok=True)
-                                    (TIMELINE_CACHE_DIR / f"{m_id}.json.gz").unlink(missing_ok=True)
-                                    (TIMELINE_CACHE_DIR / f"{m_id}.json.xz").unlink(missing_ok=True)
+                                    (TIMELINE_CACHE_DIR / f"{this_m_id}.json").unlink(missing_ok=True)
+                                    (TIMELINE_CACHE_DIR / f"{this_m_id}.json.gz").unlink(missing_ok=True)
+                                    (TIMELINE_CACHE_DIR / f"{this_m_id}.json.xz").unlink(missing_ok=True)
                         except Exception:
                             continue
 

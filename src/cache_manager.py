@@ -2,10 +2,80 @@ import json
 import gzip
 import lzma
 from pathlib import Path
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict, Set
 from .config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, CACHE_DIR
 
 SESSION_FILE = CACHE_DIR / "last_session.json"
+
+def classify_match_ownership(
+    participants: List[Dict[str, str]],
+    target_puuid: str = "",
+    user_history: Optional[List[str]] = None,
+    id_search_lower: Optional[Set[str]] = None,
+    last_sess_puuid: str = "",
+    match_id: str = "",
+    is_local: bool = True,
+) -> Dict[str, Any]:
+    """Single source of truth for "who does this match belong to" — both hub_view.py
+    (deciding which tabs show a match) and app.py (deciding what a tab-delete is allowed
+    to touch) call this instead of each re-deriving the same rule. They drifted out of
+    sync more than once before this existed (duo-partner matches vanishing, ID-searched
+    matches not showing, delete not protecting a match another tab still needed) —
+    always because the two files' independent copies of this logic disagreed.
+
+    participants: normalized identity per participant — [{"puuid": str, "label": "Name#Tag"}, ...].
+    Callers translate their own raw shape (cached_list's name/tag fields, or the raw
+    riotIdGameName/riotIdTagline from a match JSON) into this before calling.
+
+    Returns:
+      named_puuids: puuids that get a real named tab — target_puuid's owner, plus
+        anyone matched via user_history or (if is_local) the active local session.
+        This is the DISPLAY answer: a recorded target_puuid always earns a tab for
+        whoever it is, regardless of whose cookies are asking.
+      history_matched_puuids: puuids matched via user_history/last_sess ONLY, never
+        target_puuid. This is the "does the browser holding THESE cookies still need
+        this match" answer — target_puuid records whoever got the match cached first,
+        which may be a completely different browser's search with no bearing on
+        whether the CURRENT browser's own tabs still need it. Callers doing delete-
+        safety checks (would deleting this orphan a tab THIS browser still shows?)
+        must use this, not named_puuids — using named_puuids there was a real
+        regression caught by testing: it treated every target_puuid-owned match as
+        "still needed" even when that owner is a stranger to the current cookies.
+      is_id_tracked: whether this browser's own id_search cookie tracked this match_id.
+      is_true_orphan: nothing above claims it at all (not even an ID search) — the
+        generic "cached"-view fallback bucket case, not an error condition: cache is
+        shared/persistent, cookies are per-browser and far more often reset/cleared,
+        so a file with no current cookie owner is routine, not a bug.
+    """
+    user_history_lower = set(h.strip().lower() for h in (user_history or []) if h.strip())
+    id_search_lower = id_search_lower or set()
+
+    target_owner_puuid = None
+    if target_puuid:
+        for p in participants:
+            if p.get("puuid") == target_puuid:
+                target_owner_puuid = p["puuid"]
+                break
+
+    history_matched_puuids = set()
+    for p in participants:
+        if p.get("label", "").lower() in user_history_lower:
+            history_matched_puuids.add(p["puuid"])
+    if is_local and last_sess_puuid:
+        for p in participants:
+            if p.get("puuid") == last_sess_puuid:
+                history_matched_puuids.add(p["puuid"])
+
+    named_puuids = set(history_matched_puuids)
+    if target_owner_puuid:
+        named_puuids.add(target_owner_puuid)
+
+    return {
+        "named_puuids": named_puuids,
+        "history_matched_puuids": history_matched_puuids,
+        "is_id_tracked": bool(match_id) and match_id.lower() in id_search_lower,
+        "is_true_orphan": not named_puuids,
+    }
 
 def _base_path(file_path: Path) -> Path:
     """Strips a known compressed suffix (.gz/.xz) if present, returning the bare .json path."""
