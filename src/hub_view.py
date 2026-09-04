@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import concurrent.futures
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str, get_prod_key
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
 from src.event_engine import MatchAnalysis
@@ -688,13 +688,17 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     """
 
     # Dynamic positioning: if expired/invalid or has API error, put config above cached matches
-    # If in production mode with no error, hide configuration box completely
+    # If in production mode AND the active key is the official prod key (nothing for
+    # this visitor to manage — it's centrally administered), hide the box completely.
+    # A visitor using their own dev/session key still needs to see it to refresh it
+    # before it expires, even though the deployment itself is "production".
+    is_official_prod_key = bool(curr_key) and curr_key == get_prod_key()
     if has_api_error or is_expired or not key_configured:
         body_sections_html = f"""
         {config_card_html}
         {cached_html}
         """
-    elif prod_mode:
+    elif prod_mode and is_official_prod_key:
         body_sections_html = f"""
         {cached_html}
         """
