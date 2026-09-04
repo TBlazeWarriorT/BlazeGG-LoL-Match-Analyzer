@@ -284,23 +284,42 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     def_name = search_name or (last_sess.get("game_name", "") if is_local else "")
     def_tag = search_tag or (last_sess.get("tag_line", "") if is_local else "")
     
-    curr_key = get_api_key(session_key=session_key)
-    exp_val = get_key_expires_at(session_expiry=session_expiry)
+    # A visitor who has their own session_key cookie set gets that key's own status
+    # shown directly — never the priority-blended get_api_key() result. That blend
+    # tries PROD_KEY first whenever it's *configured* (non-empty), regardless of
+    # whether it's actually still valid; the app only learns a configured prod key
+    # is dead when a real request fails with it (RiotClient._switch_to_alternate_key),
+    # which never happens on a page load alone. Right after a fresh deploy — the
+    # exact moment a visitor has just pasted in their own key because prod died —
+    # that live-tried-and-failed signal hasn't fired yet, so get_api_key() still
+    # confidently returns the dead prod key, and the UI would show/manage the wrong
+    # one entirely. Session key presence is a much more immediate, reliable signal
+    # than waiting on that.
+    has_own_session_key = bool(session_key)
+    curr_key = session_key if has_own_session_key else get_api_key(session_key=session_key)
+    exp_val = session_expiry if has_own_session_key else get_key_expires_at(session_expiry=session_expiry)
     key_configured = bool(curr_key)
-    
+
     import time
     expiry_msg = ""
     is_expired = False
-    
+
     prod_mode = is_production_mode(session_key=session_key)
+    # prod_mode means "this deployment runs in production" (BLAZE_ENV=production on
+    # Render, always true there) — it says nothing about which key is actually active.
+    # A visitor's own dev/session key is just as "production deployment" as the
+    # official key, but unlike the official key, they need to see its real countdown
+    # to renew it in time. Only the official key is centrally managed / not theirs to
+    # watch, so it's the one thing that should ever get the clean no-countdown header.
+    is_official_prod_key = (not has_own_session_key) and bool(curr_key) and curr_key == get_prod_key()
     err_lower = str(error_msg).lower()
     has_api_error = bool(error_msg and ("expir" in err_lower or "401" in err_lower or "403" in err_lower or "chave" in err_lower or "key" in err_lower or "unauthorized" in err_lower or "forbidden" in err_lower))
     
     if key_configured:
         masked_key = f"{curr_key[:6]}...{curr_key[-4:]}" if len(curr_key) > 10 else "******"
-        if prod_mode:
+        if is_official_prod_key:
             expiry_msg = get_text("prod_key_active", lang=lang)
-            key_status_badge = ""  # Clean header in production
+            key_status_badge = ""  # Clean header — nothing for this visitor to manage
         elif exp_val and str(exp_val).isdigit():
             exp_ts = int(exp_val)
             diff_s = exp_ts - time.time()
@@ -692,7 +711,6 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     # this visitor to manage — it's centrally administered), hide the box completely.
     # A visitor using their own dev/session key still needs to see it to refresh it
     # before it expires, even though the deployment itself is "production".
-    is_official_prod_key = bool(curr_key) and curr_key == get_prod_key()
     if has_api_error or is_expired or not key_configured:
         body_sections_html = f"""
         {config_card_html}

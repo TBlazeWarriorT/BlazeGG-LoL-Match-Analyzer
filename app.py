@@ -418,12 +418,27 @@ class AppHandler(BaseHTTPRequestHandler):
                             participants = info.get("participants", [])
 
                             if is_global:
-                                p_match = (not target_puuid) and not any(
+                                # Must mirror hub_view.py's grouping exactly: "ID Searches" in
+                                # cached view is the union of true orphans (nothing else claims
+                                # this match) AND anything this browser tracked by ID — even one
+                                # with a target_puuid owner elsewhere, since the same match can
+                                # legitimately show under both a named tab and "ID Searches" at
+                                # once (see the id-search-vs-target_puuid bug). So deleting this
+                                # tab must NOT touch an id-tracked match that a named tab in this
+                                # browser's own history (or its active local session) still needs
+                                # — same orphan-protection principle as the named-summoner branch
+                                # below, just checked against user_history directly since this
+                                # tab's own deletion never changes blaze_history.
+                                this_m_id = meta.get("matchId", f.name.split(".")[0])
+                                still_needed_by_named_tab = any(
                                     f"{part.get('riotIdGameName', '')}#{part.get('riotIdTagline', '')}".lower() in
                                     [h.lower() for h in user_history]
                                     or (last_sess_puuid and part.get("puuid") == last_sess_puuid)
                                     for part in participants
                                 )
+                                is_orphan = (not target_puuid) and not still_needed_by_named_tab
+                                is_id_tracked = this_m_id.lower() in id_search_lower
+                                p_match = is_orphan or (is_id_tracked and not still_needed_by_named_tab)
                             else:
                                 # Match by actual participant identity, never by target_puuid
                                 # alone — target_puuid only ever records whoever got this match
