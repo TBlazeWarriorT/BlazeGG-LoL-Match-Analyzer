@@ -6,11 +6,12 @@ make the current screenshot stale:
     py scripts/generate_showcase.py
     py scripts/generate_showcase.py --match-id KR_8326219860 --out docs/showcase.png
 
-Uses a fixed match ID (Faker's, by default) rather than a live summoner search
-on purpose: a summoner search pulls whatever that player's most recent games
-are, so the screenshot would look different (and need regenerating) every
-time they play. A single match ID is permanent — the shot stays accurate
-until the UI itself changes.
+Uses a fixed match ID (the same one shown as the placeholder example in the
+app's own "Search Match by ID" box, by default) rather than a live summoner
+search on purpose: a summoner search pulls whatever that player's most recent
+games are, so the screenshot would look different (and need regenerating)
+every time they play. A single match ID is permanent — the shot stays
+accurate until the UI itself changes.
 
 Setup (one-time):
     pip install -r requirements-dev.txt
@@ -45,7 +46,7 @@ def wait_for_server(url: str, timeout: float = 20.0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--match-id", default="KR_8368666881", help="Match ID to search by (default: one of Faker's real games, already cached with him as the recorded owner)")
+    ap.add_argument("--match-id", default="KR_8326219860", help="Match ID to search by (default: SHARED_EXAMPLES['example_match_id'] in src/i18n.py — the same ID shown as the placeholder in the app's own 'Search Match by ID' box)")
     ap.add_argument("--out", default=str(BASE_DIR / "docs" / "showcase.png"))
     ap.add_argument("--port", type=int, default=8321, help="Uses a separate port so it won't collide with a dev server on 8000")
     args = ap.parse_args()
