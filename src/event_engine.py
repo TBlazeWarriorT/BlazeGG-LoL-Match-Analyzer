@@ -831,7 +831,8 @@ class MatchAnalysis:
                             "champ": self.ddragon.get_clean_champion_name(a_raw),
                             "icon": self.ddragon.get_champion_icon_url(a_raw),
                             "name": a_p.get("riotIdGameName", ""),
-                            "team_id": a_p.get("teamId", 100)
+                            "team_id": a_p.get("teamId", 100),
+                            "puuid": a_p.get("puuid", "")
                         })
 
                     # Extract participant frame data (stats, level, gold)
@@ -923,6 +924,7 @@ class MatchAnalysis:
                         "killer_champ": self.ddragon.get_clean_champion_name(k_raw) if not is_execution else "",
                         "killer_icon": self.ddragon.get_champion_icon_url(k_raw) if not is_execution else "",
                         "killer_name": k_p.get("riotIdGameName", "") if not is_execution else "",
+                        "killer_puuid": k_p.get("puuid", "") if not is_execution else "",
                         "killer_role": str(k_p.get("teamPosition") or k_p.get("individualPosition", "")).upper() if not is_execution else "",
                         "killer_team": k_p.get("teamId", 100) if not is_execution else 0,
                         "killer_level": k_lvl,
@@ -933,6 +935,7 @@ class MatchAnalysis:
                         "victim_champ": self.ddragon.get_clean_champion_name(v_raw),
                         "victim_icon": self.ddragon.get_champion_icon_url(v_raw),
                         "victim_name": v_p.get("riotIdGameName", ""),
+                        "victim_puuid": v_p.get("puuid", ""),
                         "victim_role": str(v_p.get("teamPosition") or v_p.get("individualPosition", "")).upper(),
                         "victim_team": v_p.get("teamId", 200),
                         "victim_level": v_lvl,

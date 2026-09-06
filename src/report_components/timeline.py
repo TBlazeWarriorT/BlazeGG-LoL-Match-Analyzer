@@ -66,6 +66,7 @@ def build_item_slot_html(items_snapshot: List[Dict[str, Any]], role: str = "") -
 
 def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[str, str, str]:
     dd = DataDragon(language=lang)
+    target_puuid = data.get("target_puuid") or ""
     # 1. ABA 1: KILLS & OBJECTIVES
     kills_list_items = []
     for idx, ev in enumerate(data.get("key_events", [])):
@@ -206,7 +207,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             assists_html = ""
             if c_ast > 0:
                 assister_icons = "".join([
-                    f'<div class="event-assister-wrap"><img class="event-assister-avatar" src="{a["icon"]}" title="{a["champ"]} ({a["name"]})" alt="{a["champ"]}"/></div>'
+                    f'<div class="event-assister-wrap{" is-host" if (target_puuid and a.get("puuid") == target_puuid) else ""}"><img class="event-assister-avatar" src="{a["icon"]}" title="{a["champ"]} ({a["name"]})" alt="{a["champ"]}"/></div>'
                     for a in ev.get("assisters", [])
                 ])
                 ast_label = get_text("assists_plural", lang=lang) if c_ast > 1 else get_text("assists", lang=lang)
@@ -214,9 +215,10 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
             elif not is_exec:
                 assists_html = f"<span class='tag-solokill'>{get_text('solo_tag', lang=lang)}</span>"
 
-            def render_stat_tooltip(champ_name, stats, items_snapshot=None, is_killer=True, lvl=1, gold=0, kda="0/0/0"):
+            def render_stat_tooltip(champ_name, stats, items_snapshot=None, is_killer=True, lvl=1, gold=0, kda="0/0/0", is_host=False):
+                host_cls = " is-host" if is_host else ""
                 if not stats:
-                    return f'<div class="team-champ-mini-wrap" style="margin-right:0;"><img class="team-champ-mini" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
+                    return f'<div class="team-champ-mini-wrap{host_cls}" style="margin-right:0;"><img class="team-champ-mini" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
                 
                 hp_max = stats.get("healthMax", stats.get("health", 0))
                 hp_regen = stats.get("healthRegen", 0)
@@ -285,7 +287,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
                 return f"""
                 <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
-                    <div class="team-champ-mini-wrap" style="margin-right:0;">
+                    <div class="team-champ-mini-wrap{host_cls}" style="margin-right:0;">
                         <img class="team-champ-mini" src="{avatar_src}" alt="{champ_name}"/>
                     </div>
                     <div class="stat-popup-card">
@@ -356,7 +358,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     is_killer=False,
                     lvl=ev.get('victim_level', 1),
                     gold=ev.get('victim_gold', 0),
-                    kda=ev.get('victim_kda', '0/0/0')
+                    kda=ev.get('victim_kda', '0/0/0'),
+                    is_host=bool(target_puuid) and ev.get('victim_puuid') == target_puuid
                 )
                 kills_list_items.append(f"""
                 <li class="event-item event-kill event-execution" data-phase="{ev_phase}">
@@ -381,7 +384,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     is_killer=True,
                     lvl=ev.get('killer_level', 1),
                     gold=ev.get('killer_gold', 0),
-                    kda=ev.get('killer_kda', '0/0/0')
+                    kda=ev.get('killer_kda', '0/0/0'),
+                    is_host=bool(target_puuid) and ev.get('killer_puuid') == target_puuid
                 )
                 v_avatar = render_stat_tooltip(
                     ev['victim_champ'],
@@ -390,7 +394,8 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                     is_killer=False,
                     lvl=ev.get('victim_level', 1),
                     gold=ev.get('victim_gold', 0),
-                    kda=ev.get('victim_kda', '0/0/0')
+                    kda=ev.get('victim_kda', '0/0/0'),
+                    is_host=bool(target_puuid) and ev.get('victim_puuid') == target_puuid
                 )
 
                 mk_group = ev.get("multikill_group", "")

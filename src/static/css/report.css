@@ -559,6 +559,13 @@ body {
     transform: scale(1.18);
     display: block;
 }
+/* Same gold-ring language as .m-mini-host in hub.css — marks whoever the
+   report's POV belongs to, wherever a small champion avatar appears. */
+.team-champ-mini-wrap.is-host,
+.event-assister-wrap.is-host {
+    border-color: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.75);
+}
 .award-avatar-wrap {
     border-radius: 50%;
     overflow: hidden;
