@@ -4,15 +4,7 @@ Blaze GG is a local match analysis dashboard for League of Legends powered by th
 
 Instead of broad macro summaries, it focuses on lane matchups, damage breakdowns, and detailed post-game duel stats.
 
----
-
-## Showcase
-
-The hub after searching a real Riot ID (Faker's — regenerated from time to time, so this reflects his actual recent games):
-
 ![Blaze GG hub showing Faker's recent matches](docs/showcase.png)
-
-To regenerate it yourself: `py scripts/generate_showcase.py` (needs a valid Riot API key in `.env` and, once, `py -m playwright install chromium`).
 
 ---
 
