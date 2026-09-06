@@ -131,6 +131,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 
                 dd = get_ddragon(lang)
                 
+                fetch_errors = []
+
                 def fetch_single_match(mid):
                     try:
                         m = client.get_match_detail(mid, target_puuid=puuid)
@@ -182,13 +184,20 @@ class AppHandler(BaseHTTPRequestHandler):
                             "team_100": t1_parts,
                             "team_200": t2_parts
                         }
-                    except Exception:
+                    except Exception as e:
+                        fetch_errors.append(e)
                         return None
 
                 results = []
                 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     fetched_items = list(executor.map(fetch_single_match, match_ids))
                     results = [item for item in fetched_items if item is not None]
+
+                # If every fetch failed (e.g. the key died mid-request), don't render an
+                # empty "0 matches" tab as if that summoner genuinely has none — surface
+                # the real error instead.
+                if match_ids and not results and fetch_errors:
+                    raise fetch_errors[0]
 
                 # Add summoner to user's history list
                 new_hist = [h for h in user_history if h.lower() != searched_riot_id.lower()]

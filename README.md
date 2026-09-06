@@ -6,6 +6,16 @@ Instead of broad macro summaries, it focuses on lane matchups, damage breakdowns
 
 ---
 
+## Showcase
+
+The hub after searching a real Riot ID (Faker's — regenerated from time to time, so this reflects his actual recent games):
+
+![Blaze GG hub showing Faker's recent matches](docs/showcase.png)
+
+To regenerate it yourself: `py scripts/generate_showcase.py` (needs a valid Riot API key in `.env` and, once, `py -m playwright install chromium`).
+
+---
+
 ## Our Unique Features
 
 - **Lane Deaths vs. External Deaths**  

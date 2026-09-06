@@ -359,7 +359,13 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             if classification["is_id_tracked"] and m["participants"]:
                 # A match can belong to more than one tab (a named tab AND this
                 # browser's own "ID Searches") — not deduped, it's a distinct tab.
-                first_p = dict(m["participants"][0])
+                # Headline whoever target_puuid actually recorded as the owner, not
+                # just the first participant Riot happens to list — a raw ID search
+                # should show the summoner it was originally cached for, not a
+                # random lane opponent.
+                target_puuid_val = m.get("target_puuid", "")
+                owner_p = next((part for part in m["participants"] if part.get("puuid") == target_puuid_val), None) if target_puuid_val else None
+                first_p = dict(owner_p) if owner_p else dict(m["participants"][0])
                 first_p["_is_global_tab"] = True
                 matched_summoners.append(first_p)
             if not matched_summoners and is_local and classification["is_true_orphan"] and m["participants"]:
