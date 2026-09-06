@@ -1,6 +1,3 @@
 requests>=2.31.0
 python-dotenv>=1.0.0
 Pillow>=10.0.0
-
-# Optional — only needed to regenerate docs/showcase.png (scripts/generate_showcase.py)
-# playwright>=1.62.0

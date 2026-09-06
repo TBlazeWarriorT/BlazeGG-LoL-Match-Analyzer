@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Only needed to regenerate docs/showcase.png — see scripts/generate_showcase.py
+playwright>=1.62.0

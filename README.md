@@ -53,6 +53,8 @@ python app.py
 
 Then open `http://localhost:8000` in your browser. You can paste your Riot API key directly into the settings on the web interface.
 
+To regenerate the showcase screenshot above, see [scripts/generate_showcase.py](scripts/generate_showcase.py).
+
 ---
 
 ## 📄 License & Terms (TL;DR)

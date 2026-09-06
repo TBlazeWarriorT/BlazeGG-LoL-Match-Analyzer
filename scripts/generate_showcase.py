@@ -12,9 +12,12 @@ are, so the screenshot would look different (and need regenerating) every
 time they play. A single match ID is permanent — the shot stays accurate
 until the UI itself changes.
 
-Needs a working Riot API key in .env (DEV_KEY or PROD_KEY) unless that match
-is already cached in data_cache/. Needs Playwright's Chromium (one-time):
+Setup (one-time):
+    pip install -r requirements-dev.txt
     py -m playwright install chromium
+
+Needs a working Riot API key in .env (DEV_KEY or PROD_KEY) unless that match
+is already cached in data_cache/.
 """
 import argparse
 import os
