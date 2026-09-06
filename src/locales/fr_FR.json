@@ -280,7 +280,7 @@
   "level_prefix": "Niv",
   "crit_items_label": "(objets)",
   "modal_search_summoner_title": "🔍 Rechercher un Invocateur",
-  "modal_search_summoner_body": "Voulez-vous rechercher les dernières parties de <span class='modal-summoner-highlight'>{name}#{tag}</span> ?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Voulez-vous vraiment supprimer les parties de <span class='modal-summoner-highlight'>{summoner}</span> du disque local ?",
   "modal_delete_summoner_confirm": "Supprimer",
   "modal_clear_all_body": "Voulez-vous vraiment supprimer <b>toutes</b> les parties enregistrées ? Cette action est irréversible.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Tourelle de l'Inhibiteur",
   "structure_destroyed_by": "a été détruit par",
   "structure_destroyed_by_f": "a été détruite par",
-  "empty_recent_hint": "Rien dans votre historique récent pour l'instant, mais des données sont sauvegardées en cache local."
+  "empty_recent_hint": "Rien dans votre historique récent pour l'instant, mais des données sont sauvegardées en cache local.",
+  "view_as_btn": "Voir cette partie en tant que cet invocateur ➔",
+  "modal_search_summoner_confirm": "Rechercher les parties de cet invocateur ➔",
+  "modal_delete_title": "🗑️ Supprimer les parties"
 }

@@ -282,7 +282,7 @@
   "level_prefix": "Lv",
   "crit_items_label": "(items)",
   "modal_search_summoner_title": "🔍 Search Summoner",
-  "modal_search_summoner_body": "Do you want to search recent matches for <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Do you really want to delete saved matches for <span class='modal-summoner-highlight'>{summoner}</span> from local disk?",
   "modal_delete_summoner_confirm": "Yes, Delete",
   "modal_clear_all_body": "Do you really want to delete <b>all</b> cached matches from local disk? This action cannot be undone.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Inhibitor Turret",
   "structure_destroyed_by": "was destroyed by",
   "structure_destroyed_by_f": "was destroyed by",
-  "empty_recent_hint": "Nothing in your recent history yet, but there's cached data saved locally."
+  "empty_recent_hint": "Nothing in your recent history yet, but there's cached data saved locally.",
+  "view_as_btn": "View this match as this summoner ➔",
+  "modal_search_summoner_confirm": "Search matches for this summoner ➔",
+  "modal_delete_title": "🗑️ Delete Matches"
 }

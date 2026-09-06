@@ -280,7 +280,7 @@
   "level_prefix": "Lv",
   "crit_items_label": "(裝備)",
   "modal_search_summoner_title": "🔍 搜尋召喚師",
-  "modal_search_summoner_body": "要搜尋 <span class='modal-summoner-highlight'>{name}#{tag}</span> 的最近對局嗎？",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "確定要從本地硬碟刪除 <span class='modal-summoner-highlight'>{summoner}</span> 的所有對局嗎？",
   "modal_delete_summoner_confirm": "確認刪除",
   "modal_clear_all_body": "確定要清除本地硬碟儲存的<b>所有</b>對局嗎？此操作無法復原。",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "高地塔",
   "structure_destroyed_by": "被摧毀，摧毀者為",
   "structure_destroyed_by_f": "被摧毀，摧毀者為",
-  "empty_recent_hint": "最近瀏覽紀錄目前是空的，但本機快取裡還有已儲存的資料。"
+  "empty_recent_hint": "最近瀏覽紀錄目前是空的，但本機快取裡還有已儲存的資料。",
+  "view_as_btn": "以此召喚師視角查看此對局 ➔",
+  "modal_search_summoner_confirm": "搜尋此召喚師的對局 ➔",
+  "modal_delete_title": "🗑️ 刪除對局"
 }

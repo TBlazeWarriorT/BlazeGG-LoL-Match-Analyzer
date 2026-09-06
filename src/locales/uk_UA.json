@@ -280,7 +280,7 @@
   "level_prefix": "Рівень",
   "crit_items_label": "(предмети)",
   "modal_search_summoner_title": "🔍 Пошук призовника",
-  "modal_search_summoner_body": "Шукати останні матчі <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Справді видалити збережені матчі <span class='modal-summoner-highlight'>{summoner}</span> з диска?",
   "modal_delete_summoner_confirm": "Видалити",
   "modal_clear_all_body": "Справді видалити <b>всі</b> збережені матчі? Цю дію неможливо скасувати.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Вежа інгібітора",
   "structure_destroyed_by": "знищено гравцем",
   "structure_destroyed_by_f": "знищено гравцем",
-  "empty_recent_hint": "У недавній історії поки нічого немає, але в локальному кеші є збережені дані."
+  "empty_recent_hint": "У недавній історії поки нічого немає, але в локальному кеші є збережені дані.",
+  "view_as_btn": "Переглянути цей матч як цей призивач ➔",
+  "modal_search_summoner_confirm": "Шукати матчі цього призивача ➔",
+  "modal_delete_title": "🗑️ Видалити матчі"
 }

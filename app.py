@@ -11,7 +11,7 @@ from pathlib import Path
 
 from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
 from src.riot_client import RiotClient, RiotAPIError
-from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session
+from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session, claim_match_owner
 from src.event_engine import MatchAnalysis
 from src.ddragon import DataDragon
 from src.i18n import get_text, SUPPORTED_LANGUAGES, render_language_dropdown
@@ -277,7 +277,12 @@ class AppHandler(BaseHTTPRequestHandler):
                         m = f_match.result()
                         t = f_timeline.result()
 
-                if not puuid:
+                # An explicit puuid here (from "View as X") claims the match for them if
+                # nobody has yet — same first-claim-wins rule as a live summoner search,
+                # just triggered from an already-cached match instead of a fresh fetch.
+                if puuid:
+                    claim_match_owner(match_id, puuid)
+                else:
                     last_sess = get_last_session() or {}
                     puuid = last_sess.get("puuid")
 

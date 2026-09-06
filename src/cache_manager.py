@@ -253,6 +253,22 @@ def save_cached_match(match_id: str, data: dict, target_puuid: str = "") -> None
     save_json(MATCH_CACHE_DIR / f"{match_id}.json.gz", data, compress=True)
     cleanup_cache_if_needed()
 
+def claim_match_owner(match_id: str, puuid: str) -> bool:
+    """First-claim-wins: records puuid as this match's target_puuid only if nobody
+    already claimed it. Single place for this check — a fresh live fetch
+    (RiotClient.get_match_detail) and an already-cached match picked via "View as"
+    both need the exact same rule, and having it in two places is how the
+    named-tab bugs earlier this session happened. Returns whether it claimed it."""
+    if not puuid:
+        return False
+    cached = get_cached_match(match_id)
+    if not cached or "metadata" not in cached:
+        return False
+    if cached["metadata"].get("target_puuid"):
+        return False
+    save_cached_match(match_id, cached, puuid)
+    return True
+
 def get_cached_timeline(match_id: str) -> Optional[dict]:
     return load_json(TIMELINE_CACHE_DIR / f"{match_id}.json.gz")
 

@@ -9,14 +9,22 @@ function showCustomConfirmModal(options) {
     var cancelText = options.cancelText || i18n.cancel || "Cancel";
     var confirmColor = options.confirmColor || "#ea580c";
     var confirmBorder = options.confirmBorder || "#f97316";
+    var extra = options.extraButton;
+    var extraHtml = extra ? ('<button type="button" class="modal-btn modal-btn-confirm" id="customModalExtraBtn" style="background:' +
+        (extra.color || "#1e293b") + '; border-color:' + (extra.border || "#475569") + ';">' + extra.text + '</button>') : "";
+    var confirmHtml = '<button type="button" class="modal-btn modal-btn-confirm" id="customModalConfirmBtn" style="background:' + confirmColor + '; border-color:' + confirmBorder + ';">' + confirmText + '</button>';
+    var cancelHtml = '<button type="button" class="modal-btn modal-btn-cancel" id="customModalCancelBtn">' + cancelText + '</button>';
+    // Stacked mode (a summary line + a vertical list of actions) reads top-to-bottom
+    // as primary action first, Cancel last — the opposite order from the default
+    // single-row layout, where Cancel sits on the left away from the main action.
+    var actionsHtml = options.stacked ? (confirmHtml + extraHtml + cancelHtml) : (cancelHtml + extraHtml + confirmHtml);
 
     var modalHtml = '<div id="customBlazeModal" class="modal-backdrop">' +
         '<div class="modal-card">' +
             '<div class="modal-title">' + title + '</div>' +
             '<div class="modal-body">' + body + '</div>' +
-            '<div class="modal-actions">' +
-                '<button type="button" class="modal-btn modal-btn-cancel" id="customModalCancelBtn">' + cancelText + '</button>' +
-                '<button type="button" class="modal-btn modal-btn-confirm" id="customModalConfirmBtn" style="background:' + confirmColor + '; border-color:' + confirmBorder + ';">' + confirmText + '</button>' +
+            '<div class="modal-actions' + (options.stacked ? ' stacked' : '') + '">' +
+                actionsHtml +
             '</div>' +
         '</div>' +
     '</div>';
@@ -38,13 +46,21 @@ function showCustomConfirmModal(options) {
             options.onConfirm();
         }
     };
+    if (extra) {
+        document.getElementById("customModalExtraBtn").onclick = function() {
+            closeModal();
+            if (typeof extra.onClick === "function") {
+                extra.onClick();
+            }
+        };
+    }
 
     setTimeout(function() {
         if (modalEl) modalEl.classList.add("active");
     }, 10);
 }
 
-function promptSearchSummoner(name, tag) {
+function promptSearchSummoner(name, tag, matchId, puuid) {
     if (!name || !tag) return;
     var i18n = window.REPORT_I18N || {};
     var lang = i18n.lang || "en_US";
@@ -52,12 +68,26 @@ function promptSearchSummoner(name, tag) {
     var bodyTpl = i18n.search_modal_body || "Do you want to search recent matches for <span class='modal-summoner-highlight'>{name}#{tag}</span>?";
     var body = bodyTpl.replace("{name}", name).replace("{tag}", tag);
 
+    // matchId+puuid are only passed from a match card's own participants — clicking
+    // a summoner-link inside an already-open report has nowhere more specific to go.
+    var extraButton = null;
+    if (matchId && puuid) {
+        extraButton = {
+            text: i18n.view_as_btn || "View this match as this summoner ➔",
+            onClick: function() {
+                window.location.href = "/analyze?match_id=" + encodeURIComponent(matchId) + "&puuid=" + encodeURIComponent(puuid) + "&lang=" + lang;
+            }
+        };
+    }
+
     showCustomConfirmModal({
         title: title,
         body: body,
-        confirmText: i18n.search_modal_confirm || "Search Matches ➔",
+        stacked: true,
+        confirmText: i18n.search_modal_confirm || "Search matches for this summoner ➔",
         confirmColor: "#ea580c",
         confirmBorder: "#f97316",
+        extraButton: extraButton,
         onConfirm: function() {
             window.location.href = "/search?game_name=" + encodeURIComponent(name) + "&tag_line=" + encodeURIComponent(tag) + "&lang=" + lang;
         }

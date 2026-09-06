@@ -282,7 +282,7 @@
   "level_prefix": "Nv",
   "crit_items_label": "(itens)",
   "modal_search_summoner_title": "🔍 Buscar Invocador",
-  "modal_search_summoner_body": "Deseja buscar as partidas recentes de <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Deseja realmente apagar as partidas de <span class='modal-summoner-highlight'>{summoner}</span> do disco local?",
   "modal_delete_summoner_confirm": "Sim, Excluir",
   "modal_clear_all_body": "Deseja realmente apagar <b>todas</b> as partidas salvas no disco local? Esta ação é irreversível.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Torre do Inibidor",
   "structure_destroyed_by": "foi destruído por",
   "structure_destroyed_by_f": "foi destruída por",
-  "empty_recent_hint": "Nada no seu histórico recente ainda, mas tem dados salvos no cache local."
+  "empty_recent_hint": "Nada no seu histórico recente ainda, mas tem dados salvos no cache local.",
+  "view_as_btn": "Ver esta partida como este(a) invocador(a) ➔",
+  "modal_search_summoner_confirm": "Buscar partidas deste(a) invocador(a) ➔",
+  "modal_delete_title": "🗑️ Excluir Partidas"
 }

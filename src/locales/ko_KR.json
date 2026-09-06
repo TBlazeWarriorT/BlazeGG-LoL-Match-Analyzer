@@ -280,7 +280,7 @@
   "level_prefix": "Lv",
   "crit_items_label": "(아이템)",
   "modal_search_summoner_title": "🔍 소환사 검색",
-  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>의 최근 매치를 검색하시겠습니까?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "<span class='modal-summoner-highlight'>{summoner}</span>의 저장된 매치를 로컬 디스크에서 삭제하시겠습니까?",
   "modal_delete_summoner_confirm": "삭제",
   "modal_clear_all_body": "저장된 <b>모든</b> 매치 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "억제기 포탑",
   "structure_destroyed_by": "에 의해 파괴됨",
   "structure_destroyed_by_f": "에 의해 파괴됨",
-  "empty_recent_hint": "최근 기록은 없지만, 로컬 캐시에 저장된 데이터가 있습니다."
+  "empty_recent_hint": "최근 기록은 없지만, 로컬 캐시에 저장된 데이터가 있습니다.",
+  "view_as_btn": "이 소환사 시점으로 이 경기 보기 ➔",
+  "modal_search_summoner_confirm": "이 소환사의 전적 검색 ➔",
+  "modal_delete_title": "🗑️ 매치 삭제"
 }

@@ -217,9 +217,13 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
             def render_stat_tooltip(champ_name, stats, items_snapshot=None, is_killer=True, lvl=1, gold=0, kda="0/0/0", is_host=False):
                 host_cls = " is-host" if is_host else ""
+                p_team = k_team if is_killer else v_team
+                title_color = "#60a5fa" if p_team == 100 else "#f87171"
+                # The host ring (gold) takes priority over the team-color border when both apply.
+                border_style = "" if is_host else f"border-color:{title_color};"
                 if not stats:
-                    return f'<div class="team-champ-mini-wrap{host_cls}" style="margin-right:0;"><img class="team-champ-mini" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
-                
+                    return f'<div class="team-champ-mini-wrap{host_cls}" style="margin-right:0; {border_style}"><img class="team-champ-mini" src="{ev["killer_icon" if is_killer else "victim_icon"]}" alt="{champ_name}"/></div>'
+
                 hp_max = stats.get("healthMax", stats.get("health", 0))
                 hp_regen = stats.get("healthRegen", 0)
                 ad = stats.get("attackDamage", 0)
@@ -241,8 +245,6 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
                 avatar_src = ev["killer_icon"] if is_killer else ev["victim_icon"]
                 role_label = get_text("killer", lang=lang) if is_killer else get_text("victim", lang=lang)
-                p_team = k_team if is_killer else v_team
-                title_color = "#60a5fa" if p_team == 100 else "#f87171"
 
                 lvl_prefix = get_text("level_prefix", lang=lang)
                 gold_fmt = f"{gold:,}".replace(",", ".")
@@ -287,7 +289,7 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
 
                 return f"""
                 <div class="stat-tooltip-trigger" style="position:relative; display:inline-flex; cursor:pointer;">
-                    <div class="team-champ-mini-wrap{host_cls}" style="margin-right:0;">
+                    <div class="team-champ-mini-wrap{host_cls}" style="margin-right:0; {border_style}">
                         <img class="team-champ-mini" src="{avatar_src}" alt="{champ_name}"/>
                     </div>
                     <div class="stat-popup-card">

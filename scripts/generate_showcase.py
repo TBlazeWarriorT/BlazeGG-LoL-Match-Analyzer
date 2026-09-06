@@ -47,6 +47,7 @@ def wait_for_server(url: str, timeout: float = 20.0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--match-id", default="KR_8326219860", help="Match ID to search by (default: SHARED_EXAMPLES['example_match_id'] in src/i18n.py — the same ID shown as the placeholder in the app's own 'Search Match by ID' box)")
+    ap.add_argument("--puuid", default="DWJqIFKIAzJF6qA2BCVSWNGrddbQLZgcE1zKOYmuNsCM19IuBOsOhzDmNfJV6qARAlJYE6mCIvF4gA", help="Whose POV to claim via 'View as' (default: Faker's puuid — SHARED_EXAMPLES uses his account, but which of the 10 players gets shown is otherwise arbitrary)")
     ap.add_argument("--out", default=str(BASE_DIR / "docs" / "showcase.png"))
     ap.add_argument("--port", type=int, default=8321, help="Uses a separate port so it won't collide with a dev server on 8000")
     args = ap.parse_args()
@@ -74,16 +75,21 @@ def main():
             sys.exit(1)
 
         analyze_url = f"{base_url}/analyze?" + urllib.parse.urlencode({"match_id": args.match_id})
+        view_as_url = f"{base_url}/analyze?" + urllib.parse.urlencode({"match_id": args.match_id, "puuid": args.puuid})
 
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 1280, "height": 720})
 
-            # Hit /analyze first so this browser's blaze_id_searches cookie remembers
-            # this match ID, then load the hub — which will show it under the
-            # "ID Searches" tab, same as a real visitor pasting a match ID would see.
+            # 1) Raw ID search first, so this browser's blaze_id_searches cookie
+            #    remembers this match ID (what makes it show under "ID Searches" at
+            #    all). 2) Then "View as" --puuid, the same claim a visitor makes by
+            #    clicking a champion bubble and picking "View as X" — without it,
+            #    the card would headline whichever of the 10 participants happens
+            #    to be listed first, not necessarily the one the shot is meant to show.
             print(f"Searching match {args.match_id}...")
             page.goto(analyze_url, wait_until="networkidle", timeout=30000)
+            page.goto(view_as_url, wait_until="networkidle", timeout=30000)
             page.goto(base_url, wait_until="networkidle", timeout=30000)
             try:
                 page.wait_for_selector(".match-item", timeout=20000)

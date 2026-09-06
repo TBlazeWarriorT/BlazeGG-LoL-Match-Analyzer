@@ -280,7 +280,7 @@
   "level_prefix": "Lv",
   "crit_items_label": "(trang bị)",
   "modal_search_summoner_title": "🔍 Tìm Người Chơi",
-  "modal_search_summoner_body": "Bạn có muốn tìm trận gần đây của <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Bạn có chắc chắn muốn xóa trận của <span class='modal-summoner-highlight'>{summoner}</span> khỏi máy?",
   "modal_delete_summoner_confirm": "Xóa",
   "modal_clear_all_body": "Bạn có chắc muốn xóa <b>toàn bộ</b> trận đã lưu? Hành động này không thể hoàn tác.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Trụ Nhà Lính",
   "structure_destroyed_by": "đã bị phá hủy bởi",
   "structure_destroyed_by_f": "đã bị phá hủy bởi",
-  "empty_recent_hint": "Chưa có gì trong lịch sử gần đây, nhưng có dữ liệu đã lưu trong bộ nhớ đệm cục bộ."
+  "empty_recent_hint": "Chưa có gì trong lịch sử gần đây, nhưng có dữ liệu đã lưu trong bộ nhớ đệm cục bộ.",
+  "view_as_btn": "Xem trận này với tư cách người triệu hồi này ➔",
+  "modal_search_summoner_confirm": "Tìm trận đấu của người triệu hồi này ➔",
+  "modal_delete_title": "🗑️ Xóa trận đấu"
 }

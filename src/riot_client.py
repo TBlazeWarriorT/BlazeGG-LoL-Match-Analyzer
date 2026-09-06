@@ -3,7 +3,7 @@ import time
 import urllib.parse
 from typing import Optional, List, Dict, Any
 from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, get_key_candidates, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
-from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline
+from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline, claim_match_owner
 from .i18n import get_text
 
 class RiotAPIError(Exception):
@@ -121,9 +121,8 @@ class RiotClient:
     def get_match_detail(self, match_id: str, target_puuid: str = "") -> Dict[str, Any]:
         cached = get_cached_match(match_id)
         if cached:
-            if target_puuid and "metadata" in cached and not cached["metadata"].get("target_puuid"):
+            if claim_match_owner(match_id, target_puuid):
                 cached["metadata"]["target_puuid"] = target_puuid
-                save_cached_match(match_id, cached, target_puuid)
             return cached
         
         # Determine routing cluster from match_id prefix

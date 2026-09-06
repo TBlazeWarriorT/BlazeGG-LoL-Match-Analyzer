@@ -280,7 +280,7 @@
   "level_prefix": "Stufe",
   "crit_items_label": "(Gegenstände)",
   "modal_search_summoner_title": "🔍 Beschwörer suchen",
-  "modal_search_summoner_body": "Möchtest du nach den letzten Spielen von <span class='modal-summoner-highlight'>{name}#{tag}</span> suchen?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Möchtest du die Spiele von <span class='modal-summoner-highlight'>{summoner}</span> wirklich löschen?",
   "modal_delete_summoner_confirm": "Löschen",
   "modal_clear_all_body": "Möchtest du wirklich <b>alle</b> gespeicherten Spiele löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Hemmerturm",
   "structure_destroyed_by": "wurde zerstört von",
   "structure_destroyed_by_f": "wurde zerstört von",
-  "empty_recent_hint": "Noch nichts im Verlauf, aber es gibt lokal gespeicherte Cache-Daten."
+  "empty_recent_hint": "Noch nichts im Verlauf, aber es gibt lokal gespeicherte Cache-Daten.",
+  "view_as_btn": "Diese Partie als dieser Summoner ansehen ➔",
+  "modal_search_summoner_confirm": "Partien dieses Summoners suchen ➔",
+  "modal_delete_title": "🗑️ Spiele löschen"
 }

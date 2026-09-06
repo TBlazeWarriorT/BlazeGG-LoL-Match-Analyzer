@@ -280,7 +280,7 @@
   "level_prefix": "Sv",
   "crit_items_label": "(eşyalar)",
   "modal_search_summoner_title": "🔍 Sihirdar Ara",
-  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span> adlı oyuncunun son maçlarını aramak istiyor musunuz?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "<span class='modal-summoner-highlight'>{summoner}</span> oyuncusunun maçlarını diskten silmek istiyor musunuz?",
   "modal_delete_summoner_confirm": "Sil",
   "modal_clear_all_body": "Kayıtlı <b>tüm</b> maçları silmek istiyor musunuz? Bu işlem geri alınamaz.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "İnhibitör Kulesi",
   "structure_destroyed_by": "tarafından yıkıldı",
   "structure_destroyed_by_f": "tarafından yıkıldı",
-  "empty_recent_hint": "Son geçmişinizde henüz bir şey yok, ama yerel önbellekte kayıtlı veriler var."
+  "empty_recent_hint": "Son geçmişinizde henüz bir şey yok, ama yerel önbellekte kayıtlı veriler var.",
+  "view_as_btn": "Bu maçı bu çağırıcı olarak görüntüle ➔",
+  "modal_search_summoner_confirm": "Bu çağırıcının maçlarını ara ➔",
+  "modal_delete_title": "🗑️ Maçları Sil"
 }

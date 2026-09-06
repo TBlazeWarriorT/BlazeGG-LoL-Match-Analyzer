@@ -280,7 +280,7 @@
   "level_prefix": "Poz.",
   "crit_items_label": "(przedmioty)",
   "modal_search_summoner_title": "🔍 Szukaj Przywoływacza",
-  "modal_search_summoner_body": "Czy chcesz wyszukać ostatnie mecze gracza <span class='modal-summoner-highlight'>{name}#{tag}</span>?",
+  "modal_search_summoner_body": "<span class='modal-summoner-highlight'>{name}#{tag}</span>",
   "modal_delete_summoner_body": "Czy na pewno chcesz usunąć mecze gracza <span class='modal-summoner-highlight'>{summoner}</span> z dysku?",
   "modal_delete_summoner_confirm": "Usuń",
   "modal_clear_all_body": "Czy na pewno chcesz usunąć <b>wszystkie</b> zapisane mecze? Tej operacji nie można cofnąć.",
@@ -310,5 +310,8 @@
   "tower_inhibitor": "Wieża Inhibitora",
   "structure_destroyed_by": "został zniszczony przez",
   "structure_destroyed_by_f": "została zniszczona przez",
-  "empty_recent_hint": "Brak czegokolwiek w historii, ale w lokalnej pamięci podręcznej są zapisane dane."
+  "empty_recent_hint": "Brak czegokolwiek w historii, ale w lokalnej pamięci podręcznej są zapisane dane.",
+  "view_as_btn": "Zobacz ten mecz jako ten przywoływacz ➔",
+  "modal_search_summoner_confirm": "Szukaj meczów tego przywoływacza ➔",
+  "modal_delete_title": "🗑️ Usuń mecze"
 }

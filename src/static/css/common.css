@@ -139,6 +139,12 @@
     gap: 12px;
     justify-content: center;
 }
+.modal-actions.stacked {
+    flex-direction: column;
+}
+.modal-actions.stacked .modal-btn {
+    width: 100%;
+}
 .modal-btn {
     padding: 8px 18px;
     border-radius: 8px;
