@@ -74,8 +74,8 @@ def main():
             print("Server never came up.")
             sys.exit(1)
 
-        analyze_url = f"{base_url}/analyze?" + urllib.parse.urlencode({"match_id": args.match_id})
-        view_as_url = f"{base_url}/analyze?" + urllib.parse.urlencode({"match_id": args.match_id, "puuid": args.puuid})
+        analyze_url = f"{base_url}/analyze/{urllib.parse.quote(args.match_id)}"
+        view_as_url = analyze_url + "?" + urllib.parse.urlencode({"puuid": args.puuid})
 
         with sync_playwright() as p:
             browser = p.chromium.launch()

@@ -60,7 +60,7 @@ function showCustomConfirmModal(options) {
     }, 10);
 }
 
-function promptSearchSummoner(name, tag, matchId, puuid) {
+function promptSearchSummoner(name, tag, matchId, pIdx) {
     if (!name || !tag) return;
     var i18n = window.REPORT_I18N || {};
     var lang = i18n.lang || "en_US";
@@ -68,14 +68,16 @@ function promptSearchSummoner(name, tag, matchId, puuid) {
     var bodyTpl = i18n.search_modal_body || "Do you want to search recent matches for <span class='modal-summoner-highlight'>{name}#{tag}</span>?";
     var body = bodyTpl.replace("{name}", name).replace("{tag}", tag);
 
-    // matchId+puuid are only passed from a match card's own participants — clicking
+    // matchId+pIdx are only passed from a match card's own participants — clicking
     // a summoner-link inside an already-open report has nowhere more specific to go.
+    // pIdx is this participant's position in the match (see hub_view.py's
+    // puuid_idx), not their real puuid — resolved back to one server-side.
     var extraButton = null;
-    if (matchId && puuid) {
+    if (matchId && pIdx !== undefined && pIdx !== "") {
         extraButton = {
             text: i18n.view_as_btn || "View this match as this summoner ➔",
             onClick: function() {
-                window.location.href = "/analyze?match_id=" + encodeURIComponent(matchId) + "&puuid=" + encodeURIComponent(puuid) + "&lang=" + lang;
+                window.location.href = "/analyze/" + encodeURIComponent(matchId) + "?p=" + encodeURIComponent(pIdx);
             }
         };
     }

@@ -136,18 +136,25 @@ def clean_game_mode(mode: str, queue_id: int = 0, lang: str = "en_US", player_co
     from src.report_components.utils import format_full_mode_display
     return format_full_mode_display(mode, queue_id=queue_id, lang=lang, player_count=player_count)
 
-def _render_mini_champ_icon(p, puuid, m_id, title_suffix=""):
+def _render_mini_champ_icon(p, puuid, m_id, p_idx, title_suffix=""):
     """Small clickable champion icon used in the team strips on a match card
     (arena subteams, blue/red teams) — was copy-pasted 3x with only the title
     differing (arena adds a placement suffix)."""
     host_cls = " m-mini-host" if p.get("puuid") == puuid else ""
-    return f'<img class="m-mini-champ{host_cls}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]}){title_suffix}" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\', \'{m_id}\', \'{p.get("puuid", "")}\')"/>'
+    return f'<img class="m-mini-champ{host_cls}" src="{p["icon"]}" title="{p["champion"]} ({p["name"]}){title_suffix}" alt="{p["champion"]}" onclick="promptSearchSummoner(\'{p.get("name", "")}\', \'{p.get("tag", "")}\', \'{m_id}\', \'{p_idx}\')"/>'
 
-def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0, largest_multikill=0, penta_kills=0, quadra_kills=0):
+def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration, mode, puuid, rel_time="", is_cached=False, lang="en_US", queue_id=0, team_100=None, team_200=None, placement=0, largest_multikill=0, penta_kills=0, quadra_kills=0, participants=None):
     m_upper = str(mode).upper()
     is_arena = ("CHERRY" in m_upper or "ARENA" in m_upper or queue_id in (1700, 1710))
     all_parts = (team_100 or []) + (team_200 or [])
     player_count = len(all_parts)
+    # Position in this match's own participant list, used instead of a raw puuid
+    # in every link/onclick below — short, and immune to name/tag changes since
+    # it's not the puuid itself, just where they landed among this match's ~10-16
+    # players. Resolved back to the real puuid server-side in /analyze, which
+    # indexes into the RAW (team_100+team_200 split reorders it, so this must
+    # come from the original participants list, not all_parts).
+    puuid_idx = {p.get("puuid"): i for i, p in enumerate(participants)} if participants else {p.get("puuid"): i for i, p in enumerate(all_parts)}
     
     # In Arena: top 50% is considered a win (e.g. 1st-4th in 8-team 2v2v2v2 or 1st-2nd/3rd in 3v3v3v3)
     if is_arena and placement:
@@ -194,8 +201,9 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
                     opp_champ = opp
                     break
 
+    self_idx = puuid_idx.get(puuid, "")
     avatar_block = f"""
-    <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}', '{m_id}', '{puuid}')" title="{champ_name} ({riot_id})">
+    <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}', '{m_id}', '{self_idx}')" title="{champ_name} ({riot_id})">
         <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}"/>
         <div class="avatar-glint-sweep"></div>
     </div>
@@ -205,14 +213,15 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         opp_tline = opp_champ.get('tag', '')
         opp_riot = f"{opp_gname}#{opp_tline}"
         opp_title = get_text("direct_opponent_title", lang=lang, champ=opp_champ['champion'], riot_id=opp_riot)
+        opp_idx = puuid_idx.get(opp_champ.get('puuid', ''), "")
         avatar_block = f"""
         <div class="h2h-avatar-duo">
-            <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}', '{m_id}', '{puuid}')" title="{champ_name} ({riot_id})">
+            <div class="avatar-glint-wrapper" onclick="promptSearchSummoner('{g_name}', '{t_line}', '{m_id}', '{self_idx}')" title="{champ_name} ({riot_id})">
                 <img class="champ-avatar-lg" src="{champ_icon}" alt="{champ_name}"/>
                 <div class="avatar-glint-sweep"></div>
             </div>
             <span class="h2h-vs-badge">VS</span>
-            <div class="avatar-glint-wrapper avatar-opp-wrapper" onclick="promptSearchSummoner('{opp_gname}', '{opp_tline}', '{m_id}', '{opp_champ.get('puuid', '')}')" title="{opp_title}">
+            <div class="avatar-glint-wrapper avatar-opp-wrapper" onclick="promptSearchSummoner('{opp_gname}', '{opp_tline}', '{m_id}', '{opp_idx}')" title="{opp_title}">
                 <img class="champ-avatar-opp" src="{opp_champ['icon']}" alt="{opp_champ['champion']}"/>
             </div>
         </div>
@@ -228,13 +237,13 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
         
         subteam_groups = []
         for place, plist in sorted_subteams:
-            p_icons = "".join(_render_mini_champ_icon(p, puuid, m_id, f" - #{place}") for p in plist)
+            p_icons = "".join(_render_mini_champ_icon(p, puuid, m_id, puuid_idx.get(p.get("puuid"), ""), f" - #{place}") for p in plist)
             extra_cls = " m-team-first" if place == 1 else ""
             subteam_groups.append(f'<div class="m-team-group m-team-arena{extra_cls}" title="#{place}">{p_icons}</div>')
         teams_html = f'<div class="m-teams-strip m-arena-strip">{"".join(subteam_groups)}</div>'
     elif team_100 and team_200:
-        t1_icons = "".join(_render_mini_champ_icon(p, puuid, m_id) for p in team_100)
-        t2_icons = "".join(_render_mini_champ_icon(p, puuid, m_id) for p in team_200)
+        t1_icons = "".join(_render_mini_champ_icon(p, puuid, m_id, puuid_idx.get(p.get("puuid"), "")) for p in team_100)
+        t2_icons = "".join(_render_mini_champ_icon(p, puuid, m_id, puuid_idx.get(p.get("puuid"), "")) for p in team_200)
         teams_html = f"""
         <div class="m-teams-strip">
             <div class="m-team-group m-team-blue">{t1_icons}</div>
@@ -269,7 +278,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
             {teams_html}
             <div class="m-actions-row">
                 <span class="m-badge {badge_class}">{win_txt}</span>
-                <a class="{btn_class}" href="/analyze?match_id={m_id}&puuid={puuid}&lang={lang}">{btn_text}</a>
+                <a class="{btn_class}" href="/analyze/{m_id}?p={self_idx}">{btn_text}</a>
             </div>
         </div>
     </div>
@@ -385,7 +394,8 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                     p.get("win", False), m["duration"], m["game_mode"],
                     p.get("puuid", ""), rel_time=m.get("relative_time", ""), is_cached=True, lang=lang, queue_id=m.get("queue_id", 0),
                     team_100=m.get("team_100"), team_200=m.get("team_200"), placement=p.get("placement", 0),
-                    largest_multikill=p.get("largest_multikill", 0), penta_kills=p.get("penta_kills", 0), quadra_kills=p.get("quadra_kills", 0)
+                    largest_multikill=p.get("largest_multikill", 0), penta_kills=p.get("penta_kills", 0), quadra_kills=p.get("quadra_kills", 0),
+                    participants=m.get("participants")
                 )
 
                 s_name = p.get("name", "")

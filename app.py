@@ -100,7 +100,7 @@ class AppHandler(BaseHTTPRequestHandler):
             elif not any(match_id.startswith(p + "_") for p in ["BR1", "NA1", "EUW1", "EUN1", "KR", "JP1", "LA1", "LA2", "OC1", "TR1", "RU", "ME1", "PH2", "SG2", "TH2", "TW2", "VN2"]) and match_id.isdigit():
                 match_id = f"BR1_{match_id}"
             
-            self._redirect(f"/analyze?match_id={match_id}&lang={lang}")
+            self._redirect(f"/analyze/{match_id}")
             return
 
         elif path == "/search":
@@ -248,18 +248,23 @@ class AppHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
-        elif path == "/analyze":
+        elif path == "/analyze" or path.startswith("/analyze/"):
 
-            match_id = qs.get("match_id", [""])[0].strip()
+            if path.startswith("/analyze/"):
+                match_id = urllib.parse.unquote(path[len("/analyze/"):]).strip()
+            else:
+                match_id = qs.get("match_id", [""])[0].strip()
             puuid = qs.get("puuid", [""])[0].strip()
+            p_idx_raw = qs.get("p", [""])[0].strip()
             if not match_id:
                 self._redirect(f"/?lang={lang}")
                 return
 
-            # No puuid in the URL means this came from a raw match-ID search
-            # (/search_match), not from clicking a hub card (which always carries
-            # one) — that's the one case worth remembering as an "ID search".
-            is_raw_id_search = not puuid
+            # No target (puuid or the shorter participant-index form) in the URL
+            # means this came from a raw match-ID search (/search_match), not from
+            # clicking a hub card (which always carries one) — that's the one case
+            # worth remembering as an "ID search".
+            is_raw_id_search = not (puuid or p_idx_raw)
             m = None  # populated from cache before any exception can occur; used below
                       # to recover the summoner's identity if the analysis then fails
 
@@ -278,7 +283,18 @@ class AppHandler(BaseHTTPRequestHandler):
                         m = f_match.result()
                         t = f_timeline.result()
 
-                # An explicit puuid here (from "View as X") claims the match for them if
+                # "p" is a participant's position in this match's own participants
+                # list (0-9ish) instead of their full puuid — resolved against the
+                # actual match data so the URL doesn't have to carry ~80 opaque
+                # chars just to say "the 4th player". Stable across name/tag
+                # changes, unlike a Riot ID would be.
+                if p_idx_raw and not puuid:
+                    try:
+                        puuid = m.get("info", {}).get("participants", [])[int(p_idx_raw)].get("puuid", "")
+                    except (ValueError, IndexError):
+                        puuid = ""
+
+                # An explicit target here (from "View as X") claims the match for them if
                 # nobody has yet — same first-claim-wins rule as a live summoner search,
                 # just triggered from an already-cached match instead of a fresh fetch.
                 if puuid:
