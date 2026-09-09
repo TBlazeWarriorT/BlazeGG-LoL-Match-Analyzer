@@ -3,7 +3,10 @@ from ..i18n import get_text
 from ..event_engine import clean_monster_name
 from ..ddragon import DataDragon
 
-TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400}
+# 3340 Stealth Ward (Summoner's Rift), 3363 Farsight Alteration, 3364 Oracle Lens,
+# 3513 Eye of the Herald, 2055 Control Ward, 3330 Scarecrow Effigy (Fiddlesticks,
+# any mode), 3400 Your Cut, 3348 Arcane Sweeper (Arena), 2052 Poro-Snax (ARAM).
+TRINKET_IDS = {3340, 3363, 3364, 3513, 2055, 3330, 3400, 3348, 2052}
 BOOT_IDS = {1001, 2422, 3006, 3009, 3020, 3047, 3111, 3117, 3158, 223006, 223009, 223020, 223047, 223111, 223158, 773006, 773009, 773020, 773047, 773111, 773158}
 CONSUMABLE_STACKS = {2003, 2010, 2031, 2033, 2140, 2138, 2139, 2150, 2151, 2152}
 
@@ -250,12 +253,13 @@ def render_timeline_section(data: Dict[str, Any], lang: str = "pt_BR") -> Tuple[
                 gold_fmt = f"{gold:,}".replace(",", ".")
                 gold_badge_html = f'<div style="margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:0.75rem; font-weight:700; color:#fbbf24; white-space:nowrap;" title="Ouro acumulado">{gold_fmt} <i class="stat-ico ico-gold" style="width:13px; height:13px;"></i></div>'
 
-                # Items row inside tooltip: 6 main slots | Role Quest Slot (ADC / Special) | Trinket | Gold on Right
-                items_row_html = ""
-                if items_snapshot:
-                    p_role = str(ev.get("killer_role" if is_killer else "victim_role", "")).upper()
-                    main_slots, boot_slot_html, trinket_slot_html = build_item_slot_html(items_snapshot, p_role)
-                    items_row_html = f"""
+                # Items row inside tooltip: 6 main slots | Role Quest Slot (ADC / Special) | Trinket | Gold on Right.
+                # Always rendered, even with zero items (empty slots) — an Arena
+                # champion who intentionally never shops still has gold to show, and
+                # hiding the whole row for them looked like the tooltip was broken.
+                p_role = str(ev.get("killer_role" if is_killer else "victim_role", "")).upper()
+                main_slots, boot_slot_html, trinket_slot_html = build_item_slot_html(items_snapshot or [], p_role)
+                items_row_html = f"""
                     <div class="stat-divider"></div>
                     <div class="stat-items-row">
                         <div style="display:flex; gap:5px; align-items:center;">

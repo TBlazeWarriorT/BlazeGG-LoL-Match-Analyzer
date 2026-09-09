@@ -667,16 +667,36 @@ class MatchAnalysis:
         timeline_drake_count = {100: 0, 200: 0}
         first_blood_awarded = False
 
-        # Track ongoing inventory snapshots per participant
-        # All players start with Stealth Ward (3340) automatically in matchmade queues
-        inventories = {pid: [3340] for pid in range(1, 11)}
-        
-        # In permanent matchmade Summoner's Rift queues, Support role automatically starts with World Atlas (3865)
-        for p in self.match.get("info", {}).get("participants", []):
-            pid = p.get("participantId")
-            role = p.get("teamPosition") or p.get("individualPosition") or ""
-            if pid and role.upper() == "UTILITY":
-                inventories[pid].append(3865) # Atlas Mundial / World Atlas
+        # Track ongoing inventory snapshots per participant. Every mode locks players
+        # into its own default trinket from the start (never bought/sold, so it never
+        # shows up as a real ITEM_PURCHASED event) — Fiddlesticks is the one universal
+        # exception, replacing whatever the mode would give him with Scarecrow Effigy.
+        mode_upper = str(self.info.get("gameMode", "")).upper()
+        queue_id = self.info.get("queueId", 0)
+        is_arena = ("CHERRY" in mode_upper or "ARENA" in mode_upper or queue_id in (1700, 1710))
+        is_aram = ("ARAM" in mode_upper or queue_id == 450)
+
+        if is_arena:
+            default_trinket = 3348  # Arcane Sweeper
+        elif is_aram:
+            default_trinket = 2052  # Poro-Snax
+        else:
+            default_trinket = 3340  # Stealth Ward
+
+        inventories = {}
+        for pid in range(1, 11):
+            champ = self._get_part_dict(pid).get("championName", "")
+            # Riot's own internal championName for him is "FiddleSticks" (capital S)
+            trinket = 3330 if champ.lower() == "fiddlesticks" else default_trinket  # Scarecrow Effigy
+            inventories[pid] = [trinket]
+
+        if not is_arena and not is_aram:
+            # In permanent matchmade Summoner's Rift queues, Support role automatically starts with World Atlas (3865)
+            for p in self.match.get("info", {}).get("participants", []):
+                pid = p.get("participantId")
+                role = p.get("teamPosition") or p.get("individualPosition") or ""
+                if pid and role.upper() == "UTILITY":
+                    inventories[pid].append(3865) # Atlas Mundial / World Atlas
 
         item_events_log = []
 
