@@ -19,10 +19,10 @@ class RiotClient:
             self.api_key = api_key
             self.key_kind = self._classify_key(api_key)
         else:
-            self.api_key = get_api_key(session_key=session_key)
-            self.key_kind = self._classify_key(self.api_key)
+            self.key_kind, self.api_key = self._pick_first_usable_candidate(session_key)
         self._tried_values = {self.api_key} if self.api_key else set()
-        self._check_key_validity()
+        if not self.api_key:
+            raise RiotAPIError(get_text("err_key_missing", lang=self.lang))
         self.headers = {"X-Riot-Token": self.api_key}
 
     @staticmethod
@@ -33,29 +33,37 @@ class RiotClient:
             return "dev"
         return "session" if value else ""
 
-    def _key_expiry_for(self, kind: str):
-        if kind == "prod":
-            return "permanent"
-        if kind == "dev":
-            return get_dev_expires_at()
-        return ""
+    @staticmethod
+    def _is_known_expired(kind: str) -> bool:
+        """Only DEV_KEY carries a locally-known expiry we can check with no network
+        call — PROD_KEY is always "permanent" and a session key's real status is
+        unknown until Riot actually rejects it, so neither is ever pre-filtered here."""
+        if kind != "dev":
+            return False
+        exp_val = get_dev_expires_at()
+        return bool(exp_val) and str(exp_val).isdigit() and time.time() >= int(exp_val)
 
-    def _check_key_validity(self):
-        if not self.api_key:
-            raise RiotAPIError(get_text("err_key_missing", lang=self.lang))
-        exp_val = self._key_expiry_for(self.key_kind)
-        if exp_val and str(exp_val).isdigit():
-            exp_ts = int(exp_val)
-            if time.time() >= exp_ts:
-                raise RiotAPIError(get_text("err_key_expired", lang=self.lang))
+    def _pick_first_usable_candidate(self, session_key: str):
+        """Skips any candidate already known to be dead instead of blindly taking
+        whichever comes first in priority order. Without this, a site owner's own
+        forgotten, unrefreshed DEV_KEY sitting ahead of a visitor's session key in
+        that order would permanently block construction — raising "key expired" for
+        EVERY visitor regardless of how valid their own pasted key is — the moment
+        _key_preference ever flips to "dev" (which any single failed PROD_KEY
+        request causes, and nothing ever flips it back except this exact fix)."""
+        for kind, value in get_key_candidates(session_key):
+            if value and not self._is_known_expired(kind):
+                return kind, value
+        return "", ""
 
     def _switch_to_alternate_key(self) -> bool:
-        """On a 401/403, try the next untried candidate (prod/dev/session) before
-        giving up. Whichever one works becomes the preferred prod/dev key going
-        forward — not a permanent blacklist of the one that failed, just try-order,
-        so it gets retried again once the currently-preferred one fails too."""
+        """On a 401/403, try the next untried, not-known-dead candidate (prod/dev/
+        session) before giving up. Whichever one works becomes the preferred prod/
+        dev key going forward — not a permanent blacklist of the one that failed,
+        just try-order, so it gets retried again once the currently-preferred one
+        fails too."""
         for kind, value in get_key_candidates(self.session_key):
-            if value and value not in self._tried_values:
+            if value and value not in self._tried_values and not self._is_known_expired(kind):
                 self.api_key = value
                 self.key_kind = kind
                 self.headers = {"X-Riot-Token": self.api_key}
@@ -66,7 +74,8 @@ class RiotClient:
         return False
 
     def _request(self, url: str) -> Any:
-        self._check_key_validity()
+        if not self.api_key:
+            raise RiotAPIError(get_text("err_key_missing", lang=self.lang))
         for _ in range(5):
             resp = requests.get(url, headers=self.headers, timeout=15)
             if resp.status_code == 200:

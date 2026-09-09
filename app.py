@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import webbrowser
 import urllib.parse
 from urllib.parse import urlparse, parse_qs
@@ -363,11 +364,20 @@ class AppHandler(BaseHTTPRequestHandler):
             cookies_to_set = []
             if new_key:
                 exp_ts = parse_expiry_str(exp_text) if exp_text else (int(time.time() + 24 * 3600))
+                wrote_to_disk = False
                 if is_local:
-                    # In local development, safely update .env file
-                    save_api_key(new_key, exp_text)
-                else:
-                    # On public/remote server, isolate key inside user's private cookies (never alter global .env)
+                    # In local development, safely update .env file. If the write fails for
+                    # any reason (e.g. is_local was wrong, or a read-only/odd filesystem),
+                    # never let that turn into a lost key — fall through to the cookie path
+                    # below instead, so the key still takes effect for this visitor right now.
+                    try:
+                        save_api_key(new_key, exp_text)
+                        wrote_to_disk = True
+                    except Exception:
+                        pass
+                if not wrote_to_disk:
+                    # On public/remote server (or as the above fallback), isolate the key
+                    # inside this visitor's own cookies — never alter the shared/global .env.
                     cookies_to_set.append(f"blaze_dev_key={new_key}; Path=/; SameSite=Lax; Max-Age=86400")
                     cookies_to_set.append(f"blaze_dev_exp={exp_ts}; Path=/; SameSite=Lax; Max-Age=86400")
             

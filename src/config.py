@@ -131,8 +131,20 @@ def get_key_expires_at(session_expiry: str = "") -> str:
     return session_expiry or get_dev_expires_at()
 
 def is_production_mode(session_key: str = "") -> bool:
-    # Production mode is active if the preferred key is PROD_KEY or explicit BLAZE_ENV=production
-    return bool((get_key_preference() == "prod" and get_prod_key()) or os.getenv("BLAZE_ENV") == "production")
+    """Whether this process is a shared/hosted deployment (as opposed to someone's
+    local machine) — gates things like visitor key isolation (own key -> cookie,
+    never .env) and blocking destructive cache deletes from remote visitors.
+
+    Must NEVER depend on get_key_preference(): that flips to "dev" the moment any
+    single live request fails with PROD_KEY (rate limit, a transient network blip,
+    Riot hiccuping) and has no reason to ever flip back — so a check that included
+    it would make a real hosted deployment randomly start identifying as "local"
+    after the first unlucky request, silently disabling visitor isolation and the
+    delete guard for everyone. This bit the same recurring bug 3 times before this
+    comment existed. get_prod_key() alone is a boot-time fact (an env var, read
+    fresh but never mutated at runtime) — stable for the process's whole lifetime.
+    """
+    return bool(get_prod_key()) or os.getenv("BLAZE_ENV") == "production"
 
 def parse_expiry_str(text: str) -> int:
     import re
