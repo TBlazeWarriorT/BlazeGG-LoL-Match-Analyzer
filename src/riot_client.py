@@ -81,6 +81,12 @@ class RiotClient:
             if resp.status_code == 200:
                 return resp.json()
             elif resp.status_code == 429:
+                # Rate limits are per-key — a different, untried key has its own
+                # independent bucket, so it's worth switching to instantly instead of
+                # burning the retry budget waiting out a throttle on a key that isn't
+                # even broken. Only wait-and-retry the same key once no alternate is left.
+                if self._switch_to_alternate_key():
+                    continue
                 retry_after = int(resp.headers.get("Retry-After", 5))
                 time.sleep(retry_after)
                 continue
