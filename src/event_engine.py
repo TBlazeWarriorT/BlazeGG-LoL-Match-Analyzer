@@ -663,7 +663,12 @@ class MatchAnalysis:
         frames = self.timeline.get("info", {}).get("frames", [])
         kill_streaks = {}
         life_streaks = {}
-        ongoing_kda = {pid: {"k": 0, "d": 0, "a": 0} for pid in range(1, 11)}
+        # Arena isn't capped at 10 participants like Summoner's Rift (this can run to
+        # 16+), so this must track whichever participantIds actually exist in the
+        # match instead of assuming 1-10 — anyone above 10 silently got skipped by KDA
+        # tracking below, and had their whole inventory tracking discarded entirely.
+        all_pids = [p.get("participantId") for p in self.participants if p.get("participantId")]
+        ongoing_kda = {pid: {"k": 0, "d": 0, "a": 0} for pid in all_pids}
         timeline_drake_count = {100: 0, 200: 0}
         first_blood_awarded = False
 
@@ -684,7 +689,7 @@ class MatchAnalysis:
             default_trinket = 3340  # Stealth Ward
 
         inventories = {}
-        for pid in range(1, 11):
+        for pid in all_pids:
             champ = self._get_part_dict(pid).get("championName", "")
             # Riot's own internal championName for him is "FiddleSticks" (capital S)
             trinket = 3330 if champ.lower() == "fiddlesticks" else default_trinket  # Scarecrow Effigy
