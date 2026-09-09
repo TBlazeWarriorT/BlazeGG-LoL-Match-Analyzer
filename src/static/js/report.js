@@ -697,10 +697,10 @@ function toggleLanguageDropdown(e) {
 }
 
 function changeLanguage(langCode) {
+    // document.cookie writes are synchronous, so the reload below already
+    // carries the new language — no need to also stamp ?lang= on the URL.
     document.cookie = "blaze_lang=" + encodeURIComponent(langCode) + "; path=/; max-age=31536000; SameSite=Lax";
-    var url = new URL(window.location.href);
-    url.searchParams.set("lang", langCode);
-    window.location.href = url.toString();
+    window.location.reload();
 }
 
 document.addEventListener("click", function(e) {
