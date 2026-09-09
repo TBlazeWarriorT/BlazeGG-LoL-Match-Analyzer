@@ -221,8 +221,8 @@ def generate_html_report(data: Dict[str, Any], open_browser: bool = True, lang: 
 
     <div class="container">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
-            <a href="/?lang={lang}" class="btn-hub-back">{get_text('back_to_hub', lang=lang)}</a>
-            <a href="/?lang={lang}" class="small-logo-link" style="text-decoration:none; margin-left:auto;" title="{get_text('tooltip_back_home', lang=lang)}">
+            <a href="/" class="btn-hub-back">{get_text('back_to_hub', lang=lang)}</a>
+            <a href="/" class="small-logo-link" style="text-decoration:none; margin-left:auto;" title="{get_text('tooltip_back_home', lang=lang)}">
                 <span class="small-logo-title"><span class="fire-flame-anim">🔥</span> <span style="background:linear-gradient(90deg, #fb923c, #f97316, #ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Blaze GG</span> <span class="logo-author-badge">by TBlazeWarriorT</span></span>
             </a>
         </div>

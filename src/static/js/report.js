@@ -63,7 +63,6 @@ function showCustomConfirmModal(options) {
 function promptSearchSummoner(name, tag, matchId, pIdx) {
     if (!name || !tag) return;
     var i18n = window.REPORT_I18N || {};
-    var lang = i18n.lang || "en_US";
     var title = i18n.search_modal_title || "🔍 Search Summoner";
     var bodyTpl = i18n.search_modal_body || "Do you want to search recent matches for <span class='modal-summoner-highlight'>{name}#{tag}</span>?";
     var body = bodyTpl.replace("{name}", name).replace("{tag}", tag);
@@ -91,7 +90,7 @@ function promptSearchSummoner(name, tag, matchId, pIdx) {
         confirmBorder: "#f97316",
         extraButton: extraButton,
         onConfirm: function() {
-            window.location.href = "/search?game_name=" + encodeURIComponent(name) + "&tag_line=" + encodeURIComponent(tag) + "&lang=" + lang;
+            window.location.href = "/search?game_name=" + encodeURIComponent(name) + "&tag_line=" + encodeURIComponent(tag);
         }
     });
 }

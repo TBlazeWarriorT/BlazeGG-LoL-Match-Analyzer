@@ -179,7 +179,7 @@ def render_match_card(m_id, champ_name, champ_icon, riot_id, kda, win, duration,
 
     parts = riot_id.split("#") if "#" in riot_id else [riot_id, ""]
     g_name, t_line = parts[0], parts[1]
-    search_link = f"/search?game_name={g_name}&tag_line={t_line}&lang={lang}" if t_line else "#"
+    search_link = f"/search?game_name={g_name}&tag_line={t_line}" if t_line else "#"
 
     # Find lane opponent only in Summoner's Rift (CLASSIC)
     is_classic = (m_upper == "CLASSIC" or queue_id in (420, 440, 400, 430))
@@ -613,7 +613,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
                 other_mode = "cached" if show_recent_only else "recent"
                 other_label = get_text("btn_view_cached", lang=lang) if show_recent_only else get_text("btn_view_recent", lang=lang)
                 view_toggle_html = f"""
-                <a href="/?lang={lang}&view={other_mode}" class="btn-tab-action" style="text-decoration:none;">{other_label}</a>
+                <a href="/?view={other_mode}" class="btn-tab-action" style="text-decoration:none;">{other_label}</a>
                 """
                 if not show_recent_only:
                     storage_mb = get_cache_storage_mb()
@@ -648,7 +648,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
             cached_html = f"""
             <div class="section-card" style="margin-top: 24px; text-align:center;">
                 <p style="color:var(--text-muted); margin:0 0 10px 0;">{get_text('empty_recent_hint', lang=lang)}</p>
-                <a href="/?lang={lang}&view=cached" class="btn-tab-action" style="text-decoration:none; display:inline-block;">{get_text('btn_view_cached', lang=lang)}</a>
+                <a href="/?view=cached" class="btn-tab-action" style="text-decoration:none; display:inline-block;">{get_text('btn_view_cached', lang=lang)}</a>
             </div>
             """
         else:
@@ -751,7 +751,7 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
 <div class="container">
     <div class="header">
         <div>
-            <a href="/?lang={lang}" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
+            <a href="/" style="text-decoration:none;" title="{get_text('tooltip_back_home', lang=lang)}">
                 <div style="display:inline-flex; align-items:baseline; gap:16px;">
                     <h1 class="logo-title" style="font-size:2.35rem; font-weight:900; letter-spacing:0.5px; margin:0; display:inline-flex; align-items:center; gap:10px; cursor:pointer;"><span class="fire-flame-anim">🔥</span> Blaze GG</h1>
                     <span class="logo-author-badge">by TBlazeWarriorT</span>

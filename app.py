@@ -90,7 +90,7 @@ class AppHandler(BaseHTTPRequestHandler):
         elif path == "/search_match":
             mid_input = qs.get("match_id", [""])[0].strip()
             if not mid_input:
-                self._redirect(f"/?lang={lang}")
+                self._redirect("/")
                 return
             
             # Format clean match_id
@@ -228,7 +228,7 @@ class AppHandler(BaseHTTPRequestHandler):
             start_str = qs.get("start", ["0"])[0].strip()
             start_offset = int(start_str) if start_str.isdigit() else 0
             if not name or not tag:
-                self._redirect(f"/?lang={lang}")
+                self._redirect("/")
                 return
 
             try:
@@ -257,7 +257,7 @@ class AppHandler(BaseHTTPRequestHandler):
             puuid = qs.get("puuid", [""])[0].strip()
             p_idx_raw = qs.get("p", [""])[0].strip()
             if not match_id:
-                self._redirect(f"/?lang={lang}")
+                self._redirect("/")
                 return
 
             # No target (puuid or the shorter participant-index form) in the URL
@@ -397,7 +397,7 @@ class AppHandler(BaseHTTPRequestHandler):
                     cookies_to_set.append(f"blaze_dev_key={new_key}; Path=/; SameSite=Lax; Max-Age=86400")
                     cookies_to_set.append(f"blaze_dev_exp={exp_ts}; Path=/; SameSite=Lax; Max-Age=86400")
             
-            self._redirect(f"/?lang={lang}", cookies=cookies_to_set)
+            self._redirect("/", cookies=cookies_to_set)
         elif parsed.path == "/delete_summoner_cache":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length).decode("utf-8")
@@ -504,7 +504,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 # should still clear this browser's own tracked IDs so the tab (and
                 # whatever it showed) actually disappears from "recent" as expected.
                 del_cookie.append("blaze_id_searches=; Path=/; SameSite=Lax; Max-Age=31536000")
-            redirect_url = f"/?lang={lang}" + (f"&view={view_mode}" if view_mode == "cached" else "")
+            redirect_url = "/" + (f"?view={view_mode}" if view_mode == "cached" else "")
             self._redirect(redirect_url, cookies=del_cookie)
         elif parsed.path == "/clear_cache":
             from src.config import MATCH_CACHE_DIR, TIMELINE_CACHE_DIR
