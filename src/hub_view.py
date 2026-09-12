@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import concurrent.futures
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str, get_prod_key
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, TIMELINE_CACHE_DIR, get_api_key, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str, get_prod_key, is_key_dead, mark_key_dead, clear_dead_key
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session, classify_match_ownership
 from src.event_engine import MatchAnalysis
@@ -299,27 +299,26 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
     # deploy (the exact moment someone pastes in their own key because prod died),
     # that failure hasn't fired yet, so get_api_key() would still confidently return
     # the dead prod key.
-    has_own_session_key = bool(session_key)
+    has_own_session_key = bool(session_key) and not is_key_dead(session_key)
     curr_key = session_key if has_own_session_key else get_api_key(session_key=session_key)
-    exp_val = session_expiry if has_own_session_key else get_key_expires_at(session_expiry=session_expiry)
+    exp_val = session_expiry if has_own_session_key else get_key_expires_at(session_expiry=session_expiry, session_key=curr_key)
     key_configured = bool(curr_key)
 
     import time
     expiry_msg = ""
-    is_expired = False
+    is_expired = is_key_dead(curr_key)
 
     prod_mode = is_production_mode(session_key=session_key)
-    # prod_mode = "this deployment runs in production", not "which key is active" —
-    # a visitor's own session key is just as "production" as the official one, but
-    # unlike it, they need the real countdown to renew it. Only the official key is
-    # centrally managed / not theirs to watch, so only it gets the clean header.
-    is_official_prod_key = (not has_own_session_key) and bool(curr_key) and curr_key == get_prod_key()
+    is_official_prod_key = (not has_own_session_key) and bool(curr_key) and curr_key == get_prod_key() and not is_key_dead(curr_key)
     err_lower = str(error_msg).lower()
     has_api_error = bool(error_msg and ("expir" in err_lower or "401" in err_lower or "403" in err_lower or "chave" in err_lower or "key" in err_lower or "unauthorized" in err_lower or "forbidden" in err_lower))
     
     if key_configured:
         masked_key = f"{curr_key[:6]}...{curr_key[-4:]}" if len(curr_key) > 10 else "******"
-        if is_official_prod_key:
+        if is_expired:
+            expiry_msg = f'<span style="color:#ef4444; font-weight:bold;">{get_text("key_status_expired", lang=lang)}</span>'
+            key_status_badge = f'<span style="color:#fca5a5; background:#991b1b; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700;">{get_text("key_expired", lang=lang, masked=masked_key)}</span>'
+        elif is_official_prod_key:
             expiry_msg = get_text("prod_key_active", lang=lang)
             key_status_badge = ""  # Clean header — nothing for this visitor to manage
         elif exp_val and str(exp_val).isdigit():
@@ -673,8 +672,10 @@ def render_home_html(search_results=None, error_msg="", search_name="", search_t
         <p style="color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 14px 0;">
             {get_text('key_current', lang=lang, masked=masked_key, status=expiry_msg)}
         </p>
-        <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;">
+        <form action="/save_key" method="POST" style="display:flex; flex-direction:column; gap:12px;" onsubmit="try {{ var k = this.api_key.value.trim(); if(k) {{ document.cookie = 'blaze_dev_key=' + encodeURIComponent(k) + '; Path=/; SameSite=Lax; Max-Age=86400'; }} }} catch(e){{}}">
             <input type="hidden" name="lang" value="{lang}"/>
+            <input type="hidden" name="search_name" value="{search_name}"/>
+            <input type="hidden" name="search_tag" value="{search_tag}"/>
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <div class="form-group" style="flex: 1.2;">
                     <label class="form-label">{get_text('key_label', lang=lang)}</label>

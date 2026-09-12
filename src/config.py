@@ -94,13 +94,21 @@ def get_dev_key() -> str:
 def get_dev_expires_at() -> str:
     return os.getenv("DEV_EXPIRY") or os.getenv("DEV_KEY_EXPIRES_AT") or os.getenv("RIOT_KEY_EXPIRES_AT") or ""
 
-_key_preference = "prod"  # in-memory only: a reboot always re-assumes PROD_KEY is
-# good again, since a reboot is usually exactly when someone fixed/rotated it.
+_key_preference = "prod"
+_dead_keys = set()
+
+def mark_key_dead(key: str):
+    if key and key.strip():
+        _dead_keys.add(key.strip())
+
+def is_key_dead(key: str) -> bool:
+    return bool(key and key.strip() in _dead_keys)
+
+def clear_dead_key(key: str):
+    if key and key.strip() in _dead_keys:
+        _dead_keys.remove(key.strip())
 
 def get_key_preference() -> str:
-    """Which of PROD_KEY/DEV_KEY last worked. Not a permanent blacklist —
-    just the try-first order, so a dead key doesn't get retried forever
-    while a good one sits unused, but it's never fully locked out either."""
     return _key_preference
 
 def set_key_preference(kind: str):
@@ -109,24 +117,32 @@ def set_key_preference(kind: str):
         _key_preference = kind
 
 def get_key_candidates(session_key: str = ""):
-    """Ordered (kind, value) key candidates: whichever of PROD/DEV worked last
-    goes first, session_key (the visitor's own cookie-provided key on hosted
-    deploys) sits in between, and the other of PROD/DEV is the fallback.
-    Single source of truth — get_api_key() and RiotClient's request-time
-    fallback both read this instead of each re-deriving the same order."""
+    """Ordered candidates: a visitor's session key ALWAYS comes first if provided,
+    followed by whichever server key (prod/dev) is currently preferred and alive."""
     prod, dev = get_prod_key(), get_dev_key()
-    first, second = (("prod", prod), ("dev", dev)) if get_key_preference() == "prod" else (("dev", dev), ("prod", prod))
-    return [first, ("session", session_key), second]
+    server_keys = [("prod", prod), ("dev", dev)] if get_key_preference() == "prod" else [("dev", dev), ("prod", prod)]
+    
+    candidates = []
+    if session_key:
+        candidates.append(("session", session_key))
+    candidates.extend(server_keys)
+    return candidates
 
 def get_api_key(session_key: str = "") -> str:
+    # First try non-dead keys; fall back to any candidate if all are marked dead
+    for _, value in get_key_candidates(session_key):
+        if value and not is_key_dead(value):
+            return value
     for _, value in get_key_candidates(session_key):
         if value:
             return value
     return ""
 
-def get_key_expires_at(session_expiry: str = "") -> str:
-    # Reflects whichever key is actually preferred right now.
-    if get_key_preference() == "prod" and get_prod_key():
+def get_key_expires_at(session_expiry: str = "", session_key: str = "") -> str:
+    if session_key and not is_key_dead(session_key):
+        return session_expiry or get_dev_expires_at()
+    prod = get_prod_key()
+    if get_key_preference() == "prod" and prod and not is_key_dead(prod):
         return "permanent"
     return session_expiry or get_dev_expires_at()
 

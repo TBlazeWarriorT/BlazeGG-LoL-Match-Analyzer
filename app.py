@@ -10,7 +10,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import concurrent.futures
 from pathlib import Path
 
-from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str
+from src.config import BASE_DIR, CACHE_DIR, MATCH_CACHE_DIR, get_key_expires_at, save_api_key, is_production_mode, parse_expiry_str, clear_dead_key, is_key_dead, mark_key_dead
 from src.riot_client import RiotClient, RiotAPIError
 from src.cache_manager import set_last_viewed, get_last_viewed, save_session, get_last_session, claim_match_owner
 from src.event_engine import MatchAnalysis
@@ -218,9 +218,9 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.wfile.write(rendered_html.encode("utf-8"))
 
             except RiotAPIError as e:
-                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
+                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
             except Exception as e:
-                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
+                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
 
         elif path == "/load_more":
             name = qs.get("game_name", [""])[0].strip()
@@ -241,12 +241,12 @@ class AppHandler(BaseHTTPRequestHandler):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     list(executor.map(lambda mid: client.get_match_detail(mid, target_puuid=puuid), match_ids))
 
-                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang, auto_expand=True, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+                self._send_html(render_home_html(search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, auto_expand=True, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
             except RiotAPIError as e:
-                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+                self._send_html(render_home_html(error_msg=str(e), search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
             except Exception as e:
-                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+                self._send_html(render_home_html(error_msg=f"Erro: {e}", search_name=name, search_tag=tag, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
         elif path == "/analyze" or path.startswith("/analyze/"):
 
@@ -360,10 +360,10 @@ class AppHandler(BaseHTTPRequestHandler):
                             if identity.lower() not in [h.lower() for h in user_history]:
                                 fallback_hist = user_history + [identity]
                             break
-                self._send_html(render_home_html(error_msg=err_text, lang=lang, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
+                self._send_html(render_home_html(error_msg=err_text, lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=fallback_hist, is_local=is_local, id_search_history=id_search_history, auto_expand=True))
 
         else:
-            self._send_html(render_home_html(error_msg=get_text("err_page_not_found", lang=lang), lang=lang, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
+            self._send_html(render_home_html(error_msg=get_text("err_page_not_found", lang=lang), lang=lang, session_key=sess_key, session_expiry=sess_exp, user_history=user_history, is_local=is_local, id_search_history=id_search_history))
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -374,30 +374,29 @@ class AppHandler(BaseHTTPRequestHandler):
             new_key = form_data.get("api_key", [""])[0].strip()
             exp_text = form_data.get("expires_text", [""])[0].strip()
             lang = form_data.get("lang", ["pt_BR"])[0].strip() or "pt_BR"
+            s_name = form_data.get("search_name", [""])[0].strip()
+            s_tag = form_data.get("search_tag", [""])[0].strip()
             
             is_local = not is_production_mode()
             
             cookies_to_set = []
             if new_key:
+                clear_dead_key(new_key)
                 exp_ts = parse_expiry_str(exp_text) if exp_text else (int(time.time() + 24 * 3600))
-                wrote_to_disk = False
                 if is_local:
-                    # In local development, safely update .env file. If the write fails for
-                    # any reason (e.g. is_local was wrong, or a read-only/odd filesystem),
-                    # never let that turn into a lost key — fall through to the cookie path
-                    # below instead, so the key still takes effect for this visitor right now.
                     try:
                         save_api_key(new_key, exp_text)
-                        wrote_to_disk = True
                     except Exception:
                         pass
-                if not wrote_to_disk:
-                    # On public/remote server (or as the above fallback), isolate the key
-                    # inside this visitor's own cookies — never alter the shared/global .env.
-                    cookies_to_set.append(f"blaze_dev_key={new_key}; Path=/; SameSite=Lax; Max-Age=86400")
-                    cookies_to_set.append(f"blaze_dev_exp={exp_ts}; Path=/; SameSite=Lax; Max-Age=86400")
+                cookies_to_set.append(f"blaze_dev_key={new_key}; Path=/; SameSite=Lax; Max-Age=86400")
+                cookies_to_set.append(f"blaze_dev_exp={exp_ts}; Path=/; SameSite=Lax; Max-Age=86400")
             
-            self._redirect("/", cookies=cookies_to_set)
+            if s_name and s_tag:
+                import urllib.parse
+                redir_url = f"/search?game_name={urllib.parse.quote(s_name)}&tag_line={urllib.parse.quote(s_tag)}&lang={lang}"
+            else:
+                redir_url = f"/?lang={lang}"
+            self._redirect(redir_url, cookies=cookies_to_set)
         elif parsed.path == "/delete_summoner_cache":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length).decode("utf-8")
@@ -539,6 +538,10 @@ class AppHandler(BaseHTTPRequestHandler):
     def _redirect(self, url: str, cookies: list = None):
         self.send_response(302)
         self.send_header("Location", url)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         if cookies:
             for c in cookies:
                 self.send_header("Set-Cookie", c)

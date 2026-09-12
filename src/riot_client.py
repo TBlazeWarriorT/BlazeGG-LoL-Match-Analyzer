@@ -2,7 +2,7 @@ import requests
 import time
 import urllib.parse
 from typing import Optional, List, Dict, Any
-from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, get_key_candidates, set_key_preference, DEFAULT_ROUTING, DEFAULT_REGION
+from .config import get_api_key, get_key_expires_at, get_prod_key, get_dev_key, get_dev_expires_at, get_key_candidates, set_key_preference, is_key_dead, mark_key_dead, DEFAULT_ROUTING, DEFAULT_REGION
 from .cache_manager import get_cached_match, save_cached_match, get_cached_timeline, save_cached_timeline, claim_match_owner
 from .i18n import get_text
 
@@ -34,36 +34,28 @@ class RiotClient:
         return "session" if value else ""
 
     @staticmethod
-    def _is_known_expired(kind: str) -> bool:
-        """Only DEV_KEY carries a locally-known expiry we can check with no network
-        call — PROD_KEY is always "permanent" and a session key's real status is
-        unknown until Riot actually rejects it, so neither is ever pre-filtered here."""
-        if kind != "dev":
-            return False
-        exp_val = get_dev_expires_at()
-        return bool(exp_val) and str(exp_val).isdigit() and time.time() >= int(exp_val)
+    def _is_known_expired(kind: str, value: str = "") -> bool:
+        if value and is_key_dead(value):
+            return True
+        if kind == "dev":
+            exp_val = get_dev_expires_at()
+            return bool(exp_val) and str(exp_val).isdigit() and time.time() >= int(exp_val)
+        return False
 
     def _pick_first_usable_candidate(self, session_key: str):
-        """Skips any candidate already known to be dead instead of blindly taking
-        whichever comes first in priority order. Without this, a site owner's own
-        forgotten, unrefreshed DEV_KEY sitting ahead of a visitor's session key in
-        that order would permanently block construction — raising "key expired" for
-        EVERY visitor regardless of how valid their own pasted key is — the moment
-        _key_preference ever flips to "dev" (which any single failed PROD_KEY
-        request causes, and nothing ever flips it back except this exact fix)."""
-        for kind, value in get_key_candidates(session_key):
-            if value and not self._is_known_expired(kind):
+        candidates = get_key_candidates(session_key)
+        for kind, value in candidates:
+            if value and not self._is_known_expired(kind, value):
+                return kind, value
+        # If all candidates are marked dead or expired, return the first non-empty candidate as fallback
+        for kind, value in candidates:
+            if value:
                 return kind, value
         return "", ""
 
     def _switch_to_alternate_key(self) -> bool:
-        """On a 401/403, try the next untried, not-known-dead candidate (prod/dev/
-        session) before giving up. Whichever one works becomes the preferred prod/
-        dev key going forward — not a permanent blacklist of the one that failed,
-        just try-order, so it gets retried again once the currently-preferred one
-        fails too."""
         for kind, value in get_key_candidates(self.session_key):
-            if value and value not in self._tried_values and not self._is_known_expired(kind):
+            if value and value not in self._tried_values and not self._is_known_expired(kind, value):
                 self.api_key = value
                 self.key_kind = kind
                 self.headers = {"X-Riot-Token": self.api_key}
@@ -93,6 +85,10 @@ class RiotClient:
             elif resp.status_code == 404:
                 return None
             elif resp.status_code in (401, 403):
+                if self.api_key:
+                    mark_key_dead(self.api_key)
+                if self.key_kind == "prod":
+                    set_key_preference("dev")
                 if self._switch_to_alternate_key():
                     continue
                 err_key = "err_prod_key_invalid" if self.key_kind == "prod" else "err_dev_key_invalid"
