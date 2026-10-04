@@ -685,7 +685,7 @@ def run_app():
     threading.Thread(target=AssetManager.preload_all_assets, daemon=True).start()
 
     # Child server worker
-    server = ThreadingHTTPServer(("0.0.0.0", PORT), AppHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), AppHandler)
     server.daemon_threads = True
     try:
         server.serve_forever()
