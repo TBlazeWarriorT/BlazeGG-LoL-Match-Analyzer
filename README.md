@@ -35,8 +35,8 @@ Instead of broad macro summaries, it focuses on lane matchups, damage breakdowns
 
 ### 2. Installation
 ```bash
-git clone https://github.com/your-username/lol-api-analyzer.git
-cd lol-api-analyzer
+git clone https://github.com/TBlazeWarriorT/BlazeGG-LoL-Match-Analyzer.git
+cd BlazeGG-LoL-Match-Analyzer
 pip install -r requirements.txt
 ```
 
