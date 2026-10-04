@@ -38,7 +38,7 @@ class AppHandler(BaseHTTPRequestHandler):
         x_forwarded_for = self.headers.get("X-Forwarded-For", "")
         client_ip = self.client_address[0]
         
-        is_local = not is_production_mode()
+        is_local = False
 
         cookies_raw = self.headers.get("Cookie", "")
         import http.cookies
@@ -377,7 +377,7 @@ class AppHandler(BaseHTTPRequestHandler):
             s_name = form_data.get("search_name", [""])[0].strip()
             s_tag = form_data.get("search_tag", [""])[0].strip()
             
-            is_local = not is_production_mode()
+            is_local = False
             
             cookies_to_set = []
             if new_key:
@@ -408,7 +408,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
             host_header = self.headers.get("Host", "").lower()
             x_forwarded_for = self.headers.get("X-Forwarded-For", "")
-            is_local = not is_production_mode()
+            is_local = False
             
             cookies_raw = self.headers.get("Cookie", "")
             import http.cookies
